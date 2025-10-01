@@ -1,1 +1,4 @@
 command: ["uv", "run", "custom-server"]
+env:
+  - name: GIT_FOLDER_PATH
+    value: "/Workspace/Users/nick.karpov@databricks.com/caspers-kitchens"

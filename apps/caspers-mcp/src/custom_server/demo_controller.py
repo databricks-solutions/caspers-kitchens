@@ -19,6 +19,8 @@ class DemoController:
             from databricks.sdk.service.jobs import JobSettings as Job
             import os
 
+            git_folder_path = os.getenv("GIT_FOLDER_PATH", "")
+
             Casper_s_Initializer = Job.from_dict(
                 {
                     "name": "Casper's Initializer",
@@ -26,7 +28,7 @@ class DemoController:
                         {
                             "task_key": "Raw_Data",
                             "notebook_task": {
-                                "notebook_path": os.path.abspath("./stages/raw_data"),
+                                "notebook_path": f"{git_folder_path}/stages/raw_data",
                                 "source": "WORKSPACE",
                             },
                         },
@@ -38,7 +40,7 @@ class DemoController:
                                 },
                             ],
                             "notebook_task": {
-                                "notebook_path": os.path.abspath("./stages/lakeflow"),
+                                "notebook_path": f"{git_folder_path}/stages/lakeflow",
                                 "source": "WORKSPACE",
                             },
                         },
@@ -50,7 +52,7 @@ class DemoController:
                                 },
                             ],
                             "notebook_task": {
-                                "notebook_path": os.path.abspath("./stages/refunder_agent"),
+                                "notebook_path": f"{git_folder_path}/stages/refunder_agent",
                                 "source": "WORKSPACE",
                             },
                         },
@@ -62,7 +64,7 @@ class DemoController:
                                 },
                             ],
                             "notebook_task": {
-                                "notebook_path": os.path.abspath("./stages/refunder_stream"),
+                                "notebook_path": f"{git_folder_path}/stages/refunder_stream",
                                 "source": "WORKSPACE",
                             },
                         },
@@ -74,7 +76,7 @@ class DemoController:
                                 },
                             ],
                             "notebook_task": {
-                                "notebook_path": os.path.abspath("./stages/lakebase"),
+                                "notebook_path": f"{git_folder_path}/stages/lakebase",
                                 "source": "WORKSPACE",
                             },
                         },
@@ -86,7 +88,7 @@ class DemoController:
                                 },
                             ],
                             "notebook_task": {
-                                "notebook_path": os.path.abspath("./stages/apps"),
+                                "notebook_path": f"{git_folder_path}/stages/apps",
                                 "source": "WORKSPACE",
                             },
                         },
