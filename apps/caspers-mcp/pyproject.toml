@@ -1,0 +1,31 @@
+[project]
+name = "custom-server"
+version = "0.1.0"
+description = "Example custom MCP server on Databricks Apps"
+readme = "README.md"
+authors = [
+    { name = "renardeinside", email = "polarpersonal@gmail.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.12",
+    "mcp[cli]>=1.10.0",
+    "uvicorn>=0.34.2",
+    "databricks-sdk>=0.35.0",
+]
+
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "hatchling>=1.27.0",
+]
+
+[tool.hatch.build.hooks.custom]
+path = "hooks/apps_build.py"
+
+[project.scripts]
+custom-server = "custom_server.main:main"

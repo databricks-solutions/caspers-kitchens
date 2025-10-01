@@ -1,0 +1,24 @@
+bundle:
+  name: custom-mcp-server
+
+sync:
+  include:
+    - .build
+
+artifacts:
+  default:
+    type: whl
+    path: .
+    build: uv build --wheel
+
+resources:
+  apps:
+    custom-mcp-server:
+      name: "mcp-custom-server-bundles"
+      description: "Custom MCP Server on Databricks Apps"
+      source_code_path: ./.build
+
+targets:
+  dev:
+    mode: development
+    default: true
