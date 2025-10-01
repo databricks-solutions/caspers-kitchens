@@ -124,6 +124,8 @@ class DemoController:
             jobresponse = self.w.jobs.create(**Casper_s_Initializer.as_shallow_dict())
             run = self.w.jobs.run_now(job_id=jobresponse.job_id)
 
+            self.active_runs[catalog] = run.run_id
+
             return {
                 "status": "started",
                 "catalog": catalog,
