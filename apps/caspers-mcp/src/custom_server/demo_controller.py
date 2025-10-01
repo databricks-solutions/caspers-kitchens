@@ -16,47 +16,116 @@ class DemoController:
     def start_demo(self, catalog: str) -> Dict:
         """Start demo by running init.ipynb then the created job."""
         try:
-            current_user = self.w.current_user.me()
-            init_path = f"/Users/{current_user.user_name}/databricks/init"
-            
-            # First run init.ipynb to create the job
-            init_run = self.w.jobs.submit(
-                run_name=f"Init Caspers Job - {catalog}",
-                tasks=[{
-                    "task_key": "init",
-                    "notebook_task": {
-                        "notebook_path": init_path,
-                        "source": "WORKSPACE",
-                        "base_parameters": {"CATALOG": catalog}
+            from databricks.sdk.service.jobs import JobSettings as Job
+            import os
+
+            Casper_s_Initializer = Job.from_dict(
+                {
+                    "name": "Casper's Initializer",
+                    "tasks": [
+                        {
+                            "task_key": "Raw_Data",
+                            "notebook_task": {
+                                "notebook_path": os.path.abspath("./stages/raw_data"),
+                                "source": "WORKSPACE",
+                            },
+                        },
+                        {
+                            "task_key": "Lakeflow_Declarative_Pipeline",
+                            "depends_on": [
+                                {
+                                    "task_key": "Raw_Data",
+                                },
+                            ],
+                            "notebook_task": {
+                                "notebook_path": os.path.abspath("./stages/lakeflow"),
+                                "source": "WORKSPACE",
+                            },
+                        },
+                        {
+                            "task_key": "Refund_Recommender_Agent",
+                            "depends_on": [
+                                {
+                                    "task_key": "Lakeflow_Declarative_Pipeline",
+                                },
+                            ],
+                            "notebook_task": {
+                                "notebook_path": os.path.abspath("./stages/refunder_agent"),
+                                "source": "WORKSPACE",
+                            },
+                        },
+                        {
+                            "task_key": "Refund_Recommender_Stream",
+                            "depends_on": [
+                                {
+                                    "task_key": "Lakeflow_Declarative_Pipeline",
+                                },
+                            ],
+                            "notebook_task": {
+                                "notebook_path": os.path.abspath("./stages/refunder_stream"),
+                                "source": "WORKSPACE",
+                            },
+                        },
+                        {
+                            "task_key": "Lakebase_Reverse_ETL",
+                            "depends_on": [
+                                {
+                                    "task_key": "Refund_Recommender_Stream",
+                                },
+                            ],
+                            "notebook_task": {
+                                "notebook_path": os.path.abspath("./stages/lakebase"),
+                                "source": "WORKSPACE",
+                            },
+                        },
+                        {
+                            "task_key": "Databricks_App_Refund_Manager",
+                            "depends_on": [
+                                {
+                                    "task_key": "Lakebase_Reverse_ETL",
+                                },
+                            ],
+                            "notebook_task": {
+                                "notebook_path": os.path.abspath("./stages/apps"),
+                                "source": "WORKSPACE",
+                            },
+                        },
+                    ],
+                    "queue": {
+                        "enabled": True,
                     },
-                }]
+                    "parameters": [
+                        {
+                            "name": "CATALOG",
+                            "default": f"{catalog}",
+                        },
+                        {
+                            "name": "EVENTS_VOLUME",
+                            "default": "events",
+                        },
+                        {
+                            "name": "LLM_MODEL",
+                            "default": "databricks-meta-llama-3-3-70b-instruct",
+                        },
+                        {
+                            "name": "REFUND_AGENT_ENDPOINT_NAME",
+                            "default": "caspers_refund_agent",
+                        },
+                        {
+                            "name": "SIMULATOR_SCHEMA",
+                            "default": "simulator",
+                        },
+                    ],
+                    "performance_target": "PERFORMANCE_OPTIMIZED",
+                }
             )
-            
-            # Wait for init to complete
-            init_result = self.w.jobs.wait_get_run_job_terminated_or_skipped(init_run.run_id)
-            if init_result.state.result_state.value != "SUCCESS":
-                return {"status": "error", "message": "Failed to create Casper's Initializer job"}
-            
-            # Find the newly created job
-            jobs = self.w.jobs.list()
-            job_id = None
-            for job in jobs:
-                if job.settings and job.settings.name == "Casper's Initializer":
-                    job_id = job.job_id
-                    break
-            
-            if not job_id:
-                return {"status": "error", "message": "Casper's Initializer job was not created"}
-            
-            # Now run the actual demo job
-            demo_run = self.w.jobs.run_now(job_id=job_id, job_parameters={"CATALOG": catalog})
-            self.active_runs[catalog] = demo_run.run_id
-            
+            jobresponse = self.w.jobs.create(**Casper_s_Initializer.as_shallow_dict())
+            run = self.w.jobs.run_now(job_id=jobresponse.job_id)
+
             return {
                 "status": "started",
                 "catalog": catalog,
-                "init_run_id": init_run.run_id,
-                "demo_run_id": demo_run.run_id,
+                "init_run_id": run.run_id,
                 "message": f"Demo started for catalog: {catalog}"
             }
         except Exception as e:
