@@ -29,11 +29,6 @@ class DemoController:
                         "source": "WORKSPACE",
                         "base_parameters": {"CATALOG": catalog}
                     },
-                    "new_cluster": {
-                        "spark_version": "13.3.x-scala2.12",
-                        "node_type_id": "Standard_DS3_v2",
-                        "num_workers": 0
-                    }
                 }]
             )
             
