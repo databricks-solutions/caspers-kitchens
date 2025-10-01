@@ -21,7 +21,7 @@ class DemoController:
                 return job.job_id
         return None
     
-    async def start_demo(self, catalog: str) -> Dict:
+    def start_demo(self, catalog: str) -> Dict:
         """Start demo with specified catalog."""
         try:
             job_id = self._find_caspers_job()
@@ -40,7 +40,7 @@ class DemoController:
         except Exception as e:
             return {"status": "error", "message": str(e)}
     
-    async def get_demo_status(self, catalog: str = None) -> Dict:
+    def get_demo_status(self, catalog: str = None) -> Dict:
         """Get demo status."""
         try:
             if catalog and catalog in self.active_runs:
@@ -70,7 +70,7 @@ class DemoController:
         except Exception as e:
             return {"status": "error", "message": str(e)}
     
-    async def cleanup_demo(self, catalog: str) -> Dict:
+    def cleanup_demo(self, catalog: str) -> Dict:
         """Run cleanup for specified catalog."""
         try:
             current_user = self.w.current_user.me()

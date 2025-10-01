@@ -14,22 +14,19 @@ demo_controller = DemoController()
 @mcp.tool()
 def start_demo(catalog: str) -> dict:
     """Start Casper's demo with specified catalog name"""
-    import asyncio
-    return asyncio.run(demo_controller.start_demo(catalog))
+    return demo_controller.start_demo(catalog)
 
 
 @mcp.tool()
 def get_demo_status(catalog: str = None) -> dict:
     """Get status of demo. Optionally specify catalog to check specific demo"""
-    import asyncio
-    return asyncio.run(demo_controller.get_demo_status(catalog))
+    return demo_controller.get_demo_status(catalog)
 
 
 @mcp.tool()
 def cleanup_demo(catalog: str) -> dict:
     """Clean up demo resources for specified catalog"""
-    import asyncio
-    return asyncio.run(demo_controller.cleanup_demo(catalog))
+    return demo_controller.cleanup_demo(catalog)
 
 
 # Add an addition tool
