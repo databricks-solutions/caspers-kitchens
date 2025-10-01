@@ -13,28 +13,55 @@ class DemoController:
         self.w = WorkspaceClient()
         self.active_runs = {}  # catalog -> run_id mapping
         
-    def _find_caspers_job(self) -> Optional[int]:
-        """Find Casper's Initializer job."""
-        jobs = self.w.jobs.list()
-        for job in jobs:
-            if job.settings and job.settings.name == "Casper's Initializer":
-                return job.job_id
-        return None
-    
     def start_demo(self, catalog: str) -> Dict:
-        """Start demo with specified catalog."""
+        """Start demo by running init.ipynb then the created job."""
         try:
-            job_id = self._find_caspers_job()
-            if not job_id:
-                return {"status": "error", "message": "Casper's Initializer job not found"}
+            current_user = self.w.current_user.me()
+            init_path = f"/Users/{current_user.user_name}/databricks/init"
             
-            run_response = self.w.jobs.run_now(job_id=job_id, job_parameters={"CATALOG": catalog})
-            self.active_runs[catalog] = run_response.run_id
+            # First run init.ipynb to create the job
+            init_run = self.w.jobs.submit(
+                run_name=f"Init Caspers Job - {catalog}",
+                tasks=[{
+                    "task_key": "init",
+                    "notebook_task": {
+                        "notebook_path": init_path,
+                        "source": "WORKSPACE",
+                        "base_parameters": {"CATALOG": catalog}
+                    },
+                    "new_cluster": {
+                        "spark_version": "13.3.x-scala2.12",
+                        "node_type_id": "Standard_DS3_v2",
+                        "num_workers": 0
+                    }
+                }]
+            )
+            
+            # Wait for init to complete
+            init_result = self.w.jobs.wait_get_run_job_terminated_or_skipped(init_run.run_id)
+            if init_result.state.result_state.value != "SUCCESS":
+                return {"status": "error", "message": "Failed to create Casper's Initializer job"}
+            
+            # Find the newly created job
+            jobs = self.w.jobs.list()
+            job_id = None
+            for job in jobs:
+                if job.settings and job.settings.name == "Casper's Initializer":
+                    job_id = job.job_id
+                    break
+            
+            if not job_id:
+                return {"status": "error", "message": "Casper's Initializer job was not created"}
+            
+            # Now run the actual demo job
+            demo_run = self.w.jobs.run_now(job_id=job_id, job_parameters={"CATALOG": catalog})
+            self.active_runs[catalog] = demo_run.run_id
             
             return {
                 "status": "started",
                 "catalog": catalog,
-                "run_id": run_response.run_id,
+                "init_run_id": init_run.run_id,
+                "demo_run_id": demo_run.run_id,
                 "message": f"Demo started for catalog: {catalog}"
             }
         except Exception as e:
