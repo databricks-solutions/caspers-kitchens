@@ -6,20 +6,21 @@ Casper's Kitchens is a simulated food-delivery platform that shows off the full 
 
 ## 🚀 Quick Start
 
-```bash
-# Import to Databricks Workspace
-Create a new Git folder in your workspace and import this repository
+1. **Import to Databricks Workspace**: Create a new Git folder in your workspace and import this repository
 
-# Initialize the demo
-Run init.ipynb to create the "Casper's Initializer" job. By default the job will use the catalog `caspers` but you may change it using the notebook parameters.
+2. **Initialize the demo**: Run `init.ipynb` to create the "Casper's Initializer" job
+   - By default the job will use the catalog `caspers`
+   - **Important**: If you're working in a metastore that spans multiple workspaces and another workspace has already used the catalog name `caspers`, you'll need to specify a different name using the `CATALOG` parameter. Catalog names must be unique within a metastore.
+   - By default, only the San Francisco location will generate data. To run additional locations (like Chicago) or create your own, see `data/generator/configs/README.md` and use the `LOCATIONS` parameter.
 
-# Launch your ghost kitchen empire
-Execute "Casper's Initializer" job. You can "Run All" for the complete demo, or select only specific stages (see Available Stages below)
-```
+3. **Launch your ghost kitchen empire**:
+   - Navigate to **Jobs & Pipelines** in the left sidebar of your Databricks workspace
+   - Find and run the `Casper's Initializer` job
+   - You can pick a subset of tasks to run if you want. The `Raw_Data` and `Lakeflow_Declarative_Pipeline` tasks are required, but downstream tasks are demo-specific and you can run whichever ones you need.
 
 Then open Databricks and watch:
 - 📦 Orders stream in from ghost kitchens
-- 🔄 Pipelines curate raw → bronze → silver → gold  
+- 🔄 Pipelines curate raw → bronze → silver → gold
 - 📊 [Dashboards](https://github.com/databricks-solutions/caspers-kitchens/issues/13) & apps come alive with real-time insights
 - 🤖 RefundGPT agent decides whether refunds should be granted
 
