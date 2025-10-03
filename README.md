@@ -1,5 +1,16 @@
 # 🍔 Casper's Kitchens
 
+[![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
+[![PySpark](https://img.shields.io/badge/PySpark-3.5+-E25A1C?style=flat&logo=apache-spark&logoColor=white)](https://spark.apache.org/)
+[![Databricks](https://img.shields.io/badge/Databricks-Platform-FF3621?style=flat&logo=databricks&logoColor=white)](https://www.databricks.com/)
+[![Delta Lake](https://img.shields.io/badge/Delta_Lake-Latest-00ADD8?style=flat&logo=delta&logoColor=white)](https://delta.io/)
+[![LangChain](https://img.shields.io/badge/LangChain-AI_Agent-121212?style=flat&logo=chainlink&logoColor=white)](https://www.langchain.com/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-Web_App-009688?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Lakebase-4169E1?style=flat&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![License](https://img.shields.io/badge/License-Databricks-00A4EF?style=flat)](https://databricks.com/db-license-source)
+
+---
+
 Spin up a fully working ghost-kitchen business on Databricks in minutes.
 
 Casper's Kitchens is a simulated food-delivery platform that shows off the full power of Databricks: streaming ingestion, Lakeflow Declarative Pipelines, AI/BI Dashboards and Genie, Agent Bricks, and real-time apps backed by Lakebase postgres — all stitched together into one narrative.
@@ -24,6 +35,8 @@ Then open Databricks and watch:
 - 🤖 RefundGPT agent decides whether refunds should be granted
 
 That's it! Your Casper's Kitchens environment will be up and running.
+
+> 📖 **[View Complete Documentation](./docs/README.md)** - For detailed architecture diagrams, technical reference, and developer guides, see the [docs folder](./docs/).
 
 ## 🏗️ What is Casper's Kitchens?
 
