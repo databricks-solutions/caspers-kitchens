@@ -142,3 +142,10 @@ Run `destroy.ipynb` to remove all Casper's Kitchens resources from your workspac
 
 | library                                | description             | license    | source                                              |
 |----------------------------------------|-------------------------|------------|-----------------------------------------------------|
+| LangChain                              | AI agent framework      | MIT        | https://github.com/langchain-ai/langchain           |
+| FastAPI                                | Web framework           | MIT        | https://github.com/tiangolo/fastapi                 |
+| MLflow                                 | Model tracking          | Apache 2.0 | https://github.com/mlflow/mlflow                    |
+| SQLAlchemy                             | Database ORM            | MIT        | https://github.com/sqlalchemy/sqlalchemy            |
+| psycopg                                | PostgreSQL adapter      | LGPL-3.0   | https://github.com/psycopg/psycopg                  |
+| Databricks SDK                         | Databricks API client   | Apache 2.0 | https://github.com/databricks/databricks-sdk-py     |
+| Uvicorn                                | ASGI server             | BSD-3      | https://github.com/encode/uvicorn                   |
