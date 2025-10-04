@@ -8,7 +8,6 @@ This documentation provides comprehensive guidance for understanding and working
 Complete visual overview of the data architecture showing:
 - Event sources and data ingestion
 - Medallion architecture layers (Bronze → Silver → Gold)
-- Streaming intelligence and ML components
 - Applications and consumption patterns
 - Data lineage and dependencies
 
@@ -16,16 +15,13 @@ Complete visual overview of the data architecture showing:
 Detailed technical specifications including:
 - Complete table schemas and data types
 - Transformation logic and SQL implementations
-- API endpoints and response formats
 - Configuration parameters and settings
-- Performance optimization details
 
 ### 👨‍💻 [Developer Onboarding Guide](./developer-onboarding.md)
 Step-by-step guide for new developers covering:
 - Architecture overview and key concepts
 - Essential files and code walkthrough
 - Common development tasks and patterns
-- Troubleshooting and debugging tips
 - SQL queries for monitoring and validation
 
 ### 🎨 Visual Dataflow Diagrams
