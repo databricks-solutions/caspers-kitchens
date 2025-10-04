@@ -4,6 +4,7 @@
 [![PySpark](https://img.shields.io/badge/PySpark-3.5+-E25A1C?style=flat&logo=apache-spark&logoColor=white)](https://spark.apache.org/)
 [![Databricks](https://img.shields.io/badge/Databricks-Platform-FF3621?style=flat&logo=databricks&logoColor=white)](https://www.databricks.com/)
 [![Delta Lake](https://img.shields.io/badge/Delta_Lake-Latest-00ADD8?style=flat&logo=delta&logoColor=white)](https://delta.io/)
+[![MLflow](https://img.shields.io/badge/MLflow-Agent_Tracking-0194E2?style=flat&logo=mlflow&logoColor=white)](https://mlflow.org/)
 [![LangChain](https://img.shields.io/badge/LangChain-AI_Agent-121212?style=flat&logo=chainlink&logoColor=white)](https://www.langchain.com/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-Web_App-009688?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Lakebase-4169E1?style=flat&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
