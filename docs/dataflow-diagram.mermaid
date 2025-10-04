@@ -1,0 +1,140 @@
+graph TB
+    %% Event Sources Layer
+    subgraph "Event Sources"
+        OC[Order Creation<br/>Customer App]
+        KE[Kitchen Events<br/>gk_started, gk_finished, gk_ready]
+        DE[Driver Events<br/>driver_arrived, driver_picked_up]
+        GPS[GPS Tracking<br/>driver_ping, delivered]
+    end
+
+    %% Raw Data Ingestion
+    subgraph "Raw Data Ingestion"
+        VOL["/Volumes/{CATALOG}/{SCHEMA}/{VOLUME}<br/>JSON Event Files<br/>Real-time Streaming"]
+        CONFIG["Configuration Files<br/>data/generator/configs/<br/>sanfrancisco.json"]
+        DIM["Dimensional Data<br/>data/dimensional/<br/>brands.parquet<br/>categories.parquet<br/>items.parquet<br/>menus.parquet"]
+    end
+
+    %% Bronze Layer
+    subgraph "Bronze Layer - Raw Event Store" 
+        direction TB
+        AE["all_events<br/>Raw JSON events as ingested<br/>• event_type, order_id, ts<br/>• body (JSON payload)<br/>• location, gk_id<br/>CloudFiles Streaming"]
+    end
+
+    %% Silver Layer  
+    subgraph "Silver Layer - Clean Operational Data"
+        direction TB
+        SOI["silver_order_items<br/>One row per item per order<br/>• Exploded items with extended_price<br/>• order_id, gk_id, location<br/>• item details + price * qty<br/>• Partitioned by order_day<br/>• Watermark: order_ts"]
+    end
+
+    %% Gold Layer
+    subgraph "Gold Layer - Business Intelligence"
+        direction TB
+        GOH["gold_order_header<br/>Per-order revenue & counts<br/>• order_revenue, total_qty<br/>• total_items, brands_in_order<br/>• Grouped by order"]
+        
+        GISD["gold_item_sales_day<br/>Item-level sales by day<br/>• units_sold, gross_revenue<br/>• Partitioned by day<br/>• Grouped by item + day"]
+        
+        GBSD["gold_brand_sales_day<br/>Brand-level sales by day<br/>• approx_count_distinct orders<br/>• items_sold, brand_revenue<br/>• HyperLogLog for streaming<br/>• Watermark: 3 hours"]
+        
+        GLSH["gold_location_sales_hourly<br/>Hourly location performance<br/>• approx orders, revenue<br/>• Partitioned by hour_ts<br/>• Watermark: 3 hours"]
+    end
+
+    %% Dimensional Tables
+    subgraph "Dimensional Tables"
+        direction TB
+        BRANDS["{CATALOG}.{SIMULATOR_SCHEMA}.brands<br/>Brand reference data"]
+        CATEGORIES["{CATALOG}.{SIMULATOR_SCHEMA}.categories<br/>Category reference data"] 
+        ITEMS["{CATALOG}.{SIMULATOR_SCHEMA}.items<br/>Item reference data"]
+        MENUS["{CATALOG}.{SIMULATOR_SCHEMA}.menus<br/>Menu reference data"]
+    end
+
+    %% Streaming Intelligence
+    subgraph "Real-time Streaming Intelligence"
+        direction TB
+        RRS["Refund Recommender Stream<br/>Processes 'delivered' events<br/>• Filters: event_type = 'delivered'<br/>• Sampling: 10% historical, 100% new<br/>• LLM-based refund classification<br/>• Output: structured recommendations"]
+        
+        RRT["{CATALOG}.recommender.refund_recommendations<br/>ML-generated refund suggestions<br/>• order_id, ts, agent_response<br/>• Refund class: none/partial/full<br/>• Refund amount in USD"]
+    end
+
+    %% Lakebase Integration
+    subgraph "Lakebase Integration"
+        direction TB
+        LB["PostgreSQL Instance<br/>{CATALOG}refundmanager<br/>Database: caspers"]
+        
+        ST["Synced Table<br/>pg_recommendations<br/>• Continuous sync from refund_recommendations<br/>• Primary key: order_id<br/>• Real-time operational queries"]
+    end
+
+    %% Applications Layer
+    subgraph "Applications & Consumption"
+        direction TB
+        RMA["Refund Manager App<br/>FastAPI Application<br/>• Human refund review<br/>• Decision tracking<br/>• Order event timeline<br/>• PostgreSQL backend"]
+        
+        DASH["AI/BI Dashboards<br/>Real-time Analytics<br/>• Revenue metrics<br/>• Order volumes<br/>• Delivery performance<br/>• Streaming updates"]
+        
+        AGENT["Agent Bricks<br/>RefundGPT Agent<br/>• LLM-based decisions<br/>• Delivery performance analysis<br/>• Automated recommendations"]
+    end
+
+    %% State Management
+    subgraph "State Management"
+        direction TB
+        UCState["Unity Catalog State<br/>utils/uc_state/<br/>• Resource tracking<br/>• Deployment state<br/>• Configuration management"]
+    end
+
+    %% Data Flow Connections
+    OC --> VOL
+    KE --> VOL  
+    DE --> VOL
+    GPS --> VOL
+    
+    CONFIG --> VOL
+    DIM --> BRANDS
+    DIM --> CATEGORIES
+    DIM --> ITEMS
+    DIM --> MENUS
+    
+    VOL --> AE
+    AE --> SOI
+    
+    SOI --> GOH
+    SOI --> GISD
+    SOI --> GBSD
+    SOI --> GLSH
+    
+    AE --> RRS
+    RRS --> RRT
+    
+    RRT --> LB
+    LB --> ST
+    ST --> RMA
+    
+    GOH --> DASH
+    GISD --> DASH
+    GBSD --> DASH
+    GLSH --> DASH
+    
+    BRANDS --> SOI
+    CATEGORIES --> SOI
+    ITEMS --> SOI
+    MENUS --> SOI
+    
+    RRT --> AGENT
+    AGENT --> RMA
+    
+    %% Styling
+    classDef eventSource fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef bronze fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef silver fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef gold fill:#fff8e1,stroke:#f57f17,stroke-width:2px
+    classDef streaming fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px
+    classDef app fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    classDef dimensional fill:#f1f8e9,stroke:#558b2f,stroke-width:2px
+    classDef lakebase fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    
+    class OC,KE,DE,GPS eventSource
+    class AE bronze
+    class SOI silver
+    class GOH,GISD,GBSD,GLSH gold
+    class RRS,RRT streaming
+    class RMA,DASH,AGENT app
+    class BRANDS,CATEGORIES,ITEMS,MENUS dimensional
+    class LB,ST lakebase
+    class VOL,CONFIG,DIM,UCState silver
