@@ -41,7 +41,7 @@ Right now, Casper’s Kitchens runs as a fully simulated environment. The [init.
 
 You can already extend the demo data generator by adding new locations through simple configuration files. Each location has its own JSON definition that controls parameters like order volume, start time, and growth rate. These configurations live in the [data/generator/configs](https://github.com/databricks-solutions/caspers-kitchens/blob/main/data/generator/configs/README.md) folder and can be easily customized or duplicated to create new scenarios.
 
-![Stages](../../images/stages.png)
+![Stages](https://github.com/databricks-solutions/caspers-kitchens/blob/main/images/stages.png)
 
 The current stages include:
 
