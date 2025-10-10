@@ -61,10 +61,10 @@ Because we're using tasks (within Databricks Jobs), you can even use the native 
 
 It's already incredibly useful for our demo needs, but, beyond that, there’s a lot we’re exploring:
 
-**Demo assets:** stock demo scripts, talk tracks, and short videos to help others deliver Casper’s.
-**Interactive data generation:** an App-based interface for building or resetting simulated data.
-**Real ingestion:** connecting to external systems so the pipelines pull in actual data instead of stubs.
-**Meta demos:** building demos about demos. A good example is an MCP server that lets you use the Databricks Playground to control the entire Casper’s demo with natural language: `start caspers`, `new location in Mountain View`, `simulate an order right now` etc.
+- **Demo assets:** stock demo scripts, talk tracks, and short videos to help others deliver Casper’s.
+- **Interactive data generation:** an App-based interface for building or resetting simulated data.
+- **Real ingestion:** connecting to external systems so the pipelines pull in actual data instead of stubs.
+- **Meta demos:** building demos about demos. A good example is an MCP server that lets you use the Databricks Playground to control the entire Casper’s demo with natural language: `start caspers`, `new location in Mountain View`, `simulate an order right now` etc.
 
 ## Why it matters
 
