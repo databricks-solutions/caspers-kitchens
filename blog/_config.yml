@@ -1,0 +1,20 @@
+title: Blog
+description: A simple GitHub Pages blog
+baseurl: "/blog"
+url: ""
+
+markdown: kramdown
+highlighter: rouge
+theme: minima
+
+plugins:
+  - jekyll-feed
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor/bundle/
+  - vendor/cache/
+  - vendor/gems/
+  - vendor/ruby/
