@@ -7,7 +7,7 @@ categories: blog
 tags: [Databricks, Demo Framework, Lakehouse, Lakeflow, Lakebase, Apps, AI]
 ---
 
-Casper’s Kitchens started with a practical problem. Our team builds demos all the time, and we wanted a way to make them consistent, composable, and reusable.
+[Casper’s Kitchens](https://github.com/databricks-solutions/caspers-kitchens) started with a practical problem. Our team builds demos all the time, and we wanted a way to make them consistent, composable, and reusable.
 
 We first piloted the Casper’s concept with our ongoing [Databricks DevConnect series](https://luma.com/DevConnectDBX) and again at [DAIS 2025](https://www.databricks.com/dataaisummit). The response was great; people appreciated how comprehensive the demos felt across the platform and that reaction pushed us to formalize the work into something shareable.
 
@@ -41,6 +41,8 @@ Right now, Casper’s Kitchens runs as a fully simulated environment. The [init.
 
 You can already extend the demo data generator by adding new locations through simple configuration files. Each location has its own JSON definition that controls parameters like order volume, start time, and growth rate. These configurations live in the [data/generator/configs](https://github.com/databricks-solutions/caspers-kitchens/blob/main/data/generator/configs/README.md) folder and can be easily customized or duplicated to create new scenarios.
 
+![Stages](../../images/stages.png)
+
 The current stages include:
 
 1. **Raw data generation:** dimension tables for brands, menus, and items, along with synthetic order JSON written to a Databricks Volume.
@@ -53,7 +55,7 @@ The current stages include:
 
 5. **Refund app:** a Databricks App backed by Lakebase that allows a human reviewer to confirm or reject the agent’s refund suggestions.
 
-You can even select to run only the stages you need, in case you're working on only a single part of the demo universe. This is a pretty significant feature that emerged as we forced ourselves to dogfood and stick to a Databricks only approach.
+Because we're using tasks (within Databricks Jobs), you can even use the native UI to select to run **only the stages you need**, in case you're working on only a single part of the demo universe. This is a pretty significant feature that emerged as we forced ourselves to dogfood and stick to a Databricks only approach - something we couldn't quite achieve if we had stuck to Terraform, for example.
 
 ## Where it’s going
 
