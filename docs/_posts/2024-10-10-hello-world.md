@@ -2,7 +2,7 @@
 layout: post
 title: "Hello World"
 date: 2024-10-10 12:00:00 -0000
-categories: general
+categories: blog
 ---
 
 # Hello World!

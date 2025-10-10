@@ -1,8 +1,8 @@
 title: Casper's Kitchens Blog
 description: >- # this means to ignore newlines until "baseurl:"
   Casper’s Kitchens unifies streaming, ETL, BI, Gen AI, Lakebase and Apps into one cohesive Databricks narrative — a fully working ghost kitchen business you can deploy, explore, and extend.
-baseurl: "" # the subpath of your site, e.g. /blog
-url: "https://databricks-solutions.github.io/caspers-kitchens/" # the base hostname & protocol for your site, e.g. http://example.com
+baseurl: "/caspers-kitchens" # the subpath of your site, e.g. /blog
+url: "https://databricks-solutions.github.io" # the base hostname & protocol for your site, e.g. http://example.com
 
 # Build settings
 markdown: kramdown
