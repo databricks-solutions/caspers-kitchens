@@ -22,7 +22,7 @@ Then open Databricks and watch:
 - 📦 Orders stream in from ghost kitchens
 - 🔄 Pipelines curate raw → bronze → silver → gold
 - 📊 [Dashboards](https://github.com/databricks-solutions/caspers-kitchens/issues/13) & apps come alive with real-time insights
-- 🤖 RefundGPT agent decides whether refunds should be granted
+- 🤖 AI agents handle refunds and complaints
 
 That's it! Your Casper's Kitchens environment will be up and running.
 
@@ -88,6 +88,22 @@ Each event includes order ID, sequence number, timestamp, and location context. 
 **⚡ Refund Agent Stream**
 - Spark Streaming job for real-time refund scoring
 - Processes completed orders and writes results to lakehouse
+
+**🤖 Complaint Agent**
+- AI agent that processes customer complaints using UC functions
+- Classifies complaints and makes decisions (auto_credit, investigate, escalate)
+
+**⚡ Complaint Generator Stream**
+- Generates realistic customer complaints from delivered orders
+- Configurable complaint rate (default 15%)
+
+**⚡ Complaint Agent Stream**
+- Processes complaints through the agent endpoint in real-time
+- Writes decisions to lakehouse for downstream consumption
+
+**🗄️ Complaint Lakebase**
+- Syncs complaint responses to Lakebase PostgreSQL
+- Enables operational database for complaint management
 
 **🗄️ Lakebase and Reverse ETL**
 - Creates Lakebase (PostgreSQL) instance
