@@ -92,10 +92,10 @@ class UCState:
     def add(self, resource_type: str, resource_obj: Any) -> str:
         """
         Add a resource to state.
-        
+
         Args:
-            resource_type: Type of resource (jobs, pipelines, apps, databaseinstances, endpoints, catalogs, databasecatalogs, warehouses)
-            resource_obj: The API return object from Databricks SDK
+            resource_type: Type of resource (experiments, jobs, pipelines, apps, databaseinstances, endpoints, catalogs, databasecatalogs, warehouses)
+            resource_obj: The API return object from Databricks SDK or a dict with resource metadata
             
         Returns:
             internal_id: Generated UUID for this resource
@@ -206,7 +206,7 @@ class UCState:
     def clear_all(self, dry_run: bool = False) -> Dict[str, Dict[str, List[Dict[str, str]]]]:
         """
         Remove all resources from Databricks and clear state.
-        Deletion order: jobs → pipelines → endpoints → apps → warehouses → databaseinstances → catalogs
+        Deletion order: experiments → jobs → pipelines → endpoints → apps → warehouses → databaseinstances → catalogs
         
         Args:
             dry_run: If True, only show what would be deleted without actually deleting
@@ -219,8 +219,8 @@ class UCState:
                 }
             }
         """
-        # Define deletion order: jobs → pipelines → endpoints → apps → warehouses → databasecatalogs → catalogs → databaseinstances
-        deletion_order = ['jobs', 'pipelines', 'endpoints', 'apps', 'warehouses', 'databasecatalogs', 'catalogs', 'databaseinstances']
+        # Define deletion order: experiments → jobs → pipelines → endpoints → apps → warehouses → databasecatalogs → catalogs → databaseinstances
+        deletion_order = ['experiments', 'jobs', 'pipelines', 'endpoints', 'apps', 'warehouses', 'databasecatalogs', 'catalogs', 'databaseinstances']
         results = {}
         
         for resource_type in deletion_order:
@@ -243,7 +243,9 @@ class UCState:
                 
                 # Extract resource name for better reporting
                 resource_name = "Unknown"
-                if resource_type == 'jobs':
+                if resource_type == 'experiments':
+                    resource_name = resource_data.get('name', 'Unknown')
+                elif resource_type == 'jobs':
                     resource_name = resource_data.get('settings', {}).get('name') or resource_data.get('job_id', 'Unknown')
                 elif resource_type == 'pipelines':
                     resource_name = resource_data.get('name') or resource_data.get('pipeline_id', 'Unknown')
@@ -270,9 +272,20 @@ class UCState:
                 # Attempt to delete the resource from Databricks
                 deletion_successful = False
                 error_message = None
-                
+
                 try:
-                    if resource_type == 'jobs':
+                    if resource_type == 'experiments':
+                        experiment_id = resource_data.get('experiment_id')
+                        if experiment_id:
+                            import mlflow
+                            client = mlflow.MlflowClient()
+                            client.delete_experiment(experiment_id)
+                            logger.info(f"Deleted experiment {experiment_id}")
+                            deletion_successful = True
+                        else:
+                            error_message = "No experiment_id found in resource data"
+
+                    elif resource_type == 'jobs':
                         job_id = resource_data.get('job_id')
                         if job_id:
                             self.w.jobs.delete(job_id=int(job_id))
@@ -434,11 +447,11 @@ class UCState:
 def add(catalog: str, resource_type: str, resource_obj: Any, schema: str = "_internal_state", table: str = "resources") -> str:
     """
     Add a resource to state without creating state manager explicitly.
-    
+
     Args:
         catalog: The catalog name to store state in
-        resource_type: Type of resource (jobs, pipelines, apps, databaseinstances, endpoints, catalogs, databasecatalogs, warehouses)
-        resource_obj: The API return object from Databricks SDK
+        resource_type: Type of resource (experiments, jobs, pipelines, apps, databaseinstances, endpoints, catalogs, databasecatalogs, warehouses)
+        resource_obj: The API return object from Databricks SDK or a dict with resource metadata
         schema: Schema name (default: _internal_state)
         table: Table name (default: resources)
         
