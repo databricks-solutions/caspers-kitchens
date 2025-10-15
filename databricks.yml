@@ -109,6 +109,45 @@ resources:
           notebook_task:
             notebook_path: ${workspace.root_path}/stages/apps
 
+scripts:
+  cleanup:
+    content: |
+      set -eo pipefail
+
+      # Detect the target passed to `databricks bundle run cleanup -t <target>`
+      TARGET_FLAG=""
+      if env | grep -q '^DATABRICKS_BUNDLE_TARGET='; then
+        TARGET_FLAG="-t $DATABRICKS_BUNDLE_TARGET"
+      fi
+
+      # Get fully-resolved bundle config (includes target overrides)
+      RESOLVED_JSON="$(databricks bundle validate $TARGET_FLAG --output json)"
+
+      # Pull values we need (requires jq)
+      FILE_PATH="$(printf '%s' "$RESOLVED_JSON" | jq -r '.workspace.file_path // (.workspace.root_path + "/src")')"
+      CATALOG="$(printf '%s' "$RESOLVED_JSON" | jq -r '.variables.catalog.value // .variables.catalog.default')"
+
+      mkdir -p .bundle
+      cat > .bundle/submit.json <<JSON
+      {
+        "run_name": "caspers: cleanup (ephemeral)",
+        "performance_target": "PERFORMANCE_OPTIMIZED",
+        "tasks": [
+          {
+            "task_key": "destroy",
+            "notebook_task": {
+              "notebook_path": "$FILE_PATH/destroy",
+              "source": "WORKSPACE",
+              "base_parameters": { "CATALOG": "$CATALOG" }
+            }
+          }
+        ]
+      }
+      JSON
+
+      databricks jobs submit --json @.bundle/submit.json
+
+
 targets:
   dev:
     default: true
