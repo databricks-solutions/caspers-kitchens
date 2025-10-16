@@ -1,0 +1,31 @@
+id,category_id,menu_id,brand_id,name,price
+1,speciality_pizza,1,1,ExtravaganZZa,18.99
+2,speciality_pizza,1,1,MeatZZa,17.99
+3,speciality_pizza,1,1,Philly Cheese Steak,18.49
+4,speciality_pizza,1,1,Pacific Veggie,17.99
+5,speciality_pizza,1,1,Honolulu Hawaiian,17.99
+6,speciality_pizza,1,1,Deluxe,16.49
+7,speciality_pizza,1,1,Cali Chicken Bacon Ranch,18.99
+8,speciality_pizza,1,1,Buffalo Chicken,18.99
+9,speciality_pizza,1,1,Spinach & Feta,17.99
+10,custom_pizza,1,1,Build Your Own Pizza,14.99
+11,pasta,1,1,5-Cheese Mac & Cheese,8.99
+12,pasta,1,1,Spicy Buffalo 5-Cheese Mac & Cheese,9.49
+13,pasta,1,1,Chicken Alfredo,9.49
+14,pasta,1,1,Italian Sausage Marinara,9.49
+15,sandwich,1,1,Philly Cheese Steak Sandwich,7.29
+16,sandwich,1,1,Chicken Bacon Ranch Sandwich,7.29
+17,sandwich,1,1,Italian Sandwich,7.19
+18,sandwich,1,1,Chicken Parm Sandwich,7.29
+19,sandwich,1,1,Buffalo Chicken Sandwich,7.29
+20,appetizer,1,1,Parmesan Bread Bites,5.19
+21,appetizer,1,1,Loaded Tots,6.99
+22,appetizer,1,1,Chicken Wings,8.99
+23,dessert,1,1,Cinnamon Bread Bites,5.29
+24,dessert,1,1,Chocolate Lava Crunch Cakes,6.29
+25,dessert,1,1,Domino's Marbled Cookie Brownie,7.29
+26,drink,1,1,Coke,2.79
+27,drink,1,1,Diet Coke,2.79
+28,drink,1,1,Sprite,2.79
+29,drink,1,1,Dasani Bottle Water,2.39
+30,drink,1,1,Fanta Orange,2.79

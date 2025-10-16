@@ -1,0 +1,49 @@
+{
+    "start_days_ago": 3,
+    "end_days_ahead": 362,
+    "speed_up": 1,
+    "orders_day_1": 60,
+    "orders_last": 950,
+    "noise_pct": 10,
+    "svc": {
+        "cs": [
+            2,
+            1
+        ],
+        "sf": [
+            11,
+            3
+        ],
+        "fr": [
+            2,
+            1
+        ],
+        "rp": [
+            5,
+            2
+        ]
+    },
+    "driver_arrival": {
+        "alpha": 3,
+        "beta": 3,
+        "after_ready_pct": 0.5
+    },
+    "brand_momentum": {
+        "improving": 0.1,
+        "flat": 0.2,
+        "declining": 0.7
+    },
+    "momentum_rates": {
+        "growth": 0.8,
+        "decline": 0.2
+    },
+    "dq": {},
+    "gk_location": "6557 Fondren Rd Houston, TX 77036",
+    "location_name": "ChIJvXT99PfCQIYROz3H0NrIctA",
+    "radius_mi": 7.5,
+    "driver_mph": 45,
+    "batch_rows": 10,
+    "batch_seconds": 1,
+    "ping_sec": 60,
+    "random_seed": 42
+}
