@@ -5,7 +5,7 @@ bundle:
 variables:
   catalog:
     description: "UC catalog for this bundle/target"
-    default: caspers_dev
+    default: caspersdev
 
 workspace:
   # Default root path under your user home; still configurable per target
@@ -25,7 +25,7 @@ sync:
 
 resources:
   jobs:
-    caspers_initializer:
+    caspers:
       name: "Casper's Initializer"
       queue:
         enabled: true
@@ -54,7 +54,7 @@ resources:
           notebook_task:
             notebook_path: ${workspace.root_path}/stages/raw_data
 
-        - task_key: Lakeflow_Declarative_Pipeline
+        - task_key: Spark_Declarative_Pipeline
           depends_on:
             - task_key: Raw_Data
           notebook_task:
@@ -62,25 +62,25 @@ resources:
 
         - task_key: Refund_Recommender_Agent
           depends_on:
-            - task_key: Lakeflow_Declarative_Pipeline
+            - task_key: Spark_Declarative_Pipeline
           notebook_task:
             notebook_path: ${workspace.root_path}/stages/refunder_agent
 
         - task_key: Refund_Recommender_Stream
           depends_on:
-            - task_key: Lakeflow_Declarative_Pipeline
+            - task_key: Spark_Declarative_Pipeline
           notebook_task:
             notebook_path: ${workspace.root_path}/stages/refunder_stream
 
         - task_key: Complaint_Agent
           depends_on:
-            - task_key: Lakeflow_Declarative_Pipeline
+            - task_key: Spark_Declarative_Pipeline
           notebook_task:
             notebook_path: ${workspace.root_path}/stages/complaint_agent
 
         - task_key: Complaint_Generator_Stream
           depends_on:
-            - task_key: Lakeflow_Declarative_Pipeline
+            - task_key: Spark_Declarative_Pipeline
           notebook_task:
             notebook_path: ${workspace.root_path}/stages/complaint_generator_stream
 
