@@ -1,16 +1,14 @@
 # 🍔 Casper's Kitchens
 
-Spin up a fully working ghost-kitchen business on Databricks in minutes.
+Casper's Kitchens is a ghost kitchen and food-delivery platform built entirely in Databricks by the Developer Relations team. It brings together Lakeflow (ingestion, Spark Declarative Pipelines), AI and BI dashboards with Genie, Agent Bricks, and Apps powered by Lakebase (Postgres): all stitched into one cohesive live demo.
 
-Casper’s Kitchens is a simulated ghost kitchen and food-delivery platform built entirely in Databricks by the Developer Relations team. It brings together Lakeflow (ingestion, Spark Declarative Pipelines), AI and BI dashboards with Genie, Agent Bricks, and Apps powered by Lakebase (Postgres): all stitched into one cohesive live demo.
-
-Casper’s isn't just a showcase. It’s a playground for exploring, experimenting, and practicing a bit of creative misuse. We're pushing the platform past its comfort zone to see what’s possible. Everything is designed to be easy to:
+Casper's isn't just a showcase. It's a playground for exploring, experimenting, and practicing a bit of creative misuse. We're pushing the platform past its comfort zone to see what's possible. Everything is designed to be easy to:
 
 1. 🚀 **Deploy:** Just a couple of commands to spin up and tear down the entire environment in minutes.
 2. 🎬 **Demo:** Run only the stages you need. Every component is powered by live, streaming data.
 3. 🧑‍💻 **Develop:** add new pipelines, agents, or apps with minimal setup. Everything is built to extend.
 
-By doing everything in a Databricks-native way, even when it doesn't make sense, Casper’s becomes a shared sandbox for demos, onboarding, learning, and research. It’s meant to be fun, fast, and fearless.
+By doing everything in a Databricks-native way, even when it doesn't make sense, Casper's becomes a shared sandbox for demos, onboarding, learning, and research. It's meant to be fun, fast, and fearless.
 
 ## Deploy
 
@@ -28,7 +26,7 @@ You're ready to demo!
 
 ![Stages](./images/stages_v2.png)
 
-Casper’s is organized into tasks within the Casper’s Initializer job. Each task handles a specific part of the system: data generation, pipelines, agents, apps, etc.
+Casper's is organized into tasks within the Casper's Initializer job. Each task handles a specific part of the system: data generation, pipelines, agents, apps, etc.
 
 You can control which tasks to run [through the Databricks Jobs UI](https://docs.databricks.com/aws/en/jobs/run-now#run-a-job-with-different-settings) or using Databricks Asset Bundles (DABs) (examples below). For example, if you only need raw data, run the data generation task. If you want to include agents and apps, run the full chain of dependent tasks as shown in the DAG above.
 
@@ -36,7 +34,7 @@ The easiest way to control Casper's is using Databricks Jobs UI, but you can use
 
 ### 1. Run the full demo (recommended)
 
-To spin up the complete Casper’s Kitchens environment as pictured above (executes every task in the DAG):
+To spin up the complete Casper's Kitchens environment as pictured above (executes every task in the DAG):
 
 ```bash
 databricks bundle run caspers 
@@ -59,7 +57,7 @@ databricks bundle destroy
 
 ### 2. Run individual stages
 
-You can also run only specific stages of Casper’s. Databricks Asset Bundles (`--only`) execute exactly the tasks you list, so if a stage depends on others, you’ll need to include them too. To simplify this, load the helper that resolves dependencies automatically:
+You can also run only specific stages of Casper's. Databricks Asset Bundles (`--only`) execute exactly the tasks you list, so if a stage depends on others, you'll need to include them too. To simplify this, load the helper that resolves dependencies automatically:
 
 ```bash
 source <(python utils/resolve_tasks.py)
