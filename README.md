@@ -24,7 +24,7 @@ You're ready to demo!
 
 ## Demo
 
-![Stages](./images/stages_v2.png)
+![Stages](./images/stages.gif)
 
 Casper's is organized into tasks within the Casper's Initializer job. Each task handles a specific part of the system: data generation, pipelines, agents, apps, etc.
 
