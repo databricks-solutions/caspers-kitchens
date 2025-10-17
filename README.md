@@ -8,7 +8,7 @@ Casper's isn't just a showcase. It's a playground for exploring, experimenting, 
 2. 🎬 **Demo:** Run only the stages you need. Every component is powered by live, streaming data.
 3. 🧑‍💻 **Develop:** add new pipelines, agents, or apps with minimal setup. Everything is built to extend.
 
-By doing everything in a Databricks-native way, even when it doesn't make sense, Casper's becomes a shared sandbox for demos, onboarding, learning, and research. It's meant to be fun, fast, and fearless.
+We intentionally build only with Databricks, even when it’s inconvenient, so that Casper’s can serve as a shared sandbox for demos, onboarding, learning, and experimentation.
 
 ## Deploy
 
