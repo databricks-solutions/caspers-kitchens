@@ -1,0 +1,153 @@
+# databricks.yml
+bundle:
+  name: caspers-kitchens
+
+variables:
+  catalog:
+    description: "UC catalog for this bundle/target"
+    default: caspersdev
+
+workspace:
+  # Default root path under your user home; still configurable per target
+  root_path: /Workspace/Users/${workspace.current_user.userName}/caspers-kitchens
+  file_path: ${workspace.root_path}     # where files get synced
+
+# Ship the repo files on deploy (adjust excludes as you like)
+sync:
+  include:
+    - ./*
+  exclude:
+    - .git/**
+    - databricks.yml
+    - .DS_Store
+    - .claude/**
+    - .databricks/**
+
+resources:
+  jobs:
+    caspers:
+      name: "Casper's Initializer"
+      queue:
+        enabled: true
+      performance_target: PERFORMANCE_OPTIMIZED
+
+      parameters:
+        - name: CATALOG
+          default: ${var.catalog}
+        - name: EVENTS_VOLUME
+          default: events
+        - name: LLM_MODEL
+          default: databricks-meta-llama-3-3-70b-instruct
+        - name: REFUND_AGENT_ENDPOINT_NAME
+          default: caspers_refund_agent
+        - name: COMPLAINT_AGENT_ENDPOINT_NAME
+          default: caspers_complaint_agent
+        - name: COMPLAINT_RATE
+          default: "0.15"
+        - name: SIMULATOR_SCHEMA
+          default: simulator
+        - name: LOCATIONS
+          default: sanfrancisco.json
+
+      tasks:
+        - task_key: Raw_Data
+          notebook_task:
+            notebook_path: ${workspace.root_path}/stages/raw_data
+
+        - task_key: Spark_Declarative_Pipeline
+          depends_on:
+            - task_key: Raw_Data
+          notebook_task:
+            notebook_path: ${workspace.root_path}/stages/lakeflow
+
+        - task_key: Refund_Recommender_Agent
+          depends_on:
+            - task_key: Spark_Declarative_Pipeline
+          notebook_task:
+            notebook_path: ${workspace.root_path}/stages/refunder_agent
+
+        - task_key: Refund_Recommender_Stream
+          depends_on:
+            - task_key: Spark_Declarative_Pipeline
+          notebook_task:
+            notebook_path: ${workspace.root_path}/stages/refunder_stream
+
+        - task_key: Complaint_Agent
+          depends_on:
+            - task_key: Spark_Declarative_Pipeline
+          notebook_task:
+            notebook_path: ${workspace.root_path}/stages/complaint_agent
+
+        - task_key: Complaint_Generator_Stream
+          depends_on:
+            - task_key: Spark_Declarative_Pipeline
+          notebook_task:
+            notebook_path: ${workspace.root_path}/stages/complaint_generator_stream
+
+        - task_key: Complaint_Agent_Stream
+          depends_on:
+            - task_key: Complaint_Agent
+            - task_key: Complaint_Generator_Stream
+          notebook_task:
+            notebook_path: ${workspace.root_path}/stages/complaint_agent_stream
+
+        - task_key: Complaint_Lakebase
+          depends_on:
+            - task_key: Complaint_Agent_Stream
+          notebook_task:
+            notebook_path: ${workspace.root_path}/stages/complaint_lakebase
+
+        - task_key: Lakebase_Reverse_ETL
+          depends_on:
+            - task_key: Refund_Recommender_Stream
+          notebook_task:
+            notebook_path: ${workspace.root_path}/stages/lakebase
+
+        - task_key: Databricks_App_Refund_Manager
+          depends_on:
+            - task_key: Lakebase_Reverse_ETL
+          notebook_task:
+            notebook_path: ${workspace.root_path}/stages/apps
+
+scripts:
+  cleanup:
+    content: |
+      set -eo pipefail
+
+      # Detect the target passed to `databricks bundle run cleanup -t <target>`
+      TARGET_FLAG=""
+      if env | grep -q '^DATABRICKS_BUNDLE_TARGET='; then
+        TARGET_FLAG="-t $DATABRICKS_BUNDLE_TARGET"
+      fi
+
+      # Get fully-resolved bundle config (includes target overrides)
+      RESOLVED_JSON="$(databricks bundle validate $TARGET_FLAG --output json)"
+
+      # Pull values we need (requires jq)
+      FILE_PATH="$(printf '%s' "$RESOLVED_JSON" | jq -r '.workspace.file_path // (.workspace.root_path + "/src")')"
+      CATALOG="$(printf '%s' "$RESOLVED_JSON" | jq -r '.variables.catalog.value // .variables.catalog.default')"
+
+      mkdir -p .bundle
+      cat > .bundle/submit.json <<JSON
+      {
+        "run_name": "caspers: cleanup (ephemeral)",
+        "performance_target": "PERFORMANCE_OPTIMIZED",
+        "tasks": [
+          {
+            "task_key": "destroy",
+            "notebook_task": {
+              "notebook_path": "$FILE_PATH/destroy",
+              "source": "WORKSPACE",
+              "base_parameters": { "CATALOG": "$CATALOG" }
+            }
+          }
+        ]
+      }
+      JSON
+
+      databricks jobs submit --json @.bundle/submit.json
+
+
+targets:
+  dev:
+    default: true
