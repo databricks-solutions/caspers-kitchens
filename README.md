@@ -18,7 +18,7 @@ Casper's Kitchens uses Databricks Asset Bundles (DABs) to make deployment easy. 
 databricks bundle deploy
 ```
 
-This will create the main job, `Casper's Initializer`, that helps orchestrate the Casper's universe, and make all of Casper's assets available in your workspace at `/Workspace/Users/<youruser@email.com>/caspers-kitchens`. Databricks Asset Bundles will use your existing CLI configuration by default, to configure more targets and learn more about DABs see [databricks.yml](./databricks.yml) and [the documentation](https://docs.databricks.com/aws/en/dev-tools/bundles/#how-do-bundles-work)
+This will create the main job, `Casper's Initializer`, that helps orchestrate the Casper's universe, and make all of Casper's assets available in your workspace at `/Workspace/Users/<youruser@email.com>/caspers-kitchens-demo`. Databricks Asset Bundles will use your existing CLI configuration by default, to configure more targets and learn more about DABs see [databricks.yml](./databricks.yml) and [the documentation](https://docs.databricks.com/aws/en/dev-tools/bundles/#how-do-bundles-work)
 
 This assumes you have [installed the databricks CLI](https://docs.databricks.com/aws/en/dev-tools/cli/install) to your local machine and [authenticated to your workspace](https://docs.databricks.com/aws/en/dev-tools/cli/authentication). You can interactively authenticate via OAuth with `databricks auth login`.
 
