@@ -9,7 +9,7 @@ variables:
 
 workspace:
   # Default root path under your user home; still configurable per target
-  root_path: /Workspace/Users/${workspace.current_user.userName}/caspers-kitchens
+  root_path: /Workspace/Users/${workspace.current_user.userName}/caspers-kitchens-demo
   file_path: ${workspace.root_path}     # where files get synced
 
 # Ship the repo files on deploy (adjust excludes as you like)
