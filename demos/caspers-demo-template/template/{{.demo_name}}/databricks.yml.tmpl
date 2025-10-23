@@ -7,7 +7,7 @@ variables:
     default: "{{.caspers_catalog}}"
 
 workspace:
-  root_path: /Workspace/Users/${workspace.current_user.userName}/{{.root_path_name}}
+  root_path: {{.workspace_root_path}}
   file_path: ${workspace.root_path}
 
 sync:
@@ -16,7 +16,6 @@ sync:
   exclude:
     - .git/**
     - databricks.yml
-    - demo_materials/**
 
 resources:
   jobs:

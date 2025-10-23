@@ -1,21 +1,24 @@
-# Casper's Kitchens Demo Materials
+# Casper's Kitchens Demos
 
-This directory includes demo guides, runbooks, and templates for presenting Casper's Kitchens.
+Templates and materials for creating demos on top of Casper's Kitchens.
 
-## Create Your Own Demo
+## Quick Start
 
-Use the template to quickly scaffold a new demo:
+Initialize a new demo from the template:
 
 ```bash
 databricks bundle init https://github.com/databricks-solutions/caspers-kitchens --template-dir demos/caspers-demo-template
 ```
 
-This will prompt for:
-- `demo_name` - Name for your demo bundle/job
-- `caspers_catalog` - UC catalog (use the same one as your main Casper's deployment)
+The template will prompt for configuration, including the workspace deployment path. Demos deploy to `/Workspace/Users/${user}/caspers-kitchens-demo/demos/${demo_name}/` by default, but you can customize the full path (e.g., `/Workspace/Shared/...` for shared deployments).
 
-After init:
-1. Add your notebooks to `notebooks/`
-2. Update `databricks.yml` as needed
-3. Deploy: `databricks bundle deploy`
-4. Run: `databricks bundle run <demo_name>_demo` 
+After initialization:
+
+```bash
+cd <demo_name>
+# Add notebooks to notebooks/ and update databricks.yml as needed
+databricks bundle deploy
+databricks bundle run <demo_name>_demo
+```
+
+To remove a demo: `databricks bundle destroy` 

@@ -6,18 +6,24 @@
       "description": "Name for your demo (used for bundle and job naming)",
       "order": 1
     },
+    "caspers_root_path": {
+      "type": "string",
+      "default": "caspers-kitchens-demo",
+      "description": "Base workspace path for Caspers deployment (typically matches main Caspers deployment, but can be any path you prefer)",
+      "order": 2
+    },
+    "workspace_root_path": {
+      "type": "string",
+      "default": "/Workspace/Users/${workspace.current_user.userName}/{{.caspers_root_path}}/demos/{{.demo_name}}",
+      "description": "Full absolute workspace path (auto-computed from above, but fully customizable - e.g., use /Workspace/Shared for shared deployments)",
+      "order": 3
+    },
     "caspers_catalog": {
       "type": "string",
       "default": "caspersdev",
       "description": "Casper's UC catalog (must match your main deployment)",
-      "order": 2
-    },
-    "root_path_name": {
-      "type": "string",
-      "default": "caspers-demo-{{.demo_name}}",
-      "description": "Directory name for workspace deployment (Consider setting to the same directory as the main Casper's demo deployment)",
-      "order": 3
+      "order": 4
     }
   },
-  "success_message": "\nYour demo bundle '{{.demo_name}}' has been created!\n\nNext steps:\n1. Add notebooks to notebooks/\n2. Update databricks.yml with your demo logic\n3. Run: databricks bundle deploy\n4. Run: databricks bundle run {{.demo_name}}_demo"
+  "success_message": "\nYour demo bundle '{{.demo_name}}' has been created!\n\nDeployment location: {{.workspace_root_path}}\n\nNext steps:\n1. Add notebooks to notebooks/\n2. Update databricks.yml with your demo logic\n3. Run: databricks bundle deploy\n4. Run: databricks bundle run {{.demo_name}}_demo\n\nTo destroy this demo: databricks bundle destroy"
 }
