@@ -12,7 +12,7 @@ tags: [Databricks, MLflow, AI, Agents, Evaluation, Model Comparison]
 
 When you're building an agent that needs to query your data and make decisions, comparing models across providers often means managing fragmented authentication, separate workspaces, and incompatible evaluation setups.
 
-Databricks Model Serving solves these problems with native access to OpenAI, Anthropic, Google, and Meta models in one workspace with unified authentication and governance. MLflow's evaluation framework lets you compare them systematically using trace-aware judges (which inspect tool calls and verify decisions against actual outputs) and human-aligned judges (which learn your specific quality standards through feedback).
+Databricks Model Serving solves these problems with native access to OpenAI, Anthropic, Google, and Meta models in one workspace with unified authentication and governance. You can use MLflow on Databricks to compare different models systematically with sophisticated agent observability and evaluation tools. In other words, you have all the tools you need to pick the best model for the job.
 
 Suppose you're building a complaint triage agent for [Casper's Kitchens](https://github.com/databricks-solutions/caspers-kitchens "Casper's Kitchens GitHub"), a simulated ghost kitchen running on Databricks. The agent queries order data through Unity Catalog functions, analyzes complaints, and recommends whether to offer a credit or escalate to human review. Which model should power it?
 
@@ -106,7 +106,7 @@ Each agent invocation generates an [execution trace](https://mlflow.org/docs/lat
 
 ## MLflow Scorers
 
-MLflow provides [several types of scorers](https://mlflow.org/docs/latest/genai/eval-monitor/scorers/) for different evaluation needs: predefined scorers for quick starts, guidelines-based scorers for natural language criteria, code-based scorers for custom logic, and more. We'll use two advanced approaches here: an agent-as-a-judge scorer that has tools enabling it to inspect execution traces, and another AI scorer that can be aligned with human feedback.
+MLflow provides [several types of scorers](https://mlflow.org/docs/latest/genai/eval-monitor/scorers/) for different evaluation needs: predefined scorers for quick starts, guidelines-based scorers for natural language criteria, code-based scorers for custom logic, and more. We'll use two advanced approaches here: an agent-as-a-judge scorer that has tools enabling it to inspect execution traces, and a template-based AI scorer that can be aligned with human feedback.
 
 ### Trace-Aware Judge: Evidence Groundedness
 
