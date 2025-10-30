@@ -2,9 +2,9 @@ bundle:
   name: caspers_demo_agent-compare-models
 
 variables:
-  catalog:
-    description: "UC catalog for this bundle/target"
-    default: caspersdev
+  caspers_catalog:
+    description: "Casper's UC catalog (should match main deployment)"
+    default: "caspersdev"
 
 workspace:
   root_path: /Workspace/Users/${workspace.current_user.userName}/caspers-kitchens-demo/demos/agent-compare-models
@@ -16,38 +16,6 @@ sync:
   exclude:
     - .git/**
     - databricks.yml
-
-resources:
-  jobs:
-    agent-compare-models_demo:
-      name: "agent-compare-models_demo"
-      queue:
-        enabled: true
-      performance_target: PERFORMANCE_OPTIMIZED
-
-      parameters:
-        - name: CATALOG
-          default: ${var.catalog}
-
-      tasks:
-        - task_key: demo_notebook
-          notebook_task:
-            notebook_path: ${workspace.file_path}/notebooks/agent-compare-models.ipynb
-            base_parameters:
-              CATALOG: ${var.catalog}
-
-      # Example: Multi-task job with dependencies
-      # tasks:
-      #   - task_key: setup
-      #     notebook_task:
-      #       notebook_path: ${workspace.file_path}/notebooks/setup.ipynb
-      #   - task_key: main_logic
-      #     depends_on:
-      #       - task_key: setup
-      #     notebook_task:
-      #       notebook_path: ${workspace.file_path}/notebooks/main.ipynb
-
-      # More examples: https://docs.databricks.com/workflows/jobs/jobs.html
 
 targets:
   dev:
