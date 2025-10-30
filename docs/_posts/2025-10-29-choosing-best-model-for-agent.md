@@ -166,7 +166,10 @@ Rate as FAIL if vague, missing key information, or logic is unclear.
 ```
 {% endraw %}
 
+
 These two judges are complementary. The trace-aware judge verifies factual accuracy against tool outputs. To do so, it needs access to the tool calls from the traces. The template judge assesses whether the reasoning is understandable to humans. It only needs access to the inputs and outputs to make this determination.
+
+For Casper's, this combination is critical. Decisions regarding delivery delays need grounding in actual timestamps and location data, while escalation decisions need clear reasoning that a human reviewer can act on.
 
 ## Running the Evaluation
 
@@ -302,6 +305,8 @@ The aligned judge provides more reliable comparisons because it reflects your sp
 In a production scenario, you'd typically want to evaluate models on a held-out test set that's separate from the examples you used for alignment. This prevents overfitting to your alignment data and gives you a more accurate picture of how models perform on new cases. Here, we're using the same 15 examples for simplicity, but the workflow scales to larger datasets with proper train/test splits.
 
 ## What This Enables
+
+This process enabled Casper's to rigorously compare different models to power its complaints agent, without needing to leave Databricks or authenticate outside resources.
 
 Model choice stops being a gamble when you can evaluate systematically. Databricks gives you access to OpenAI, Anthropic, Google, and Meta models in one workspace with unified authentication and governance. You're not locked into a single provider's roadmap or pricing—you can compare GPT-5 against Claude against Llama on your actual data and switch based on performance, cost, or latency requirements.
 
