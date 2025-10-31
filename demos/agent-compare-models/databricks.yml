@@ -1,0 +1,23 @@
+bundle:
+  name: caspers_demo_agent-compare-models
+
+variables:
+  caspers_catalog:
+    description: "Casper's UC catalog (should match main deployment)"
+    default: "caspersdev"
+
+workspace:
+  root_path: /Workspace/Users/${workspace.current_user.userName}/caspers-kitchens-demo/demos/agent-compare-models
+  file_path: ${workspace.root_path}
+
+sync:
+  include:
+    - ./*
+  exclude:
+    - .git/**
+    - databricks.yml
+
+targets:
+  dev:
+    mode: development
+    default: true
