@@ -59,9 +59,10 @@ def index():
 
 # ─── Summary (robust to bad JSON) ────────────────────────────────────────────
 @app.get("/api/summary")
-def summary():
+def summary(include_zero: bool = False):
     suggestions_by_class = Counter()
     suggested_total = 0.0
+    filtered_count = 0
 
     with engine.connect() as conn:
         total = conn.exec_driver_sql(f"SELECT COUNT(*) FROM {RECS_TABLE}").scalar_one()
@@ -76,14 +77,21 @@ def summary():
         for (raw,) in rows:
             sug = parse_agent_response(raw)
             cls = sug.get("refund_class", "error")
+            refund_usd = sug.get("refund_usd", 0)
+            
+            # Filter out zero-dollar recommendations unless include_zero is True
+            if not include_zero and refund_usd == 0:
+                continue
+            
+            filtered_count += 1
             suggestions_by_class[cls] += 1
             if cls != "error":
                 try:
-                    suggested_total += float(sug.get("refund_usd", 0) or 0)
+                    suggested_total += float(refund_usd or 0)
                 except Exception:
                     pass
 
-        # Decisions summary
+        # Decisions summary (always show all decisions)
         decisions_total = conn.exec_driver_sql(f"SELECT COUNT(*) FROM {REFUNDS_TABLE}").scalar_one()
         decided_total_usd = conn.exec_driver_sql(f"SELECT COALESCE(SUM(amount_usd),0) FROM {REFUNDS_TABLE}").scalar_one()
         dec_by_class_rows = conn.execute(text(f"""
@@ -94,32 +102,60 @@ def summary():
         decisions_by_class = {r["refund_class"]: r["c"] for r in dec_by_class_rows}
 
     return {
-        "recommendations_count": total,
+        "recommendations_count": filtered_count,
+        "total_recommendations": total,
         "suggestions_by_class": dict(suggestions_by_class),
         "suggested_total_usd": round(suggested_total, 2),
         "decisions_count": decisions_total,
         "decisions_by_class": decisions_by_class,
         "decided_total_usd": float(decided_total_usd or 0),
-        "pending_count": max(total - decisions_total, 0),
+        "pending_count": max(filtered_count - decisions_total, 0),
     }
 
 # ─── Recommendations list (robust suggestions) ───────────────────────────────
 @app.get("/api/recommendations")
-def list_recommendations(limit: int = 50, offset: int = 0):
+def list_recommendations(limit: int = 50, offset: int = 0, include_zero: bool = False):
     with engine.connect() as conn:
-        recs = conn.execute(
+        # Fetch a larger batch to account for filtering
+        # We fetch enough to ensure we can fill the page after filtering
+        # Using a multiplier to handle the case where many rows are filtered out
+        fetch_limit = 1000 if not include_zero else limit + offset + 100
+        
+        all_recs = conn.execute(
             text(f"""
                 SELECT order_id, ts, agent_response
                 FROM {RECS_TABLE}
                 ORDER BY ts DESC
-                LIMIT :limit OFFSET :offset
+                LIMIT :fetch_limit
             """),
-            {"limit": limit, "offset": offset},
+            {"fetch_limit": fetch_limit},
         ).mappings().all()
 
+        # Parse and filter recommendations
+        filtered_recs = []
+        for r in all_recs:
+            sug = parse_agent_response(r["agent_response"])
+            refund_usd = sug.get("refund_usd", 0)
+            
+            # Skip zero-dollar recommendations unless include_zero is True
+            if not include_zero and refund_usd == 0:
+                continue
+                
+            filtered_recs.append({
+                "order_id": r["order_id"],
+                "ts": r["ts"],
+                "agent_response": r["agent_response"],
+                "suggestion": sug,
+            })
+        
+        # Apply pagination to filtered results
+        total_filtered = len(filtered_recs)
+        paginated_recs = filtered_recs[offset:offset + limit]
+
+        # Fetch decisions for the paginated results
         dec_map: Dict[str, Any] = {}
-        if recs:
-            order_ids = [r["order_id"] for r in recs]
+        if paginated_recs:
+            order_ids = [r["order_id"] for r in paginated_recs]
             decs = conn.execute(
                 text(f"""
                     SELECT DISTINCT ON (order_id)
@@ -133,16 +169,22 @@ def list_recommendations(limit: int = 50, offset: int = 0):
             dec_map = {d["order_id"]: d for d in decs}
 
     items: List[Dict[str, Any]] = []
-    for r in recs:
-        sug = parse_agent_response(r["agent_response"])
+    for r in paginated_recs:
         items.append({
             "order_id": r["order_id"],
             "ts": r["ts"],
-            "suggestion": sug,  # will be ERROR_SUGGESTION for bad rows
+            "suggestion": r["suggestion"],  # will be ERROR_SUGGESTION for bad rows
             "decision": dec_map.get(r["order_id"]) or None,
             "status": "applied" if r["order_id"] in dec_map else "pending",
         })
-    return {"items": items, "limit": limit, "offset": offset}
+    
+    return {
+        "items": items,
+        "limit": limit,
+        "offset": offset,
+        "total": total_filtered,
+        "has_more": offset + limit < total_filtered,
+    }
 
 # ─── Apply refund ────────────────────────────────────────────────────────────
 @app.post("/api/refunds")
