@@ -11,73 +11,190 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
   <style>
-    .card { @apply bg-white rounded-2xl shadow p-4; }
-    .btn  { @apply inline-flex items-center justify-center rounded-xl px-3 py-2 border border-gray-300 hover:bg-gray-50 active:translate-y-[1px]; }
-    .btn-primary { @apply bg-black text-white border-black hover:bg-gray-900; }
-    .badge { @apply text-xs font-semibold px-2 py-1 rounded-full; }
-    .badge-none { @apply bg-gray-200 text-gray-800; }
-    .badge-partial { @apply bg-amber-200 text-amber-900; }
-    .badge-full { @apply bg-emerald-200 text-emerald-900; }
-    .badge-error { @apply bg-rose-200 text-rose-900; }
-    .row-expand { @apply bg-gray-50; }
-    .input, select, textarea { @apply w-full rounded-xl border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black/50; }
+    /* Databricks color palette */
+    :root {
+      --db-primary: #FF3621;
+      --db-primary-dark: #E02E1A;
+      --db-secondary: #00A972;
+      --db-dark: #1B3139;
+      --db-light-bg: #F8FAFB;
+      --db-border: #E4E7EB;
+    }
+
+    body { background-color: var(--db-light-bg); }
+    
+    .card { 
+      @apply bg-white rounded-lg shadow-sm p-6 border border-gray-100; 
+      transition: box-shadow 0.2s ease;
+    }
+    .card:hover { @apply shadow-md; }
+    
+    .btn  { 
+      @apply inline-flex items-center justify-center rounded-md px-4 py-2.5 font-medium text-sm border transition-all duration-150; 
+    }
+    .btn:not(.btn-primary) { 
+      @apply border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400; 
+    }
+    .btn-primary { 
+      background-color: var(--db-primary);
+      border-color: var(--db-primary);
+      @apply text-white hover:opacity-90;
+    }
+    .btn-primary:hover {
+      background-color: var(--db-primary-dark);
+    }
+    .btn:disabled { @apply opacity-50 cursor-not-allowed; }
+    
+    .badge { @apply text-xs font-semibold px-2.5 py-1 rounded-md uppercase tracking-wide; }
+    .badge-none { @apply bg-gray-100 text-gray-700; }
+    .badge-partial { @apply bg-amber-100 text-amber-800; }
+    .badge-full { 
+      background-color: #E6F7F1;
+      color: var(--db-secondary);
+    }
+    .badge-error { @apply bg-red-100 text-red-700; }
+    .badge-applied {
+      background-color: #E6F7F1;
+      color: var(--db-secondary);
+    }
+    .badge-pending { @apply bg-blue-50 text-blue-700; }
+    
+    .row-expand { 
+      @apply bg-gray-50 border-l-4;
+      border-left-color: var(--db-primary);
+    }
+    
+    .input, select, textarea { 
+      @apply w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:border-transparent;
+    }
+    .input:focus, select:focus, textarea:focus {
+      --tw-ring-color: var(--db-primary);
+    }
+    
+    table thead { 
+      background-color: var(--db-light-bg);
+    }
+    
+    table tbody tr:hover {
+      background-color: #FAFBFC;
+    }
+
+    /* Custom scrollbar for webkit browsers */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #F1F3F5; }
+    ::-webkit-scrollbar-thumb { 
+      background: #CED4DA; 
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover { background: #ADB5BD; }
+
+    /* Bootstrap form control focus states with Databricks colors */
+    .form-control:focus, .form-select:focus {
+      border-color: var(--db-primary);
+      box-shadow: 0 0 0 0.2rem rgba(255, 54, 33, 0.15);
+    }
   </style>
 </head>
-<body class="bg-gray-100 text-gray-900">
-  <div class="max-w-7xl mx-auto p-4 space-y-4">
-    <header class="flex items-center justify-between">
-      <h1 class="text-2xl md:text-3xl font-bold tracking-tight">Refund Manager</h1>
-      <div class="flex items-center gap-2">
-        <button id="refreshBtn" class="btn">Refresh</button>
+<body class="text-gray-900">
+  <!-- Header bar with Databricks styling -->
+  <header class="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-10">
+    <div class="max-w-7xl mx-auto px-4 py-3">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background-color: var(--db-primary);">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-xl md:text-2xl font-bold tracking-tight" style="color: var(--db-dark);">Refund Manager</h1>
+            <p class="text-xs text-gray-500 hidden md:block">Internal Operations Dashboard</p>
+          </div>
+        </div>
       </div>
-    </header>
+    </div>
+  </header>
 
-    <section id="summary" class="grid grid-cols-1 md:grid-cols-4 gap-3">
-      <div class="card">
-        <div class="text-sm text-gray-500">Recommendations</div>
-        <div class="text-2xl font-semibold" id="sum_recs">—</div>
+  <div class="max-w-7xl mx-auto p-4 md:p-6 space-y-5">
+
+    <!-- Summary Cards -->
+    <section id="summary" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
+        <div class="text-sm font-medium text-gray-600 uppercase tracking-wide mb-3">Recommendations</div>
+        <div class="text-3xl font-bold mb-2" style="color: var(--db-dark);" id="sum_recs">—</div>
         <div class="text-xs text-gray-500" id="sum_recs_breakdown">—</div>
       </div>
-      <div class="card">
-        <div class="text-sm text-gray-500">Suggested total (USD)</div>
-        <div class="text-2xl font-semibold" id="sum_suggested">—</div>
+      <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
+        <div class="text-sm font-medium text-gray-600 uppercase tracking-wide mb-3">Suggested Total</div>
+        <div class="text-3xl font-bold mb-2" style="color: var(--db-dark);" id="sum_suggested">—</div>
+        <div class="text-xs text-gray-500">USD</div>
       </div>
-      <div class="card">
-        <div class="text-sm text-gray-500">Decisions</div>
-        <div class="text-2xl font-semibold" id="sum_decisions">—</div>
+      <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
+        <div class="text-sm font-medium text-gray-600 uppercase tracking-wide mb-3">Decisions Made</div>
+        <div class="text-3xl font-bold mb-2" style="color: var(--db-dark);" id="sum_decisions">—</div>
         <div class="text-xs text-gray-500" id="sum_decisions_breakdown">—</div>
       </div>
-      <div class="card">
-        <div class="text-sm text-gray-500">Pending</div>
-        <div class="text-2xl font-semibold" id="sum_pending">—</div>
+      <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
+        <div class="text-sm font-medium text-gray-600 uppercase tracking-wide mb-3">Pending Review</div>
+        <div class="text-3xl font-bold mb-2" style="color: var(--db-dark);" id="sum_pending">—</div>
+        <div class="text-xs text-gray-500">Awaiting action</div>
       </div>
     </section>
 
-    <section class="card">
-      <div class="flex items-center justify-between mb-3">
-        <h2 class="text-lg font-semibold">Orders & Suggestions</h2>
-        <div class="text-sm text-gray-500">Showing latest</div>
+    <!-- Orders Table -->
+    <section class="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
+      <div class="mb-6">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-lg font-bold" style="color: var(--db-dark);">Orders & Suggestions</h2>
+            <p class="text-sm text-gray-500 mt-0.5">Review and apply refund recommendations</p>
+          </div>
+          <div class="text-xs text-gray-500 bg-gray-50 px-3 py-1.5 rounded-md">
+            <svg class="w-3 h-3 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+            </svg>
+            pg_recommendations
+          </div>
+        </div>
+        <!-- Filters -->
+        <div class="flex items-center gap-2 pt-4 border-t border-gray-200">
+          <button id="showAllToggle" class="btn text-sm" title="Toggle to show/hide $0 recommendations">
+            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            <span id="showAllLabel">Show All</span>
+          </button>
+          <button id="refreshBtn" class="btn text-sm">
+            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Refresh
+          </button>
+          <span id="filterIndicator" class="text-xs px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 hidden ml-2">
+            Filtered: >$0 only
+          </span>
+        </div>
       </div>
-      <div class="overflow-x-auto">
+      <div class="overflow-x-auto -mx-6 px-6">
         <table class="min-w-full text-sm">
-          <thead class="text-left text-gray-500 border-b">
+          <thead class="text-left text-gray-600 text-xs uppercase tracking-wider border-b-2 border-gray-200">
           <tr>
-            <th class="py-2 pr-2">Order</th>
-            <th class="py-2 pr-2">Suggested</th>
-            <th class="py-2 pr-2">Reason</th>
-            <th class="py-2 pr-2">Status</th>
-            <th class="py-2 pr-2">Decision</th>
-            <th class="py-2 pr-2"></th>
+            <th class="py-4 pr-6 font-semibold">Order ID</th>
+            <th class="py-4 pr-6 font-semibold">Suggested Refund</th>
+            <th class="py-4 pr-6 font-semibold">Reason</th>
+            <th class="py-4 pr-6 font-semibold">Status</th>
+            <th class="py-4 pr-6 font-semibold">Decision</th>
+            <th class="py-4 font-semibold text-right">Actions</th>
           </tr>
           </thead>
           <tbody id="ordersBody"></tbody>
         </table>
       </div>
-      <div class="pt-3 flex items-center justify-between">
-        <div class="text-xs text-gray-500">Data source: pg_recommendations</div>
-        <div class="flex gap-2">
-          <button class="btn" id="prevPage">Prev</button>
-          <button class="btn" id="nextPage">Next</button>
+      <div class="pt-5 mt-5 border-t border-gray-200 flex items-center justify-between">
+        <div class="text-xs text-gray-500">Latest recommendations shown first</div>
+        <div class="flex gap-2 items-center">
+          <button class="btn text-sm" id="prevPage">Previous</button>
+          <button class="btn text-sm" id="nextPage">Next</button>
         </div>
       </div>
     </section>
@@ -86,38 +203,46 @@
   <!-- Bootstrap Modal (single instance, we fill + show it from JS) -->
   <div class="modal fade" id="refundModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
+      <div class="modal-content border-0 shadow-lg rounded-lg">
         <form id="refundForm" novalidate>
-          <div class="modal-header">
-            <h5 class="modal-title">Apply refund <span class="text-muted fs-6" id="rf_orderId_label"></span></h5>
+          <div class="modal-header border-b border-gray-200 px-5 py-4">
+            <div>
+              <h5 class="modal-title font-bold text-lg mb-1" style="color: var(--db-dark);">Apply Refund Decision</h5>
+              <p class="text-sm text-gray-500 m-0">Order <span class="font-mono" id="rf_orderId_label"></span></p>
+            </div>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
-          <div class="modal-body">
+          <div class="modal-body px-5 py-4">
             <input type="hidden" id="rf_orderId" name="order_id" />
-            <div class="mb-3">
-              <label for="rf_amount" class="form-label">Amount (USD) *</label>
-              <input id="rf_amount" name="amount_usd" type="number" min="0" step="0.01" required class="form-control">
+            <div class="mb-4">
+              <label for="rf_amount" class="form-label text-sm font-semibold text-gray-700 mb-2">Refund Amount (USD) *</label>
+              <input id="rf_amount" name="amount_usd" type="number" min="0" step="0.01" required class="form-control rounded-md border-gray-300">
             </div>
-            <div class="mb-3">
-              <label for="rf_class" class="form-label">Class *</label>
-              <select id="rf_class" name="refund_class" required class="form-select">
-                <option value="none">none</option>
-                <option value="partial">partial</option>
-                <option value="full">full</option>
+            <div class="mb-4">
+              <label for="rf_class" class="form-label text-sm font-semibold text-gray-700 mb-2">Refund Class *</label>
+              <select id="rf_class" name="refund_class" required class="form-select rounded-md border-gray-300">
+                <option value="none">None</option>
+                <option value="partial">Partial</option>
+                <option value="full">Full</option>
               </select>
             </div>
-            <div class="mb-3">
-              <label for="rf_reason" class="form-label">Reason *</label>
-              <textarea id="rf_reason" name="reason" rows="3" required class="form-control"></textarea>
+            <div class="mb-4">
+              <label for="rf_reason" class="form-label text-sm font-semibold text-gray-700 mb-2">Reason *</label>
+              <textarea id="rf_reason" name="reason" rows="3" required class="form-control rounded-md border-gray-300" placeholder="Explain the refund decision..."></textarea>
             </div>
-            <div class="mb-1">
-              <label for="rf_decided_by" class="form-label">Decided by (optional)</label>
-              <input id="rf_decided_by" name="decided_by" class="form-control" placeholder="e.g. Nick">
+            <div>
+              <label for="rf_decided_by" class="form-label text-sm font-semibold text-gray-700 mb-2">Decided By <span class="text-gray-400 font-normal">(optional)</span></label>
+              <input id="rf_decided_by" name="decided_by" class="form-control rounded-md border-gray-300" placeholder="e.g. Nick Smith">
             </div>
           </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" id="rf_submit" class="btn btn-primary">Apply refund</button>
+          <div class="modal-footer border-t border-gray-200 px-5 py-4 bg-gray-50">
+            <button type="button" class="btn" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" id="rf_submit" class="btn btn-primary">
+              <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              Apply Refund
+            </button>
           </div>
         </form>
       </div>
@@ -136,12 +261,14 @@
       return `<span class="${map[cls]||"badge"}">${cls||"unknown"}</span>`;
     };
 
-    let page=0, limit=25; window.latestItems = [];
+    let page=0, limit=25, includeZero=false; window.latestItems = [];
 
     // ===== API =====
-    async function fetchSummary(){ return (await fetch("/api/summary")).json(); }
+    async function fetchSummary(){ 
+      return (await fetch(`/api/summary?include_zero=${includeZero}`)).json(); 
+    }
     async function fetchPage(){
-      const r = await fetch(`/api/recommendations?limit=${limit}&offset=${page*limit}`);
+      const r = await fetch(`/api/recommendations?limit=${limit}&offset=${page*limit}&include_zero=${includeZero}`);
       if(!r.ok) throw new Error(`GET /api/recommendations ${r.status}`);
       return r.json();
     }
@@ -171,41 +298,71 @@
       for(const it of items){
         const sug = it.suggestion||{}; const dec = it.decision||null;
         const tr = document.createElement("tr");
-        tr.id = rowId(it.order_id); tr.className="border-b";
+        tr.id = rowId(it.order_id); tr.className="border-b border-gray-100";
         tr.innerHTML = `
-          <td class="py-2 pr-2 font-mono text-xs md:text-sm">${it.order_id}</td>
-          <td class="py-2 pr-2">${fmtUSD(sug.refund_usd)} ${badge(sug.refund_class)}</td>
-          <td class="py-2 pr-2 text-gray-600">${sug.reason||"—"}</td>
-          <td class="py-2 pr-2">${it.status==="applied" ? '<span class="badge bg-emerald-200 text-emerald-900">applied</span>' : '<span class="badge bg-gray-200 text-gray-800">pending</span>'}</td>
-          <td class="py-2 pr-2">${dec ? `${fmtUSD(dec.amount_usd)} ${badge(dec.refund_class)} <span class="text-xs text-gray-500">(${new Date(dec.decided_ts).toLocaleString()})</span>`:"—"}</td>
-          <td class="py-2 pr-2 text-right">
-            <div class="flex gap-2 justify-end">
-              <button class="btn" data-expand="${it.order_id}">Details</button>
-              <button class="btn btn-primary" data-apply="${it.order_id}">Apply</button>
+          <td class="py-4 pr-6 font-mono text-xs md:text-sm font-medium text-gray-900">${it.order_id}</td>
+          <td class="py-4 pr-6">
+            <div class="flex items-center gap-2">
+              <span class="font-semibold">${fmtUSD(sug.refund_usd)}</span>
+              ${badge(sug.refund_class)}
+            </div>
+          </td>
+          <td class="py-4 pr-6 text-gray-600 max-w-xs truncate" title="${sug.reason||'—'}">${sug.reason||"—"}</td>
+          <td class="py-4 pr-6">${it.status==="applied" ? '<span class="badge badge-applied">Applied</span>' : '<span class="badge badge-pending">Pending</span>'}</td>
+          <td class="py-4 pr-6">
+            ${dec ? `
+              <div class="flex flex-col gap-1">
+                <div class="flex items-center gap-2">
+                  <span class="font-semibold">${fmtUSD(dec.amount_usd)}</span>
+                  ${badge(dec.refund_class)}
+                </div>
+                <span class="text-xs text-gray-500">${new Date(dec.decided_ts).toLocaleDateString()} at ${new Date(dec.decided_ts).toLocaleTimeString()}</span>
+              </div>
+            `:"—"}
+          </td>
+          <td class="py-4 text-right">
+            <div class="flex gap-2 justify-end items-center">
+              <button class="btn text-sm" data-expand="${it.order_id}">Details</button>
+              ${it.status !== "applied" ? `<button class="btn btn-primary text-sm" data-apply="${it.order_id}">Apply</button>` : ''}
             </div>
           </td>`;
         tb.appendChild(tr);
 
         const exp = document.createElement("tr");
         exp.id = expId(it.order_id); exp.className = "hidden row-expand";
-        exp.innerHTML = `<td colspan="6" class="p-3"><div class="text-sm text-gray-500">Loading events…</div></td>`;
+        exp.innerHTML = `<td colspan="6" class="py-6 px-4"><div class="text-sm text-gray-500">Loading events…</div></td>`;
         tb.appendChild(exp);
       }
     }
 
     function renderEvents(events){
-      if(!events.length) return `<div class="text-sm text-gray-500">No events found.</div>`;
+      if(!events.length) return `
+        <div class="text-center py-8">
+          <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+          </svg>
+          <div class="text-sm text-gray-500">No events found for this order.</div>
+        </div>`;
       const lines = events.map(ev=>{
         const body = typeof ev.body==="object" ? JSON.stringify(ev.body) : (ev.body||"");
         return `
-          <div class="grid grid-cols-1 md:grid-cols-8 gap-2 py-2 border-b">
-            <div class="md:col-span-2 font-mono text-xs">${ev.ts??""}</div>
-            <div class="md:col-span-2"><span class="badge bg-gray-200">${ev.event_type}</span></div>
-            <div class="md:col-span-4 text-xs text-gray-700 break-words">${body}</div>
+          <div class="grid grid-cols-1 md:grid-cols-8 gap-3 py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
+            <div class="md:col-span-2 font-mono text-xs text-gray-600">${ev.ts??""}</div>
+            <div class="md:col-span-2"><span class="badge badge-none text-xs">${ev.event_type}</span></div>
+            <div class="md:col-span-4 text-xs text-gray-700 break-words font-mono bg-gray-50 p-2 rounded">${body}</div>
           </div>`;
       }).join("");
-      return `<div class="text-sm font-semibold mb-2">Order timeline</div>
-              <div class="rounded-xl border overflow-hidden">${lines}</div>`;
+      return `
+        <div class="bg-white rounded-lg p-4">
+          <div class="flex items-center gap-2 mb-3 pb-3 border-b border-gray-200">
+            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span class="text-sm font-bold" style="color: var(--db-dark);">Order Timeline</span>
+            <span class="text-xs text-gray-500">(${events.length} event${events.length !== 1 ? 's' : ''})</span>
+          </div>
+          <div class="space-y-0">${lines}</div>
+        </div>`;
     }
 
     // ===== modal logic (Bootstrap) =====
@@ -279,28 +436,84 @@
         const id = expandBtn.getAttribute("data-expand");
         const row = document.getElementById(`exp-${id}`);
         if (!row) return;
-        if (!row.classList.contains("hidden")) { row.classList.add("hidden"); return; }
+        
+        // Toggle collapse if already open
+        if (!row.classList.contains("hidden")) { 
+          row.classList.add("hidden"); 
+          expandBtn.textContent = "Details";
+          return;
+        }
+        
+        // Show loading state
         row.classList.remove("hidden");
         const cell = row.querySelector("td");
-        cell.innerHTML = `<div class="text-sm text-gray-500">Loading events…</div>`;
+        cell.innerHTML = `
+          <div class="flex items-center justify-center py-8">
+            <svg class="animate-spin h-8 w-8 mr-3" style="color: var(--db-primary);" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span class="text-sm text-gray-600">Loading order timeline...</span>
+          </div>`;
+        
+        expandBtn.textContent = "Hide";
+        
         try {
           const data = await fetchEvents(id);
           cell.innerHTML = renderEvents(data.events||[]);
         } catch (err) {
           console.error(err);
-          cell.innerHTML = `<div class="text-red-600 text-sm">Failed: ${err?.message||err}</div>`;
+          cell.innerHTML = `
+            <div class="text-center py-8">
+              <svg class="w-12 h-12 text-red-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div class="text-sm font-semibold text-red-600 mb-1">Failed to load events</div>
+              <div class="text-xs text-gray-600">${err?.message||err}</div>
+            </div>`;
         }
       }
     });
+
+    // ===== toggle filter =====
+    function updateToggleButton() {
+      const btn = document.getElementById("showAllToggle");
+      const label = document.getElementById("showAllLabel");
+      const indicator = document.getElementById("filterIndicator");
+      
+      if (includeZero) {
+        btn.classList.add("btn-primary");
+        label.textContent = "Showing All";
+        indicator.classList.add("hidden");
+      } else {
+        btn.classList.remove("btn-primary");
+        label.textContent = "Show All";
+        indicator.classList.remove("hidden");
+      }
+    }
+
+    document.getElementById("showAllToggle").onclick = () => {
+      includeZero = !includeZero;
+      page = 0; // Reset to first page when filter changes
+      updateToggleButton();
+      refreshAll();
+    };
 
     // ===== boot =====
     async function refreshAll(){
       const [s,p] = await Promise.all([fetchSummary(), fetchPage()]);
       renderSummary(s); renderRows(p.items||[]);
+      
+      // Update pagination button states
+      const prevBtn = document.getElementById("prevPage");
+      const nextBtn = document.getElementById("nextPage");
+      prevBtn.disabled = page === 0;
+      nextBtn.disabled = !p.has_more;
     }
     document.getElementById("refreshBtn").onclick = refreshAll;
     document.getElementById("nextPage").onclick = ()=>{ page++; refreshAll(); };
     document.getElementById("prevPage").onclick = ()=>{ page=Math.max(0,page-1); refreshAll(); };
+    updateToggleButton();
     refreshAll();
   </script>
 </body>
