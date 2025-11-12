@@ -23,92 +23,6 @@ sync:
     - .claude/**
     - .databricks/**
 
-resources:
-  jobs:
-    caspers:
-      name: "Casper's Initializer"
-      queue:
-        enabled: true
-      performance_target: PERFORMANCE_OPTIMIZED
-
-      parameters:
-        - name: CATALOG
-          default: ${var.catalog}
-        - name: EVENTS_VOLUME
-          default: events
-        - name: LLM_MODEL
-          default: databricks-meta-llama-3-3-70b-instruct
-        - name: REFUND_AGENT_ENDPOINT_NAME
-          default: caspers_refund_agent
-        - name: COMPLAINT_AGENT_ENDPOINT_NAME
-          default: caspers_complaint_agent
-        - name: COMPLAINT_RATE
-          default: "0.15"
-        - name: SIMULATOR_SCHEMA
-          default: simulator
-        - name: LOCATIONS
-          default: sanfrancisco.json
-
-      tasks:
-        - task_key: Raw_Data
-          notebook_task:
-            notebook_path: ${workspace.root_path}/stages/raw_data
-
-        - task_key: Spark_Declarative_Pipeline
-          depends_on:
-            - task_key: Raw_Data
-          notebook_task:
-            notebook_path: ${workspace.root_path}/stages/lakeflow
-
-        - task_key: Refund_Recommender_Agent
-          depends_on:
-            - task_key: Spark_Declarative_Pipeline
-          notebook_task:
-            notebook_path: ${workspace.root_path}/stages/refunder_agent
-
-        - task_key: Refund_Recommender_Stream
-          depends_on:
-            - task_key: Spark_Declarative_Pipeline
-          notebook_task:
-            notebook_path: ${workspace.root_path}/stages/refunder_stream
-
-        - task_key: Complaint_Agent
-          depends_on:
-            - task_key: Spark_Declarative_Pipeline
-          notebook_task:
-            notebook_path: ${workspace.root_path}/stages/complaint_agent
-
-        - task_key: Complaint_Generator_Stream
-          depends_on:
-            - task_key: Spark_Declarative_Pipeline
-          notebook_task:
-            notebook_path: ${workspace.root_path}/stages/complaint_generator_stream
-
-        - task_key: Complaint_Agent_Stream
-          depends_on:
-            - task_key: Complaint_Agent
-            - task_key: Complaint_Generator_Stream
-          notebook_task:
-            notebook_path: ${workspace.root_path}/stages/complaint_agent_stream
-
-        - task_key: Complaint_Lakebase
-          depends_on:
-            - task_key: Complaint_Agent_Stream
-          notebook_task:
-            notebook_path: ${workspace.root_path}/stages/complaint_lakebase
-
-        - task_key: Lakebase_Reverse_ETL
-          depends_on:
-            - task_key: Refund_Recommender_Stream
-          notebook_task:
-            notebook_path: ${workspace.root_path}/stages/lakebase
-
-        - task_key: Databricks_App_Refund_Manager
-          depends_on:
-            - task_key: Lakebase_Reverse_ETL
-          notebook_task:
-            notebook_path: ${workspace.root_path}/stages/apps
-
 scripts:
   cleanup:
     content: |
@@ -149,5 +63,240 @@ scripts:
 
 
 targets:
-  dev:
+  default:
     default: true
+
+    resources:
+      jobs:
+        caspers:
+          name: "Casper's Initializer"
+          queue:
+            enabled: true
+          performance_target: PERFORMANCE_OPTIMIZED
+
+          parameters:
+            - name: CATALOG
+              default: ${var.catalog}
+            - name: EVENTS_VOLUME
+              default: events
+            - name: LLM_MODEL
+              default: databricks-meta-llama-3-3-70b-instruct
+            - name: REFUND_AGENT_ENDPOINT_NAME
+              default: caspers_refund_agent
+            - name: SIMULATOR_SCHEMA
+              default: simulator
+            - name: LOCATIONS
+              default: sanfrancisco.json
+
+          tasks:
+            - task_key: Raw_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/raw_data
+
+            - task_key: Spark_Declarative_Pipeline
+              depends_on:
+                - task_key: Raw_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/lakeflow
+
+            - task_key: Refund_Recommender_Agent
+              depends_on:
+                - task_key: Spark_Declarative_Pipeline
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/refunder_agent
+
+            - task_key: Refund_Recommender_Stream
+              depends_on:
+                - task_key: Spark_Declarative_Pipeline
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/refunder_stream
+
+            - task_key: Lakebase_Reverse_ETL
+              depends_on:
+                - task_key: Refund_Recommender_Stream
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/lakebase
+
+            - task_key: Databricks_App_Refund_Manager
+              depends_on:
+                - task_key: Lakebase_Reverse_ETL
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/apps
+
+  complaints:
+    resources:
+      jobs:
+        caspers:
+          name: "Casper's Initializer"
+          queue:
+            enabled: true
+          performance_target: PERFORMANCE_OPTIMIZED
+
+          parameters:
+            - name: CATALOG
+              default: ${var.catalog}
+            - name: EVENTS_VOLUME
+              default: events
+            - name: LLM_MODEL
+              default: databricks-meta-llama-3-3-70b-instruct
+            - name: COMPLAINT_AGENT_ENDPOINT_NAME
+              default: caspers_complaint_agent
+            - name: COMPLAINT_RATE
+              default: "0.15"
+            - name: SIMULATOR_SCHEMA
+              default: simulator
+            - name: LOCATIONS
+              default: sanfrancisco.json
+
+          tasks:
+            - task_key: Raw_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/raw_data
+
+            - task_key: Spark_Declarative_Pipeline
+              depends_on:
+                - task_key: Raw_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/lakeflow
+
+            - task_key: Complaint_Agent
+              depends_on:
+                - task_key: Spark_Declarative_Pipeline
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/complaint_agent
+
+            - task_key: Complaint_Generator_Stream
+              depends_on:
+                - task_key: Spark_Declarative_Pipeline
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/complaint_generator_stream
+
+            - task_key: Complaint_Agent_Stream
+              depends_on:
+                - task_key: Complaint_Agent
+                - task_key: Complaint_Generator_Stream
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/complaint_agent_stream
+
+            - task_key: Complaint_Lakebase
+              depends_on:
+                - task_key: Complaint_Agent_Stream
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/complaint_lakebase
+
+  free:
+    resources:
+      jobs:
+        caspers:
+          name: "Casper's Initializer"
+          queue:
+            enabled: true
+          performance_target: PERFORMANCE_OPTIMIZED
+
+          parameters:
+            - name: CATALOG
+              default: ${var.catalog}
+            - name: EVENTS_VOLUME
+              default: events
+            - name: SIMULATOR_SCHEMA
+              default: simulator
+            - name: LOCATIONS
+              default: sanfrancisco.json
+
+          tasks:
+            - task_key: Raw_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/raw_data
+
+            - task_key: Spark_Declarative_Pipeline
+              depends_on:
+                - task_key: Raw_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/lakeflow
+
+  all:
+    resources:
+      jobs:
+        caspers:
+          name: "Casper's Initializer"
+          queue:
+            enabled: true
+          performance_target: PERFORMANCE_OPTIMIZED
+
+          parameters:
+            - name: CATALOG
+              default: ${var.catalog}
+            - name: EVENTS_VOLUME
+              default: events
+            - name: LLM_MODEL
+              default: databricks-meta-llama-3-3-70b-instruct
+            - name: REFUND_AGENT_ENDPOINT_NAME
+              default: caspers_refund_agent
+            - name: COMPLAINT_AGENT_ENDPOINT_NAME
+              default: caspers_complaint_agent
+            - name: COMPLAINT_RATE
+              default: "0.15"
+            - name: SIMULATOR_SCHEMA
+              default: simulator
+            - name: LOCATIONS
+              default: sanfrancisco.json
+
+          tasks:
+            - task_key: Raw_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/raw_data
+
+            - task_key: Spark_Declarative_Pipeline
+              depends_on:
+                - task_key: Raw_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/lakeflow
+
+            - task_key: Refund_Recommender_Agent
+              depends_on:
+                - task_key: Spark_Declarative_Pipeline
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/refunder_agent
+
+            - task_key: Refund_Recommender_Stream
+              depends_on:
+                - task_key: Spark_Declarative_Pipeline
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/refunder_stream
+
+            - task_key: Complaint_Agent
+              depends_on:
+                - task_key: Spark_Declarative_Pipeline
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/complaint_agent
+
+            - task_key: Complaint_Generator_Stream
+              depends_on:
+                - task_key: Spark_Declarative_Pipeline
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/complaint_generator_stream
+
+            - task_key: Complaint_Agent_Stream
+              depends_on:
+                - task_key: Complaint_Agent
+                - task_key: Complaint_Generator_Stream
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/complaint_agent_stream
+
+            - task_key: Complaint_Lakebase
+              depends_on:
+                - task_key: Complaint_Agent_Stream
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/complaint_lakebase
+
+            - task_key: Lakebase_Reverse_ETL
+              depends_on:
+                - task_key: Refund_Recommender_Stream
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/lakebase
+
+            - task_key: Databricks_App_Refund_Manager
+              depends_on:
+                - task_key: Lakebase_Reverse_ETL
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/apps
