@@ -1,157 +1,75 @@
 # 🍔 Casper's Kitchens
 
-Casper's Kitchens is a ghost kitchen and food-delivery platform built entirely in Databricks by the Developer Relations team. It brings together Lakeflow (ingestion, Spark Declarative Pipelines), AI and BI dashboards with Genie, Agent Bricks, and Apps powered by Lakebase (Postgres): all stitched into one cohesive live demo.
+Casper’s Kitchens is a fully Databricks-native ghost kitchen and food-delivery platform built by the Developer Relations team. It brings together every layer of the Databricks platform — Lakeflow (ingestion, Spark Declarative Pipelines), AI & BI dashboards with Genie, Agent Bricks, and Apps powered by Lakebase (Postgres) — into a single, cohesive live demo.
 
-Casper's isn't just a showcase. It's a playground for exploring, experimenting, and practicing a bit of creative misuse. We're pushing the platform past its comfort zone to see what's possible. Everything is designed to be easy to:
+Casper’s is more than a showcase. It’s a living playground for simulation, demos, and creative misuse — designed to push the Databricks platform past its comfort zone.
 
-1. 🚀 **Deploy:** Just a couple of commands to spin up and tear down the entire environment in minutes.
-2. 🎬 **Demo:** Run only the stages you need. Every component is powered by live, streaming data.
-3. 🧑‍💻 **Develop:** add new pipelines, agents, or apps with minimal setup. Everything is built to extend.
+Everything is built to be easy to:
 
-We intentionally build only with Databricks, even when it’s inconvenient, so that Casper’s can serve as a shared sandbox for demos, onboarding, learning, and experimentation.
+1. 🚀 **Deploy** — spin up the entire environment in minutes.
+2. 🎬 **Demo** — run only the stages you need, powered by live streaming data.
+3. 🧑‍💻 **Develop** — extend with new pipelines, agents, or apps effortlessly.
 
-## Deploy
+We build only with Databricks — by choice — so Casper’s serves as a shared sandbox for learning, experimentation, and storytelling across the platform.
 
-Casper's Kitchens uses Databricks Asset Bundles (DABs) to make deployment easy. To get started, clone this repository to your local machine and run the following command from the root of the project:
+## Prerequisites
 
-```
-databricks bundle deploy
-```
+- Databricks CLI installed on your local machine.
+- Authenticated to your Databricks workspace. (can do interactively `databricks auth login`)
+- Access to the repository containing Casper's Kitchens.
+- Permissions in the Databricks workspace to create new catalogs.
 
-This will create the main job, `Casper's Initializer`, that helps orchestrate the Casper's universe, and make all of Casper's assets available in your workspace at `/Workspace/Users/<youruser@email.com>/caspers-kitchens-demo`. Databricks Asset Bundles will use your existing CLI configuration by default, to configure more targets and learn more about DABs see [databricks.yml](./databricks.yml) and [the documentation](https://docs.databricks.com/aws/en/dev-tools/bundles/#how-do-bundles-work)
+## 🚀 Deploy
 
-This assumes you have [installed the databricks CLI](https://docs.databricks.com/aws/en/dev-tools/cli/install) to your local machine and [authenticated to your workspace](https://docs.databricks.com/aws/en/dev-tools/cli/authentication). You can interactively authenticate via OAuth with `databricks auth login`.
-
-Note that you can also deploy via the UI in your Databricks workspace by cloning this repo as a git folder to your workspace, navigating to the folder, and clicking the deploy button.
-
-![Deploy from the UI](./images/deploy_ui.png)
-
-You're ready to demo!
-
-## Demo
-
-![Stages](./images/stages.gif)
-
-Casper's is organized into tasks within the Casper's Initializer job. Each task handles a specific part of the system: data generation, pipelines, agents, apps, etc.
-
-You can control which tasks to run [through the Databricks Jobs UI](https://docs.databricks.com/aws/en/jobs/run-now#run-a-job-with-different-settings) or using Databricks Asset Bundles (DABs) (examples below). For example, if you only need raw data, run the data generation task. If you want to include agents and apps, run the full chain of dependent tasks as shown in the DAG above.
-
-The easiest way to control Casper's is using Databricks Jobs UI, but you can use DAB commands as shown below to control from the CLI.
-
-### 1. Run the full demo (recommended)
-
-To spin up the complete Casper's Kitchens environment as pictured above (executes every task in the DAG):
+Casper’s Kitchens uses **Databricks Asset Bundles (DABs)** for one-command deployment.
+Clone this repo, then run from the root directory:
 
 ```bash
-databricks bundle run caspers 
+databricks bundle deploy -t <target>
 ```
 
-By default, this uses the catalog `caspersdev`. You can override this like:
+Each **target** represents a different flavor of Casper’s (for example, full demo, complaints-only, free tier, etc.).
+Use whichever fits your needs:
+
+```bash
+databricks bundle deploy -t default     # full version: Data generation, Lakeflow, Agents, Lakebase & Apps
+databricks bundle deploy -t complaints  # complaints agent: Data generation, Lakeflow, Agents, Lakebase
+databricks bundle deploy -t free        # Databricks Free Edition: Data generation, Lakeflow
+```
+
+This creates the main job **Casper’s Initializer**, which orchestrates the full ecosystem, and places all assets in your workspace under
+`/Workspace/Users/<your.email@databricks.com>/caspers-kitchens-demo`.
+
+> 💡 You can also deploy from the Databricks UI by cloning this repo as a [Git-based folder](https://docs.databricks.com/repos/) and clicking [Deploy Bundle](https://docs.databricks.com/aws/en/dev-tools/bundles/workspace-tutorial#deploy-the-bundle).
+
+For more about how bundles and targets work, see [databricks.yml](./databricks.yml) or the [Databricks Bundles docs](https://docs.databricks.com/en/dev-tools/bundles/index.html).
+
+## 🎬 Run the Demo
+
+![](./images/stages.gif)
+
+Once deployed, run **any** target with the same command:
+
+```bash
+databricks bundle run caspers
+```
+
+Optionally, specify a catalog (default: `caspersdev`):
 
 ```bash
 databricks bundle run caspers --params "CATALOG=mycatalog"
 ```
 
-Make sure you have permission to create catalogs, or that the specified catalog already exists. 
+This spins up all the components—data generator, pipelines, agents, and apps—based on your selected target.
 
-To shut down and cleanup all of Casper's assets:
+To clean up:
 
-```
+```bash
 databricks bundle run cleanup (--params "CATALOG=mycatalog")
 databricks bundle destroy
 ```
 
-### 2. Run individual stages
-
-You can also run only specific stages of Casper's. Databricks Asset Bundles (`--only`) execute exactly the tasks you list, so if a stage depends on others, you'll need to include them too. To simplify this, load the helper that resolves dependencies automatically:
-
-```bash
-source <(python utils/resolve_tasks.py)
-```
-
-Once loaded, you can use the same task names with `$` to automatically include all dependencies (for example, `$Refund_Recommender_Agent` will also run `Spark_Declarative_Pipeline` and `Raw_Data`).
-
-Please be aware that currently the **the tasks are not idempotent**, so run with care. When in doubt, destroy the environment, and re-run with the stage you want with the `$` prepended like below:
-
-#### 📊 Raw Data
-
-Generates a realistic stream of orders and GPS coordinates.
-
-```bash
-databricks bundle run caspers --only $Raw_Data
-```
-
-#### 🔄 Lakeflow (Spark Declarative Pipeline)
-
-Processes and curates order data using a medallion architecture (Bronze → Silver → Gold tables).
-
-```bash
-databricks bundle run caspers --only $Spark_Declarative_Pipeline
-```
-
-#### 🤖 Refund Recommender Agent
-
-Scores each delivery for refund eligibility.
-
-```bash
-databricks bundle run caspers --only $Refund_Recommender_Agent
-```
-
-#### ⚡ Refund Recommender Stream
-
-Streams completed orders into the refund-scoring agent in real time.
-
-```bash
-databricks bundle run caspers --only $Refund_Recommender_Stream
-```
-
-#### 🔁 Lakebase Reverse ETL
-
-Syncs refund-scored orders from the Lakehouse into Lakebase.
-
-```bash
-databricks bundle run caspers --only $Lakebase_Reverse_ETL
-```
-
-#### 📱 Refund Manager App
-
-Launches a Databricks app for manual refund review and approval.
-
-```bash
-databricks bundle run caspers --only $Databricks_App_Refund_Manager
-```
-
-#### 💬 Complaint Agent
-
-LLM agent that classifies and responds to customer complaints.
-
-```bash
-databricks bundle run caspers --only $Complaint_Agent
-```
-
-#### 🌊 Complaint Generator Stream
-
-Simulates a live stream of customer complaint events.
-
-```bash
-databricks bundle run caspers --only $Complaint_Generator_Stream
-```
-
-#### ⚙️ Complaint Agent Stream
-
-Runs the complaint-handling agent continuously on live events.
-
-```bash
-databricks bundle run caspers --only $Complaint_Agent_Stream
-```
-
-#### 🗄️ Complaint Lakebase
-
-Stores complaint data in Lakebase (Postgres) for downstream use.
-
-```bash
-databricks bundle run caspers --only $Complaint_Lakebase
-```
+> 🧩 You can also run individual tasks or stages directly in the Databricks Jobs UI for finer control.
 
 ## 📊 Generated Event Types
 
@@ -177,10 +95,6 @@ Each event includes order ID, sequence number, timestamp, and location context. 
 - **🧪 CUJ Testing**: Run critical user journeys in realistic environment
 - **🎨 UX Prototyping**: Fully loaded platform for design iteration
 - **🎬 Demo Creation**: Unified narrative for new feature demonstrations
-
-## 🙌 Why This Matters
-
-Most demos show just one slice of Databricks. Casper's Kitchens shows how it all connects: ingestion, curation, analytics, and AI apps working together. Use it to learn, demo to customers, or build your own extensions.
 
 ## License
 
