@@ -45,13 +45,13 @@ While our Free Edition environment (`databricks bundle deploy -t default`) looks
 
 ![](/caspers-kitchens/assets/images/20251114-databricks-asset-bundles-and-jobs/free.png)
 
-Which today (but not for long!) includes only the data generation and medallion style Spark Decalarative Pipeline. 
+Which today (but not for long!) includes only the data generation and medallion style Spark Declarative Pipeline. 
 
 Now, if you look closely at the tasks in these job definitions, you might wonder why we have this job at all. Can’t we define all this Databricks infrastructure in the DAB _also_?
 
 **Yes…** at least mostly.
 
-Things like notebooks, jobs, declarative pipelines, models, databases, apps… [all of these can be defined in asset bundles](https://docs.databricks.com/aws/en/dev-tools/bundles/resources#resource-types), and for a production system, your production system, it’d be wise to push DABs as far as they’ll go. DABs
+Things like notebooks, jobs, declarative pipelines, models, databases, apps… [all of these can be defined in asset bundles](https://docs.databricks.com/aws/en/dev-tools/bundles/resources#resource-types), and for a production system, your production system, it’d be wise to push DABs as far as they’ll go. 
 
 But Casper’s is [a demo universe](https://github.com/databricks-solutions/caspers-kitchens) designed to touch as much of the Databricks product surface area as possible. And since we already rely on DABs as the high-level controller of that universe, we’re happy to stop there, and start exploiting Databricks’ orchestration features with Jobs.
 
@@ -59,7 +59,7 @@ The Jobs UI gives us a beautiful, visual DAG representing the entire Casper’s 
 
 For example, if we want to demo only up until our medallion architecture, we can use the UI to select and run only those tasks, and only move downstream if needed later:
 
-<video controls autoplay loop>
+<video width="800px" controls autoplay loop>
   <source src="/caspers-kitchens/assets/images/20251114-databricks-asset-bundles-and-jobs/tasks.mov" type="video/mp4">
 </video>
 
