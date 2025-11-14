@@ -27,11 +27,11 @@ databricks bundle deploy -t free
 databricks bundle deploy -t all
 ```
 
-The [examples in the documentation](https://docs.databricks.com/aws/en/dev-tools/bundles/settings#default) show targets being used for environment mapping like `dev`, `staging`, `prod`, etc., which is common and expected, but our use highlights that targets are, in the end, arbitrary high level labels that can contain other high level mappings like `workspace`, `artifacts`, and `resources`.  In our case, we provide different resources definition per target in order to define the main job that controls our environment, Casper’s Initializer. 
+The [examples in the documentation](https://docs.databricks.com/aws/en/dev-tools/bundles/settings#default) show targets being used for environment mapping like `dev`, `staging`, `prod`, etc., which is common and expected, but our use highlights that targets are, in the end, arbitrary high level labels that can contain other high level mappings like `workspace`, `artifacts`, and `resources`.  In our case, we provide different resources definition per target in order to define the main job that controls our environment, `Casper’s Initializer`. 
 
 For example, our canonical Casper’s environment (`databricks bundle deploy -t default`) looks like this:
 
-![](../assets/images/20251114-databricks-asset-bundles-and-jobs/default.png)
+![](/caspers-kitchens/assets/images/20251114-databricks-asset-bundles-and-jobs/default.png)
 
 You can see that the default Casper's stack has tasks to handle deployment of:
 
@@ -43,7 +43,7 @@ You can see that the default Casper's stack has tasks to handle deployment of:
 
 While our Free Edition environment (`databricks bundle deploy -t default`) looks like this:
 
-![](../assets/images/20251114-databricks-asset-bundles-and-jobs/free.png)
+![](/caspers-kitchens/assets/images/20251114-databricks-asset-bundles-and-jobs/free.png)
 
 Which today (but not for long!) includes only the data generation and medallion style Spark Decalarative Pipeline. 
 
@@ -60,7 +60,7 @@ The Jobs UI gives us a beautiful, visual DAG representing the entire Casper’s 
 For example, if we want to demo only up until our medallion architecture, we can use the UI to select and run only those tasks, and only move downstream if needed later:
 
 <video controls autoplay loop>
-  <source src="../assets/images/20251114-databricks-asset-bundles-and-jobs/tasks.mov" type="video/mp4">
+  <source src="/caspers-kitchens/assets/images/20251114-databricks-asset-bundles-and-jobs/tasks.mov" type="video/mp4">
 </video>
 
 The end result is our universe has a simple two layer orchestration pattern:
