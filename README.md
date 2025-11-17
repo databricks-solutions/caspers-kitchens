@@ -96,6 +96,8 @@ Each event includes order ID, sequence number, timestamp, and location context. 
 - **🎨 UX Prototyping**: Fully loaded platform for design iteration
 - **🎬 Demo Creation**: Unified narrative for new feature demonstrations
 
+## Check out the [Casper's Kitchens Blog](https://databricks-solutions.github.io/caspers-kitchens/)!
+
 ## License
 
 © 2025 Databricks, Inc. All rights reserved. The source in this notebook is provided subject to the Databricks License [https://databricks.com/db-license-source]. All included or referenced third party libraries are subject to the licenses set forth below.
