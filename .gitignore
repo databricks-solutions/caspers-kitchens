@@ -7,3 +7,7 @@ stages/agent.py
 __pycache__
 .idea/
 .env
+.databricks
+.claude
+.bundle
+/.vscode/

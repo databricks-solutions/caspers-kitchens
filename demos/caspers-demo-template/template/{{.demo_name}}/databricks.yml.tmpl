@@ -1,0 +1,55 @@
+bundle:
+  name: caspers_demo_{{.demo_name}}
+
+variables:
+  caspers_catalog:
+    description: "Casper's UC catalog (should match main deployment)"
+    default: "{{.caspers_catalog}}"
+
+workspace:
+  root_path: {{.workspace_root_path}}
+  file_path: ${workspace.root_path}
+
+sync:
+  include:
+    - ./*
+  exclude:
+    - .git/**
+    - databricks.yml
+
+resources:
+  jobs:
+    {{.demo_name}}_demo:
+      name: "{{.demo_name}}_demo"
+      queue:
+        enabled: true
+      performance_target: PERFORMANCE_OPTIMIZED
+
+      parameters:
+        - name: CATALOG
+          default: ${var.caspers_catalog}
+
+      tasks:
+        - task_key: demo_notebook
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/demo.ipynb
+            base_parameters:
+              catalog: "${var.caspers_catalog}"
+
+      # Example: Multi-task job with dependencies
+      # tasks:
+      #   - task_key: setup
+      #     notebook_task:
+      #       notebook_path: ${workspace.file_path}/notebooks/setup.ipynb
+      #   - task_key: main_logic
+      #     depends_on:
+      #       - task_key: setup
+      #     notebook_task:
+      #       notebook_path: ${workspace.file_path}/notebooks/main.ipynb
+
+      # More examples: https://docs.databricks.com/workflows/jobs/jobs.html
+
+targets:
+  dev:
+    mode: development
+    default: true

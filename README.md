@@ -1,56 +1,77 @@
 # 🍔 Casper's Kitchens
 
-Spin up a fully working ghost-kitchen business on Databricks in minutes.
+Casper’s Kitchens is a fully Databricks-native ghost kitchen and food-delivery platform built by the Developer Relations team. It brings together every layer of the Databricks platform — Lakeflow (ingestion, Spark Declarative Pipelines), AI & BI dashboards with Genie, Agent Bricks, and Apps powered by Lakebase (Postgres) — into a single, cohesive live demo.
 
-Casper's Kitchens is a simulated food-delivery platform that shows off the full power of Databricks: streaming ingestion, Lakeflow Declarative Pipelines, AI/BI Dashboards and Genie, Agent Bricks, and real-time apps backed by Lakebase postgres — all stitched together into one narrative.
+Casper’s is more than a showcase. It’s a living playground for simulation, demos, and creative misuse — designed to push the Databricks platform past its comfort zone.
 
-## 🚀 Quick Start
+Everything is built to be easy to:
 
-1. **Import to Databricks Workspace**: Create a new Git folder in your workspace and import this repository
+1. 🚀 **Deploy** — spin up the entire environment in minutes.
+2. 🎬 **Demo** — run only the stages you need, powered by live streaming data.
+3. 🧑‍💻 **Develop** — extend with new pipelines, agents, or apps effortlessly.
 
-2. **Initialize the demo**: Run `init.ipynb` to create the "Casper's Initializer" job
-   - By default the job will use the catalog `caspers`
-   - **Important**: If you're working in a metastore that spans multiple workspaces and another workspace has already used the catalog name `caspers`, you'll need to specify a different name using the `CATALOG` parameter. Catalog names must be unique within a metastore.
-   - By default, only the San Francisco location will generate data. To run additional locations (like Chicago) or create your own, see `data/generator/configs/README.md` and use the `LOCATIONS` parameter.
+We build only with Databricks — by choice — so Casper’s serves as a shared sandbox for learning, experimentation, and storytelling across the platform.
 
-3. **Launch your ghost kitchen empire**:
-   - Navigate to **Jobs & Pipelines** in the left sidebar of your Databricks workspace
-   - Find and run the `Casper's Initializer` job
-   - You can pick a subset of tasks to run if you want. The `Raw_Data` and `Lakeflow_Declarative_Pipeline` tasks are required, but downstream tasks are demo-specific and you can run whichever ones you need.
+## Prerequisites
 
-Then open Databricks and watch:
-- 📦 Orders stream in from ghost kitchens
-- 🔄 Pipelines curate raw → bronze → silver → gold
-- 📊 [Dashboards](https://github.com/databricks-solutions/caspers-kitchens/issues/13) & apps come alive with real-time insights
-- 🤖 RefundGPT agent decides whether refunds should be granted
+- Databricks CLI installed on your local machine.
+- Authenticated to your Databricks workspace. (can do interactively `databricks auth login`)
+- Access to the repository containing Casper's Kitchens.
+- Permissions in the Databricks workspace to create new catalogs.
 
-That's it! Your Casper's Kitchens environment will be up and running.
+## 🚀 Deploy
 
-## 🏗️ What is Casper's Kitchens?
+Casper’s Kitchens uses **Databricks Asset Bundles (DABs)** for one-command deployment.
+Clone this repo, then run from the root directory:
 
-Casper's Kitchens is a fully functional ghost kitchen business running entirely on the Databricks platform. As a ghost kitchen, Casper's operates multiple compact commercial kitchens in shared locations, hosting restaurant vendors as tenants who create digital brands to serve diverse cuisines from single kitchen spaces.
+```bash
+databricks bundle deploy -t <target>
+```
 
-The platform serves dual purposes:
-- **🎭 Narrative**: Provides a consistent business context for demos and training across the Databricks platform  
-- **⚙️ Technical**: Delivers complete infrastructure for learning Databricks, running critical user journeys (CUJs), and enabling UX prototyping
+Each **target** represents a different flavor of Casper’s (for example, full demo, complaints-only, free tier, etc.).
+Use whichever fits your needs:
 
-The platform generates realistic order data with full order lifecycle tracking - from creation to delivery - including kitchen status updates, driver GPS coordinates, and configurable business parameters.
+```bash
+databricks bundle deploy -t default     # full version: Data generation, Lakeflow, Agents, Lakebase & Apps
+databricks bundle deploy -t complaints  # complaints agent: Data generation, Lakeflow, Agents, Lakebase
+databricks bundle deploy -t free        # Databricks Free Edition: Data generation, Lakeflow
+```
 
-## 🏗️ Architecture
+This creates the main job **Casper’s Initializer**, which orchestrates the full ecosystem, and places all assets in your workspace under
+`/Workspace/Users/<your.email@databricks.com>/caspers-kitchens-demo`.
 
-![Stages](./images/stages.png)
+> 💡 You can also deploy from the Databricks UI by cloning this repo as a [Git-based folder](https://docs.databricks.com/repos/) and clicking [Deploy Bundle](https://docs.databricks.com/aws/en/dev-tools/bundles/workspace-tutorial#deploy-the-bundle).
 
-The system is structured as **stages** (found in `./stages/`) orchestrated by a single Databricks Lakeflow Job called "Casper's Initializer". Each stage corresponds to a task in the job (pictured above), enabling:
+For more about how bundles and targets work, see [databricks.yml](./databricks.yml) or the [Databricks Bundles docs](https://docs.databricks.com/en/dev-tools/bundles/index.html).
 
-- **🎯 Customizable demos**: Run only the stages relevant to your use case
-- **🔧 Easy extensibility**: Add new demos that integrate seamlessly under the Casper's narrative  
-- **⚡ Databricks-native**: Uses Databricks itself to bootstrap the demo environment
+## 🎬 Run the Demo
 
-The dependencies between stages is reflected in the job's DAG. 
+![](./images/stages.gif)
 
-You can add new stages to this DAG to extend the demo but they do not NEED to be dependent on the existing DAG if they do not actually use assets produced by other stages.
+Once deployed, run **any** target with the same command:
 
-### 📊 Generated Event Types
+```bash
+databricks bundle run caspers
+```
+
+Optionally, specify a catalog (default: `caspersdev`):
+
+```bash
+databricks bundle run caspers --params "CATALOG=mycatalog"
+```
+
+This spins up all the components—data generator, pipelines, agents, and apps—based on your selected target.
+
+To clean up:
+
+```bash
+databricks bundle run cleanup (--params "CATALOG=mycatalog")
+databricks bundle destroy
+```
+
+> 🧩 You can also run individual tasks or stages directly in the Databricks Jobs UI for finer control.
+
+## 📊 Generated Event Types
 
 The data generator produces the following realistic events for each order in the Volume `caspers.simulator.events`:
 
@@ -67,46 +88,6 @@ The data generator produces the following realistic events for each order in the
 
 Each event includes order ID, sequence number, timestamp, and location context. The system models realistic timing between events based on configurable service times, kitchen capacity, and real road network routing via OpenStreetMap data.
 
-### 🛠️ Available Stages
-
-**📊 Raw Data**
-- Starts realistic data generators for order streams
-- Configurable locations, delivery parameters, and simulation speed
-- Tracks complete order lifecycle with GPS coordinates
-- Default San Francisco location with easy expansion via JSON configs
-
-**🔄 Lakeflow**
-- Medallion architecture pipeline (Bronze → Silver → Gold)
-- Processes and normalizes order data
-- Creates summary tables for downstream consumption
-
-**🤖 Refund Agent**
-- ML model that scores orders for refund eligibility
-- Uses delivery time percentiles (P50, P75, P99) for scoring
-- Classifies as no refund, partial, or full refund
-
-**⚡ Refund Agent Stream**
-- Spark Streaming job for real-time refund scoring
-- Processes completed orders and writes results to lakehouse
-
-**🗄️ Lakebase and Reverse ETL**
-- Creates Lakebase (PostgreSQL) instance
-- Sets up reverse ETL for scored orders
-
-**📱 Refund Manager App**
-- Databricks application for human refund review
-- Allows managers to approve/deny AI recommendations
-
-## ⚙️ Configuration
-
-Business parameters are fully configurable via JSON files in `data/generator/configs/`:
-
-- **📍 Locations**: Add new cities/regions with custom parameters
-- **⏱️ Simulation speed**: From real-time (1x) to accelerated (60x = 1 hour of data per minute)
-- **🚚 Delivery parameters**: Driver speeds, delivery radius, time distributions
-- **🏢 Business settings**: Brands, menus, items, order volumes
-- **📊 Data generation**: Historical data spans, noise levels, batch sizes
-
 ## 🎯 Use Cases
 
 - **📚 Learning Databricks**: Complete end-to-end platform experience
@@ -115,13 +96,7 @@ Business parameters are fully configurable via JSON files in `data/generator/con
 - **🎨 UX Prototyping**: Fully loaded platform for design iteration
 - **🎬 Demo Creation**: Unified narrative for new feature demonstrations
 
-## 🙌 Why This Matters
-
-Most demos show just one slice of Databricks. Casper's Kitchens shows how it all connects: ingestion, curation, analytics, and AI apps working together. Use it to learn, demo to customers, or build your own extensions.
-
-## 🧹 Cleanup
-
-Run `destroy.ipynb` to remove all Casper's Kitchens resources from your workspace.
+## Check out the [Casper's Kitchens Blog](https://databricks-solutions.github.io/caspers-kitchens/)!
 
 ## License
 
