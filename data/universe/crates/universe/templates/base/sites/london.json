@@ -1,0 +1,40 @@
+{
+  "info": {
+    "name": "london",
+    "latitude": 51.518898098201326,
+    "longitude": -0.13381370382489707
+  },
+  "kitchens": [
+    {
+      "info": {
+        "name": "kitchen-1"
+      },
+      "stations": [
+        {
+          "name": "workstation-1",
+          "station_type": "KITCHEN_STATION_WORKSTATION"
+        },
+        {
+          "name": "workstation-2",
+          "station_type": "KITCHEN_STATION_WORKSTATION"
+        },
+        {
+          "name": "oven-1",
+          "station_type": "KITCHEN_STATION_OVEN"
+        },
+        {
+          "name": "oven-2",
+          "station_type": "KITCHEN_STATION_OVEN"
+        },
+        {
+          "name": "stove-1",
+          "station_type": "KITCHEN_STATION_STOVE"
+        },
+        {
+          "name": "stove-2",
+          "station_type": "KITCHEN_STATION_STOVE"
+        }
+      ]
+    }
+  ]
+}
