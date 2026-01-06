@@ -9,7 +9,7 @@ variables:
 
 workspace:
   # Default root path under your user home; still configurable per target
-  root_path: /Workspace/Users/${workspace.current_user.userName}/caspers-kitchens-demo
+  root_path: /Workspace/Users/${workspace.current_user.userName}/caspers-kitchens-demoz
   file_path: ${workspace.root_path}     # where files get synced
 
 # Ship the repo files on deploy (adjust excludes as you like)
@@ -18,10 +18,10 @@ sync:
     - ./*
   exclude:
     - .git/**
-    - databricks.yml
     - .DS_Store
     - .claude/**
     - .databricks/**
+    - ./data/universe/**
 
 scripts:
   cleanup:
@@ -200,17 +200,21 @@ targets:
               default: events
             - name: SIMULATOR_SCHEMA
               default: simulator
-            - name: LOCATIONS
-              default: sanfrancisco.json
+            - name: START_DAY
+              default: "20"
+            - name: SPEED_MULTIPLIER
+              default: "1.0"
+            - name: SCHEDULE_MINUTES
+              default: "5"
 
           tasks:
-            - task_key: Raw_Data
+            - task_key: Canonical_Data
               notebook_task:
-                notebook_path: ${workspace.root_path}/stages/raw_data
+                notebook_path: ${workspace.root_path}/stages/canonical_data
 
             - task_key: Spark_Declarative_Pipeline
               depends_on:
-                - task_key: Raw_Data
+                - task_key: Canonical_Data
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/lakeflow
 
