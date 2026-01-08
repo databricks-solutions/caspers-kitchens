@@ -61,8 +61,7 @@ def silver_order_items():
            .withColumn("order_day",  F.to_date("event_ts"))
            .select(
                "order_id",
-               "gk_id",
-               "location",
+               "location_id",
                F.col("event_ts").alias("order_ts"),               # canonical event time
                "order_day",
                F.col("item.id").alias("item_id"),
@@ -87,7 +86,7 @@ def silver_order_items():
 def gold_order_header():
     return (
         dlt.read_stream("silver_order_items")
-           .groupBy("order_id", "gk_id", "location", "order_day")
+           .groupBy("order_id", "location_id", "order_day")
            .agg(
                F.sum("extended_price").alias("order_revenue"),
                F.sum("qty").alias("total_qty"),
@@ -150,7 +149,7 @@ def gold_location_sales_hourly():
         dlt.read_stream("silver_order_items")
            .withWatermark("order_ts", "3 hours")
            .withColumn("hour_ts", F.date_trunc("hour", "order_ts"))
-           .groupBy("location", "hour_ts")
+           .groupBy("location_id", "hour_ts")
            .agg(
                F.approx_count_distinct("order_id").alias("orders"),
                F.sum("extended_price").alias("revenue")

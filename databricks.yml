@@ -18,10 +18,10 @@ sync:
     - ./*
   exclude:
     - .git/**
-    - databricks.yml
     - .DS_Store
     - .claude/**
     - .databricks/**
+    - ./data/universe/**
 
 scripts:
   cleanup:
@@ -85,17 +85,23 @@ targets:
               default: caspers_refund_agent
             - name: SIMULATOR_SCHEMA
               default: simulator
-            - name: LOCATIONS
-              default: sanfrancisco.json
+            - name: START_DAY
+              default: "70"
+            - name: SPEED_MULTIPLIER
+              default: "60.0"
+            - name: SCHEDULE_MINUTES
+              default: "3"
+            - name: PIPELINE_SCHEDULE_MINUTES
+              default: "0"
 
           tasks:
-            - task_key: Raw_Data
+            - task_key: Canonical_Data
               notebook_task:
-                notebook_path: ${workspace.root_path}/stages/raw_data
+                notebook_path: ${workspace.root_path}/stages/canonical_data
 
             - task_key: Spark_Declarative_Pipeline
               depends_on:
-                - task_key: Raw_Data
+                - task_key: Canonical_Data
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/lakeflow
 
@@ -145,17 +151,23 @@ targets:
               default: "0.15"
             - name: SIMULATOR_SCHEMA
               default: simulator
-            - name: LOCATIONS
-              default: sanfrancisco.json
+            - name: START_DAY
+              default: "70"
+            - name: SPEED_MULTIPLIER
+              default: "60.0"
+            - name: SCHEDULE_MINUTES
+              default: "3"
+            - name: PIPELINE_SCHEDULE_MINUTES
+              default: "0"
 
           tasks:
-            - task_key: Raw_Data
+            - task_key: Canonical_Data
               notebook_task:
-                notebook_path: ${workspace.root_path}/stages/raw_data
+                notebook_path: ${workspace.root_path}/stages/canonical_data
 
             - task_key: Spark_Declarative_Pipeline
               depends_on:
-                - task_key: Raw_Data
+                - task_key: Canonical_Data
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/lakeflow
 
@@ -200,17 +212,23 @@ targets:
               default: events
             - name: SIMULATOR_SCHEMA
               default: simulator
-            - name: LOCATIONS
-              default: sanfrancisco.json
+            - name: START_DAY
+              default: "70"
+            - name: SPEED_MULTIPLIER
+              default: "60.0"
+            - name: SCHEDULE_MINUTES
+              default: "3"
+            - name: PIPELINE_SCHEDULE_MINUTES
+              default: "3"
 
           tasks:
-            - task_key: Raw_Data
+            - task_key: Canonical_Data
               notebook_task:
-                notebook_path: ${workspace.root_path}/stages/raw_data
+                notebook_path: ${workspace.root_path}/stages/canonical_data
 
             - task_key: Spark_Declarative_Pipeline
               depends_on:
-                - task_key: Raw_Data
+                - task_key: Canonical_Data
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/lakeflow
 
@@ -238,17 +256,23 @@ targets:
               default: "0.15"
             - name: SIMULATOR_SCHEMA
               default: simulator
-            - name: LOCATIONS
-              default: sanfrancisco.json
+            - name: START_DAY
+              default: "70"
+            - name: SPEED_MULTIPLIER
+              default: "60.0"
+            - name: SCHEDULE_MINUTES
+              default: "3"
+            - name: PIPELINE_SCHEDULE_MINUTES
+              default: "0"
 
           tasks:
-            - task_key: Raw_Data
+            - task_key: Canonical_Data
               notebook_task:
-                notebook_path: ${workspace.root_path}/stages/raw_data
+                notebook_path: ${workspace.root_path}/stages/canonical_data
 
             - task_key: Spark_Declarative_Pipeline
               depends_on:
-                - task_key: Raw_Data
+                - task_key: Canonical_Data
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/lakeflow
 
