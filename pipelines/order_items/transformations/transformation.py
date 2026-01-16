@@ -9,10 +9,10 @@ from pyspark.sql.types import (
 )
 
 # ──────────────────────────────────────────────────────────────
-# 0. Bronze  – raw event stream
+# 0. Bronze  – raw transaction event stream
 # ──────────────────────────────────────────────────────────────
 @dlt.table(
-    comment = "Raw JSON events as ingested (one file per event)."
+    comment = "Raw JSON transaction events as ingested (one file per event)."
 )
 def all_events():
     CATALOG = spark.conf.get("RAW_DATA_CATALOG")
@@ -25,7 +25,7 @@ def all_events():
     )
 
 # ──────────────────────────────────────────────────────────────
-# 1. Silver – explode order items, add extended_price
+# 1. Silver – explode transaction items, add extended_price
 # ──────────────────────────────────────────────────────────────
 item_schema = StructType([
     StructField("id",          IntegerType()),
@@ -47,7 +47,7 @@ body_schema = (
 
 @dlt.table(
     name           = "silver_order_items",
-    comment        = "Silver – one row per item per order, with extended_price.",
+    comment        = "Silver – one row per item per transaction, with extended_price.",
     partition_cols = ["order_day"]
 )
 def silver_order_items():
@@ -78,11 +78,11 @@ def silver_order_items():
     return df
 
 # ──────────────────────────────────────────────────────────────
-# 2-A. Gold – order header (one row per order)
+# 2-A. Gold – transaction header (one row per transaction)
 # ──────────────────────────────────────────────────────────────
 @dlt.table(
     name    = "gold_order_header",
-    comment = "Gold – per-order revenue & counts."
+    comment = "Gold – per-transaction revenue & counts."
 )
 def gold_order_header():
     return (
@@ -97,12 +97,12 @@ def gold_order_header():
     )
 
 # ──────────────────────────────────────────────────────────────
-# 2-B. Gold – daily item sales
+# 2-B. Gold – daily product transactions
 # ──────────────────────────────────────────────────────────────
 @dlt.table(
     name           = "gold_item_sales_day",
     partition_cols = ["day"],
-    comment        = "Gold – item-level units & revenue by day."
+    comment        = "Gold – product-level transaction volumes & revenue by day."
 )
 def gold_item_sales_day():
     return (
@@ -118,12 +118,12 @@ def gold_item_sales_day():
     )
 
 # ──────────────────────────────────────────────────────────────
-# 2-C. Gold – daily brand sales (stream-safe, HLL order count)
+# 2-C. Gold – daily merchant transactions (stream-safe, HLL txn count)
 # ──────────────────────────────────────────────────────────────
 @dlt.table(
     name           = "gold_brand_sales_day",
     partition_cols = ["day"],
-    comment        = "Gold – brand-level orders (approx), items, revenue by day."
+    comment        = "Gold – merchant-level transactions (approx), items, revenue by day."
 )
 def gold_brand_sales_day():
     return (
@@ -138,12 +138,12 @@ def gold_brand_sales_day():
     )
 
 # ──────────────────────────────────────────────────────────────
-# 2-D-1. Gold – hourly SALES per location  (orders≈, revenue)
+# 2-D-1. Gold – hourly TRANSACTIONS per branch  (txns≈, revenue)
 # ──────────────────────────────────────────────────────────────
 @dlt.table(
     name           = "gold_location_sales_hourly",
     partition_cols = ["hour_ts"],
-    comment        = "Gold – hourly orders (approx) & revenue per location."
+    comment        = "Gold – hourly transactions (approx) & revenue per branch location."
 )
 def gold_location_sales_hourly():
     return (

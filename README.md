@@ -1,8 +1,8 @@
-# 🍔 Casper's Kitchens
+# 🏦 Casper's Bank
 
-Spin up a fully working ghost-kitchen business on Databricks in minutes.
+Spin up a fully working digital bank on Databricks in minutes.
 
-Casper's Kitchens is a simulated food-delivery platform that shows off the full power of Databricks: streaming ingestion, Lakeflow Declarative Pipelines, AI/BI Dashboards and Genie, Agent Bricks, and real-time apps backed by Lakebase postgres — all stitched together into one narrative.
+Casper's Bank is a simulated digital banking platform that shows off the full power of Databricks: streaming transaction ingestion, Lakeflow Declarative Pipelines, AI/BI Dashboards and Genie, Agent Bricks, and real-time apps backed by Lakebase postgres — all stitched together into one narrative.
 
 ## 🚀 Quick Start
 
@@ -11,30 +11,30 @@ Casper's Kitchens is a simulated food-delivery platform that shows off the full 
 2. **Initialize the demo**: Run `init.ipynb` to create the "Casper's Initializer" job
    - By default the job will use the catalog `caspers`
    - **Important**: If you're working in a metastore that spans multiple workspaces and another workspace has already used the catalog name `caspers`, you'll need to specify a different name using the `CATALOG` parameter. Catalog names must be unique within a metastore.
-   - By default, only the San Francisco location will generate data. To run additional locations (like Chicago) or create your own, see `data/generator/configs/README.md` and use the `LOCATIONS` parameter.
+   - By default, only the San Francisco branch will generate data. To run additional branches (like Chicago) or create your own, see `data/generator/configs/README.md` and use the `LOCATIONS` parameter.
 
-3. **Launch your ghost kitchen empire**:
+3. **Launch your digital bank**:
    - Navigate to **Jobs & Pipelines** in the left sidebar of your Databricks workspace
    - Find and run the `Casper's Initializer` job
    - You can pick a subset of tasks to run if you want. The `Raw_Data` and `Lakeflow_Declarative_Pipeline` tasks are required, but downstream tasks are demo-specific and you can run whichever ones you need.
 
 Then open Databricks and watch:
-- 📦 Orders stream in from ghost kitchens
+- 💳 Transactions stream in from bank branches and credit card processors
 - 🔄 Pipelines curate raw → bronze → silver → gold
 - 📊 [Dashboards](https://github.com/databricks-solutions/caspers-kitchens/issues/13) & apps come alive with real-time insights
-- 🤖 RefundGPT agent decides whether refunds should be granted
+- 🤖 Transaction Review Agent decides whether transaction disputes should be approved
 
-That's it! Your Casper's Kitchens environment will be up and running.
+That's it! Your Casper's Bank environment will be up and running.
 
-## 🏗️ What is Casper's Kitchens?
+## 🏗️ What is Casper's Bank?
 
-Casper's Kitchens is a fully functional ghost kitchen business running entirely on the Databricks platform. As a ghost kitchen, Casper's operates multiple compact commercial kitchens in shared locations, hosting restaurant vendors as tenants who create digital brands to serve diverse cuisines from single kitchen spaces.
+Casper's Bank is a fully functional digital bank running entirely on the Databricks platform. As a modern digital bank, Casper's operates multiple branch locations, processes credit card transactions, manages customer accounts, and handles real-time payment processing from various merchant partners across different transaction networks.
 
 The platform serves dual purposes:
-- **🎭 Narrative**: Provides a consistent business context for demos and training across the Databricks platform  
+- **🎭 Narrative**: Provides a consistent business context for demos and training across the Databricks platform
 - **⚙️ Technical**: Delivers complete infrastructure for learning Databricks, running critical user journeys (CUJs), and enabling UX prototyping
 
-The platform generates realistic order data with full order lifecycle tracking - from creation to delivery - including kitchen status updates, driver GPS coordinates, and configurable business parameters.
+The platform generates realistic transaction data with full transaction lifecycle tracking - from initiation to settlement - including authorization status updates, payment network routing, and configurable business parameters.
 
 ## 🏗️ Architecture
 
@@ -52,59 +52,59 @@ You can add new stages to this DAG to extend the demo but they do not NEED to be
 
 ### 📊 Generated Event Types
 
-The data generator produces the following realistic events for each order in the Volume `caspers.simulator.events`:
+The data generator produces the following realistic events for each transaction in the Volume `caspers.simulator.events`:
 
 | Event | Description | Data Included |
 |-------|-------------|---------------|
-| `order_created` | Customer places order | Customer location (lat/lon), delivery address, ordered items with quantities |
-| `gk_started` | Kitchen begins preparing food | Timestamp when prep begins |
-| `gk_finished` | Kitchen completes food preparation | Timestamp when food is ready |
-| `gk_ready` | Order ready for pickup | Timestamp when driver can collect |
-| `driver_arrived` | Driver arrives at kitchen | Timestamp of driver arrival |
-| `driver_picked_up` | Driver collects order | Full GPS route to customer, estimated delivery time |
-| `driver_ping` | Driver location updates during delivery | Current GPS coordinates, delivery progress percentage |
-| `delivered` | Order delivered to customer | Final delivery location coordinates |
+| `order_created` | Transaction initiated | Customer location (lat/lon), account details, transaction items with amounts |
+| `gk_started` | Authorization begins | Timestamp when authorization starts |
+| `gk_finished` | Authorization completed | Timestamp when authorization is approved/denied |
+| `gk_ready` | Transaction ready for processing | Timestamp when ready for settlement |
+| `driver_arrived` | Payment processor engaged | Timestamp when processor begins routing |
+| `driver_picked_up` | Transaction routed through network | Full payment route through network, estimated completion time |
+| `driver_ping` | Transaction status updates during processing | Current processing node, transaction progress percentage |
+| `delivered` | Transaction settled | Final settlement confirmation and location |
 
-Each event includes order ID, sequence number, timestamp, and location context. The system models realistic timing between events based on configurable service times, kitchen capacity, and real road network routing via OpenStreetMap data.
+Each event includes transaction ID, sequence number, timestamp, and branch/location context. The system models realistic timing between events based on configurable processing times, branch capacity, and real payment network routing via OpenStreetMap data for branch locations.
 
 ### 🛠️ Available Stages
 
 **📊 Raw Data**
-- Starts realistic data generators for order streams
-- Configurable locations, delivery parameters, and simulation speed
-- Tracks complete order lifecycle with GPS coordinates
-- Default San Francisco location with easy expansion via JSON configs
+- Starts realistic data generators for transaction streams
+- Configurable branch locations, processing parameters, and simulation speed
+- Tracks complete transaction lifecycle with payment network routing
+- Default San Francisco branch with easy expansion via JSON configs
 
 **🔄 Lakeflow**
 - Medallion architecture pipeline (Bronze → Silver → Gold)
-- Processes and normalizes order data
+- Processes and normalizes transaction data
 - Creates summary tables for downstream consumption
 
-**🤖 Refund Agent**
-- ML model that scores orders for refund eligibility
-- Uses delivery time percentiles (P50, P75, P99) for scoring
-- Classifies as no refund, partial, or full refund
+**🤖 Transaction Review Agent**
+- ML model that scores transactions for dispute eligibility
+- Uses processing time percentiles (P50, P75, P99) for scoring
+- Classifies as no refund, partial refund, or full refund
 
-**⚡ Refund Agent Stream**
-- Spark Streaming job for real-time refund scoring
-- Processes completed orders and writes results to lakehouse
+**⚡ Transaction Review Agent Stream**
+- Spark Streaming job for real-time dispute scoring
+- Processes completed transactions and writes results to lakehouse
 
 **🗄️ Lakebase and Reverse ETL**
 - Creates Lakebase (PostgreSQL) instance
-- Sets up reverse ETL for scored orders
+- Sets up reverse ETL for scored transactions
 
-**📱 Refund Manager App**
-- Databricks application for human refund review
+**📱 Transaction Manager App**
+- Databricks application for human dispute review
 - Allows managers to approve/deny AI recommendations
 
 ## ⚙️ Configuration
 
 Business parameters are fully configurable via JSON files in `data/generator/configs/`:
 
-- **📍 Locations**: Add new cities/regions with custom parameters
+- **📍 Branch Locations**: Add new cities/regions with custom parameters
 - **⏱️ Simulation speed**: From real-time (1x) to accelerated (60x = 1 hour of data per minute)
-- **🚚 Delivery parameters**: Driver speeds, delivery radius, time distributions
-- **🏢 Business settings**: Brands, menus, items, order volumes
+- **💳 Transaction parameters**: Processing speeds, service radius, time distributions
+- **🏢 Business settings**: Merchants, financial products, accounts, transaction volumes
 - **📊 Data generation**: Historical data spans, noise levels, batch sizes
 
 ## 🎯 Use Cases
@@ -117,11 +117,11 @@ Business parameters are fully configurable via JSON files in `data/generator/con
 
 ## 🙌 Why This Matters
 
-Most demos show just one slice of Databricks. Casper's Kitchens shows how it all connects: ingestion, curation, analytics, and AI apps working together. Use it to learn, demo to customers, or build your own extensions.
+Most demos show just one slice of Databricks. Casper's Bank shows how it all connects: ingestion, curation, analytics, and AI apps working together. Use it to learn, demo to customers, or build your own extensions.
 
 ## 🧹 Cleanup
 
-Run `destroy.ipynb` to remove all Casper's Kitchens resources from your workspace.
+Run `destroy.ipynb` to remove all Casper's Bank resources from your workspace.
 
 ## License
 

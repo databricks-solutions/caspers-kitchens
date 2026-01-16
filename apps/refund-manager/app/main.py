@@ -15,7 +15,7 @@ from .databricks_events import fetch_order_events
 DEBUG = os.getenv("DEBUG") in ("1", "true", "TRUE", "yes", "on")
 log = logging.getLogger("refund_manager")
 
-app = FastAPI(title="Refund Manager", version="2.0.0")
+app = FastAPI(title="Transaction Manager", version="2.0.0")
 
 # ─── Configurable schemas ─────────────────────────────────────────────────────
 REFUNDS_SCHEMA = os.environ.get("REFUNDS_SCHEMA", "refunds")
