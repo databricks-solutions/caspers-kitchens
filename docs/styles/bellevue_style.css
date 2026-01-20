@@ -1,0 +1,258 @@
+/* Bellevue Operations Manual - Traditional Theme */
+/* Serif fonts, navy blue accents, classic two-column feel, professional */
+
+@page {
+    size: letter;
+    margin: 1in 0.85in 1in 1.15in;
+
+    @top-center {
+        content: "Bellevue Operations Manual";
+        font-size: 10pt;
+        color: #003366;
+        font-family: Georgia, 'Times New Roman', serif;
+        font-style: italic;
+    }
+
+    @bottom-center {
+        content: "— " counter(page) " —";
+        font-size: 10pt;
+        color: #003366;
+        font-family: Georgia, 'Times New Roman', serif;
+    }
+
+    @bottom-right {
+        content: "CK-BEL";
+        font-size: 9pt;
+        color: #666;
+        font-family: Georgia, 'Times New Roman', serif;
+    }
+}
+
+@page :first {
+    @top-center { content: none; }
+    @bottom-center { content: none; }
+    @bottom-right { content: none; }
+}
+
+/* Base styles - Traditional/Classic */
+body {
+    font-family: Georgia, 'Times New Roman', Cambria, serif;
+    font-size: 11pt;
+    line-height: 1.6;
+    color: #222;
+}
+
+/* Title page styling - Classic/Formal */
+h1:first-of-type {
+    font-size: 30pt;
+    text-align: center;
+    margin-top: 2.5in;
+    margin-bottom: 0.25in;
+    color: #003366;
+    border-bottom: none;
+    font-weight: normal;
+    font-style: italic;
+}
+
+h1:first-of-type + p {
+    text-align: center;
+    font-size: 12pt;
+    color: #003366;
+    margin-bottom: 0.5in;
+    border-top: 1px solid #003366;
+    border-bottom: 1px solid #003366;
+    padding: 10pt 0;
+}
+
+/* Decorative element after title */
+h1:first-of-type + p + hr {
+    border: none;
+    text-align: center;
+    margin: 1in auto;
+}
+
+/* Section headings - Traditional serif */
+h2 {
+    font-size: 18pt;
+    color: #003366;
+    border-bottom: 2px double #003366;
+    padding-bottom: 6pt;
+    margin-top: 26pt;
+    margin-bottom: 16pt;
+    page-break-before: always;
+    page-break-after: avoid;
+    font-weight: normal;
+    font-style: italic;
+    text-align: center;
+}
+
+h2:first-of-type {
+    page-break-before: auto;
+}
+
+h3 {
+    font-size: 14pt;
+    color: #003366;
+    margin-top: 20pt;
+    margin-bottom: 10pt;
+    page-break-after: avoid;
+    font-weight: bold;
+    border-bottom: 1px solid #4169E1;
+    padding-bottom: 4pt;
+}
+
+h4 {
+    font-size: 12pt;
+    color: #4169E1;
+    margin-top: 16pt;
+    margin-bottom: 8pt;
+    page-break-after: avoid;
+    font-weight: bold;
+    font-style: italic;
+}
+
+/* Paragraphs - justified, classic */
+p {
+    margin-bottom: 11pt;
+    text-align: justify;
+    text-indent: 0;
+    orphans: 3;
+    widows: 3;
+}
+
+/* First paragraph after heading - drop cap effect via indent */
+h2 + p, h3 + p {
+    text-indent: 0;
+}
+
+/* Lists - traditional bullets */
+ul, ol {
+    margin-left: 22pt;
+    margin-bottom: 12pt;
+}
+
+li {
+    margin-bottom: 5pt;
+}
+
+ul li::marker {
+    color: #003366;
+}
+
+ol li::marker {
+    color: #003366;
+    font-weight: bold;
+}
+
+/* Tables - classic bordered */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16pt 0;
+    font-size: 10pt;
+    page-break-inside: avoid;
+}
+
+th {
+    background-color: #003366;
+    color: white;
+    border: 1px solid #003366;
+    padding: 10pt 12pt;
+    text-align: left;
+    font-weight: normal;
+    font-style: italic;
+}
+
+td {
+    border: 1px solid #999;
+    padding: 9pt 12pt;
+}
+
+tr:nth-child(even) {
+    background-color: #f4f7fa;
+}
+
+/* Caption style for tables */
+table caption {
+    font-style: italic;
+    color: #003366;
+    margin-bottom: 6pt;
+    text-align: left;
+}
+
+/* Horizontal rules - decorative */
+hr {
+    border: none;
+    border-top: 1px solid #003366;
+    margin: 24pt 2in;
+}
+
+/* Strong/emphasis */
+strong {
+    font-weight: bold;
+    color: #003366;
+}
+
+em {
+    font-style: italic;
+}
+
+/* Code blocks - if any */
+code {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 10pt;
+    background-color: #f0f4f8;
+    padding: 2pt 5pt;
+    border: 1px solid #ccc;
+}
+
+pre {
+    background-color: #f0f4f8;
+    padding: 14pt;
+    border: 1px solid #003366;
+    page-break-inside: avoid;
+}
+
+/* Blockquotes - classic indented */
+blockquote {
+    border-left: 3px solid #003366;
+    padding-left: 18pt;
+    margin: 16pt 24pt 16pt 12pt;
+    color: #444;
+    font-style: italic;
+}
+
+/* Links */
+a {
+    color: #003366;
+    text-decoration: none;
+}
+
+/* Keep content together */
+h3 + p, h3 + ul, h3 + ol, h3 + table,
+h4 + p, h4 + ul, h4 + ol, h4 + table {
+    page-break-before: avoid;
+}
+
+li {
+    page-break-inside: avoid;
+}
+
+/* Special callout boxes */
+.important {
+    border: 2px solid #003366;
+    padding: 12pt;
+    margin: 14pt 0;
+    background-color: #f4f7fa;
+}
+
+/* Footer styling */
+.confidential {
+    text-align: center;
+    font-size: 9pt;
+    color: #003366;
+    margin-top: 26pt;
+    font-style: italic;
+    border-top: 1px solid #003366;
+    padding-top: 10pt;
+}
