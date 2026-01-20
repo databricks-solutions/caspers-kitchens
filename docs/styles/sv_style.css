@@ -1,0 +1,246 @@
+/* Silicon Valley Operations Manual - Tech/Startup Theme */
+/* Dark mode theme, monospace headers, compact dense layout, green accent */
+
+@page {
+    size: letter;
+    margin: 0.85in 0.75in 0.85in 1in; /* Compact margins for dense layout */
+
+    @top-center {
+        content: "// SILICON VALLEY OPS MANUAL";
+        font-size: 8pt;
+        color: #00ff88;
+        font-family: 'SF Mono', 'Consolas', monospace;
+        letter-spacing: 1pt;
+    }
+
+    @bottom-center {
+        content: "page " counter(page) "/" counter(pages);
+        font-size: 8pt;
+        color: #888;
+        font-family: 'SF Mono', 'Consolas', monospace;
+    }
+
+    @bottom-right {
+        content: "CK-SV::v1.0";
+        font-size: 8pt;
+        color: #00ff88;
+        font-family: 'SF Mono', 'Consolas', monospace;
+    }
+}
+
+@page :first {
+    @top-center { content: none; }
+    @bottom-center { content: none; }
+    @bottom-right { content: none; }
+}
+
+/* Base styles - Dark Tech Theme */
+body {
+    font-family: 'Inter', 'SF Pro Display', -apple-system, sans-serif;
+    font-size: 10pt;
+    line-height: 1.5;
+    color: #1a1a2e;
+    background-color: white;
+}
+
+/* Title page styling - Tech/Startup */
+h1:first-of-type {
+    font-size: 28pt;
+    text-align: left;
+    margin-top: 2in;
+    margin-bottom: 0.3in;
+    color: #1a1a2e;
+    border-bottom: none;
+    font-family: 'SF Mono', 'Consolas', monospace;
+    font-weight: 700;
+    letter-spacing: -0.5pt;
+}
+
+h1:first-of-type::before {
+    content: ">> ";
+    color: #00ff88;
+}
+
+h1:first-of-type + p {
+    text-align: left;
+    font-size: 10pt;
+    color: #666;
+    margin-bottom: 1.5in;
+    font-family: 'SF Mono', 'Consolas', monospace;
+}
+
+/* Section headings - monospace tech style */
+h2 {
+    font-size: 14pt;
+    color: #1a1a2e;
+    background-color: #f0f8f0;
+    border-left: 4px solid #00ff88;
+    padding: 10pt 14pt;
+    margin-top: 20pt;
+    margin-bottom: 14pt;
+    page-break-before: always;
+    page-break-after: avoid;
+    font-family: 'SF Mono', 'Consolas', monospace;
+    font-weight: 600;
+}
+
+h2:first-of-type {
+    page-break-before: auto;
+}
+
+h3 {
+    font-size: 11pt;
+    color: #1a1a2e;
+    margin-top: 16pt;
+    margin-bottom: 8pt;
+    page-break-after: avoid;
+    font-family: 'SF Mono', 'Consolas', monospace;
+    font-weight: 600;
+}
+
+h3::before {
+    content: "# ";
+    color: #00aa66;
+}
+
+h4 {
+    font-size: 10pt;
+    color: #333;
+    margin-top: 12pt;
+    margin-bottom: 6pt;
+    page-break-after: avoid;
+    font-family: 'SF Mono', 'Consolas', monospace;
+    font-weight: 500;
+}
+
+h4::before {
+    content: "## ";
+    color: #00aa66;
+}
+
+/* Paragraphs - compact */
+p {
+    margin-bottom: 8pt;
+    text-align: left;
+    orphans: 3;
+    widows: 3;
+}
+
+/* Lists - dense and compact */
+ul, ol {
+    margin-left: 16pt;
+    margin-bottom: 10pt;
+}
+
+li {
+    margin-bottom: 3pt;
+}
+
+li::marker {
+    color: #00aa66;
+}
+
+/* Tables - dark header, compact */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14pt 0;
+    font-size: 9pt;
+    page-break-inside: avoid;
+}
+
+th {
+    background-color: #1a1a2e;
+    color: #00ff88;
+    border: 1px solid #333;
+    padding: 8pt 10pt;
+    text-align: left;
+    font-weight: 600;
+    font-family: 'SF Mono', 'Consolas', monospace;
+    font-size: 8pt;
+    text-transform: uppercase;
+    letter-spacing: 0.5pt;
+}
+
+td {
+    border: 1px solid #ddd;
+    padding: 7pt 10pt;
+    background-color: #fafafa;
+}
+
+tr:nth-child(even) td {
+    background-color: #f0f0f0;
+}
+
+/* Horizontal rules */
+hr {
+    border: none;
+    border-top: 2px dashed #00aa66;
+    margin: 20pt 0;
+}
+
+/* Strong/emphasis */
+strong {
+    font-weight: 700;
+    color: #1a1a2e;
+}
+
+em {
+    font-style: italic;
+    color: #00aa66;
+}
+
+/* Code blocks - prominent */
+code {
+    font-family: 'SF Mono', 'Consolas', monospace;
+    font-size: 9pt;
+    background-color: #1a1a2e;
+    color: #00ff88;
+    padding: 2pt 6pt;
+    border-radius: 2pt;
+}
+
+pre {
+    background-color: #1a1a2e;
+    color: #00ff88;
+    padding: 12pt;
+    border-radius: 4pt;
+    font-size: 8pt;
+    page-break-inside: avoid;
+}
+
+/* Blockquotes - tech callout */
+blockquote {
+    background-color: #1a1a2e;
+    border-left: 4px solid #00ff88;
+    padding: 12pt 16pt;
+    margin: 14pt 0;
+    color: #ccc;
+    font-family: 'SF Mono', 'Consolas', monospace;
+    font-size: 9pt;
+}
+
+/* Links */
+a {
+    color: #00aa66;
+    text-decoration: none;
+}
+
+/* Keep content together */
+h3 + p, h3 + ul, h3 + ol, h3 + table,
+h4 + p, h4 + ul, h4 + ol, h4 + table {
+    page-break-before: avoid;
+}
+
+li {
+    page-break-inside: avoid;
+}
+
+/* Footer styling */
+.confidential {
+    text-align: left;
+    font-size: 8pt;
+    color: #00aa66;
+    margin-top: 20pt;
+    font-family: 'SF Mono', 'Consolas', monospace;
+}

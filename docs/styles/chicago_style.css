@@ -1,0 +1,282 @@
+/* Chicago Operations Manual - Industrial Theme */
+/* Bold headers, red/black color scheme, boxed callouts, sturdy feel */
+
+@page {
+    size: letter;
+    margin: 0.9in 0.75in 0.9in 1.1in;
+
+    @top-center {
+        content: "CHICAGO OPERATIONS MANUAL";
+        font-size: 9pt;
+        color: #8B0000;
+        font-family: 'Arial Black', 'Impact', Helvetica, sans-serif;
+        letter-spacing: 2pt;
+        font-weight: bold;
+    }
+
+    @bottom-center {
+        content: "PAGE " counter(page);
+        font-size: 9pt;
+        color: #1a1a1a;
+        font-family: 'Arial Black', Helvetica, sans-serif;
+        font-weight: bold;
+    }
+
+    @bottom-right {
+        content: "CK-CHI | V1.0";
+        font-size: 8pt;
+        color: #8B0000;
+        font-family: Arial, Helvetica, sans-serif;
+        font-weight: bold;
+    }
+}
+
+@page :first {
+    @top-center { content: none; }
+    @bottom-center { content: none; }
+    @bottom-right { content: none; }
+}
+
+/* Base styles - Industrial/Bold */
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.5;
+    color: #1a1a1a;
+}
+
+/* Title page styling - Bold Industrial */
+h1:first-of-type {
+    font-size: 36pt;
+    text-align: center;
+    margin-top: 2in;
+    margin-bottom: 0.3in;
+    color: #8B0000;
+    border-bottom: none;
+    font-family: 'Impact', 'Arial Black', Helvetica, sans-serif;
+    font-weight: normal;
+    text-transform: uppercase;
+    letter-spacing: 3pt;
+}
+
+h1:first-of-type + p {
+    text-align: center;
+    font-size: 11pt;
+    color: #1a1a1a;
+    margin-bottom: 0.3in;
+    font-weight: bold;
+    background-color: #8B0000;
+    color: white;
+    padding: 10pt 20pt;
+    display: inline-block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Section headings - Bold, boxed */
+h2 {
+    font-size: 16pt;
+    color: white;
+    background-color: #8B0000;
+    padding: 12pt 16pt;
+    margin-top: 22pt;
+    margin-bottom: 16pt;
+    page-break-before: always;
+    page-break-after: avoid;
+    font-family: 'Arial Black', 'Impact', Helvetica, sans-serif;
+    font-weight: normal;
+    text-transform: uppercase;
+    letter-spacing: 1pt;
+    border-left: 6px solid #1a1a1a;
+}
+
+h2:first-of-type {
+    page-break-before: auto;
+}
+
+h3 {
+    font-size: 13pt;
+    color: #8B0000;
+    margin-top: 18pt;
+    margin-bottom: 10pt;
+    page-break-after: avoid;
+    font-family: 'Arial Black', Helvetica, sans-serif;
+    font-weight: normal;
+    text-transform: uppercase;
+    border-bottom: 3px solid #8B0000;
+    padding-bottom: 4pt;
+}
+
+h4 {
+    font-size: 11pt;
+    color: #1a1a1a;
+    margin-top: 14pt;
+    margin-bottom: 8pt;
+    page-break-after: avoid;
+    font-weight: bold;
+    background-color: #f0f0f0;
+    padding: 6pt 10pt;
+    border-left: 4px solid #8B0000;
+}
+
+/* Paragraphs - clean, left-aligned */
+p {
+    margin-bottom: 10pt;
+    text-align: left;
+    orphans: 3;
+    widows: 3;
+}
+
+/* Lists - bold markers */
+ul, ol {
+    margin-left: 20pt;
+    margin-bottom: 12pt;
+}
+
+li {
+    margin-bottom: 5pt;
+}
+
+ul li::marker {
+    color: #8B0000;
+    font-weight: bold;
+}
+
+ol li::marker {
+    color: #8B0000;
+    font-weight: bold;
+}
+
+/* Tables - industrial style with red headers */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16pt 0;
+    font-size: 10pt;
+    page-break-inside: avoid;
+    border: 2px solid #1a1a1a;
+}
+
+th {
+    background-color: #8B0000;
+    color: white;
+    border: 2px solid #1a1a1a;
+    padding: 10pt 12pt;
+    text-align: left;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 9pt;
+    letter-spacing: 0.5pt;
+}
+
+td {
+    border: 1px solid #1a1a1a;
+    padding: 9pt 12pt;
+}
+
+tr:nth-child(even) {
+    background-color: #f5f5f5;
+}
+
+/* Horizontal rules - bold */
+hr {
+    border: none;
+    border-top: 4px solid #8B0000;
+    margin: 22pt 0;
+}
+
+/* Strong/emphasis */
+strong {
+    font-weight: bold;
+    color: #8B0000;
+}
+
+em {
+    font-style: italic;
+    font-weight: bold;
+}
+
+/* Code blocks */
+code {
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 9pt;
+    background-color: #1a1a1a;
+    color: white;
+    padding: 2pt 6pt;
+}
+
+pre {
+    background-color: #1a1a1a;
+    color: white;
+    padding: 12pt;
+    border: 3px solid #8B0000;
+    page-break-inside: avoid;
+}
+
+/* Blockquotes - boxed callout style */
+blockquote {
+    background-color: #fff8f8;
+    border: 2px solid #8B0000;
+    border-left: 6px solid #8B0000;
+    padding: 12pt 16pt;
+    margin: 16pt 0;
+    color: #1a1a1a;
+    font-weight: bold;
+}
+
+/* Warning/Important callouts */
+blockquote strong:first-child {
+    color: #8B0000;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 6pt;
+}
+
+/* Links */
+a {
+    color: #8B0000;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+/* Keep content together */
+h3 + p, h3 + ul, h3 + ol, h3 + table,
+h4 + p, h4 + ul, h4 + ol, h4 + table {
+    page-break-before: avoid;
+}
+
+li {
+    page-break-inside: avoid;
+}
+
+/* Special attention boxes */
+.warning {
+    background-color: #8B0000;
+    color: white;
+    padding: 12pt 16pt;
+    margin: 14pt 0;
+    font-weight: bold;
+    border: 3px solid #1a1a1a;
+}
+
+.caution {
+    background-color: #FFD700;
+    color: #1a1a1a;
+    padding: 12pt 16pt;
+    margin: 14pt 0;
+    font-weight: bold;
+    border: 3px solid #1a1a1a;
+}
+
+/* Footer styling */
+.confidential {
+    text-align: center;
+    font-size: 9pt;
+    color: #8B0000;
+    margin-top: 22pt;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1pt;
+    border-top: 3px solid #8B0000;
+    padding-top: 10pt;
+}

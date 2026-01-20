@@ -1,0 +1,206 @@
+/* San Francisco Operations Manual - Modern/Clean Theme */
+/* Teal accent colors, sans-serif fonts, minimalist layout, wide margins */
+
+@page {
+    size: letter;
+    margin: 1.25in 1in 1in 1.25in; /* Wide margins for modern feel */
+
+    @top-center {
+        content: "San Francisco Operations Manual";
+        font-size: 9pt;
+        color: #008080;
+        font-family: 'Helvetica Neue', Arial, sans-serif;
+        letter-spacing: 0.5pt;
+    }
+
+    @bottom-center {
+        content: "Page " counter(page) " of " counter(pages);
+        font-size: 9pt;
+        color: #666;
+        font-family: 'Helvetica Neue', Arial, sans-serif;
+    }
+
+    @bottom-right {
+        content: "CK-SF | v1.0";
+        font-size: 8pt;
+        color: #008080;
+        font-family: 'Helvetica Neue', Arial, sans-serif;
+    }
+}
+
+@page :first {
+    @top-center { content: none; }
+    @bottom-center { content: none; }
+    @bottom-right { content: none; }
+}
+
+/* Base styles - Modern/Clean */
+body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.6;
+    color: #333;
+    font-weight: 300;
+}
+
+/* Title page styling */
+h1:first-of-type {
+    font-size: 32pt;
+    text-align: center;
+    margin-top: 2.5in;
+    margin-bottom: 0.5in;
+    color: #008080;
+    border-bottom: none;
+    font-weight: 200;
+    letter-spacing: 2pt;
+}
+
+h1:first-of-type + p {
+    text-align: center;
+    font-size: 11pt;
+    color: #666;
+    margin-bottom: 2in;
+    font-weight: 300;
+}
+
+/* Section headings */
+h2 {
+    font-size: 18pt;
+    color: #008080;
+    border-bottom: 1px solid #20B2AA;
+    padding-bottom: 8pt;
+    margin-top: 28pt;
+    margin-bottom: 18pt;
+    page-break-before: always;
+    page-break-after: avoid;
+    font-weight: 400;
+    letter-spacing: 1pt;
+}
+
+h2:first-of-type {
+    page-break-before: auto;
+}
+
+h3 {
+    font-size: 13pt;
+    color: #008080;
+    margin-top: 22pt;
+    margin-bottom: 10pt;
+    page-break-after: avoid;
+    font-weight: 500;
+}
+
+h4 {
+    font-size: 11pt;
+    color: #20B2AA;
+    margin-top: 16pt;
+    margin-bottom: 8pt;
+    page-break-after: avoid;
+    font-weight: 500;
+}
+
+/* Paragraphs - justified with generous spacing */
+p {
+    margin-bottom: 12pt;
+    text-align: justify;
+    orphans: 3;
+    widows: 3;
+}
+
+/* Lists - clean and spacious */
+ul, ol {
+    margin-left: 18pt;
+    margin-bottom: 14pt;
+}
+
+li {
+    margin-bottom: 6pt;
+}
+
+/* Tables - minimal borders, teal accents */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 18pt 0;
+    font-size: 10pt;
+    page-break-inside: avoid;
+}
+
+th {
+    background-color: #008080;
+    color: white;
+    border: none;
+    padding: 10pt 12pt;
+    text-align: left;
+    font-weight: 500;
+}
+
+td {
+    border-bottom: 1px solid #e0e0e0;
+    padding: 10pt 12pt;
+}
+
+tr:last-child td {
+    border-bottom: 2px solid #008080;
+}
+
+/* Horizontal rules - subtle */
+hr {
+    border: none;
+    border-top: 1px solid #20B2AA;
+    margin: 28pt 0;
+}
+
+/* Strong/emphasis */
+strong {
+    font-weight: 600;
+    color: #006666;
+}
+
+em {
+    font-style: italic;
+    color: #555;
+}
+
+/* Code blocks */
+code {
+    font-family: 'SF Mono', 'Monaco', monospace;
+    font-size: 9pt;
+    background-color: #f5f9f9;
+    padding: 2pt 6pt;
+    border-radius: 3pt;
+}
+
+/* Blockquotes - teal accent */
+blockquote {
+    border-left: 3px solid #20B2AA;
+    padding-left: 18pt;
+    margin: 18pt 0;
+    color: #555;
+    font-style: italic;
+}
+
+/* Links */
+a {
+    color: #008080;
+    text-decoration: none;
+}
+
+/* Keep content together */
+h3 + p, h3 + ul, h3 + ol, h3 + table,
+h4 + p, h4 + ul, h4 + ol, h4 + table {
+    page-break-before: avoid;
+}
+
+li {
+    page-break-inside: avoid;
+}
+
+/* Footer styling */
+.confidential {
+    text-align: center;
+    font-size: 8pt;
+    color: #008080;
+    margin-top: 28pt;
+    letter-spacing: 1pt;
+}
