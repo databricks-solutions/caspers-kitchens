@@ -1,0 +1,23 @@
+[project]
+name = "knowledge-assistant-codebase"
+version = "0.1.0"
+description = "Chunk codebase for Databricks Knowledge Assistant vector search"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "astchunk>=0.1.0",
+    "databricks-sdk>=0.77.0",
+    "deepeval>=3.7.9",
+    "lancedb>=0.26.1",
+    "langchain-text-splitters>=1.1.0",
+    "litellm>=1.80.13",
+    "mlflow>=3.8.1",
+    "nbformat>=5.10.4",
+    "openai>=2.14.0",
+    "pandas>=2.3.3",
+    "pyarrow>=22.0.0",
+]
+
+[project.scripts]
+chunk-codebase = "chunk_codebase:main"
+create-uc-table = "create_uc_table:main"
