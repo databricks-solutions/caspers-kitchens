@@ -1,15 +1,15 @@
 # databricks.yml
 bundle:
-  name: caspers-kitchens
+  name: caspers-bank
 
 variables:
   catalog:
     description: "UC catalog for this bundle/target"
-    default: caspersdev
+    default: caspersbankdev
 
 workspace:
   # Default root path under your user home; still configurable per target
-  root_path: /Workspace/Users/${workspace.current_user.userName}/caspers-kitchens-demo
+  root_path: /Workspace/Users/${workspace.current_user.userName}/caspers-bank-demo
   file_path: ${workspace.root_path}     # where files get synced
 
 # Ship the repo files on deploy (adjust excludes as you like)
@@ -44,7 +44,7 @@ scripts:
       mkdir -p .bundle
       cat > .bundle/submit.json <<JSON
       {
-        "run_name": "caspers: cleanup (ephemeral)",
+        "run_name": "caspers_bank: cleanup (ephemeral)",
         "performance_target": "PERFORMANCE_OPTIMIZED",
         "tasks": [
           {
@@ -68,8 +68,8 @@ targets:
 
     resources:
       jobs:
-        caspers:
-          name: "Casper's Initializer"
+        caspers_bank:
+          name: "Casper's Bank Initializer"
           queue:
             enabled: true
           performance_target: PERFORMANCE_OPTIMIZED
@@ -81,8 +81,8 @@ targets:
               default: events
             - name: LLM_MODEL
               default: databricks-meta-llama-3-3-70b-instruct
-            - name: REFUND_AGENT_ENDPOINT_NAME
-              default: caspers_refund_agent
+            - name: FRAUD_AGENT_ENDPOINT_NAME
+              default: caspers_fraud_agent
             - name: SIMULATOR_SCHEMA
               default: simulator
             - name: START_DAY
@@ -105,35 +105,35 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/lakeflow
 
-            - task_key: Refund_Recommender_Agent
+            - task_key: Fraud_Detection_Agent
               depends_on:
                 - task_key: Spark_Declarative_Pipeline
               notebook_task:
-                notebook_path: ${workspace.root_path}/stages/refunder_agent
+                notebook_path: ${workspace.root_path}/stages/fraud_agent
 
-            - task_key: Refund_Recommender_Stream
+            - task_key: Fraud_Detection_Stream
               depends_on:
                 - task_key: Spark_Declarative_Pipeline
               notebook_task:
-                notebook_path: ${workspace.root_path}/stages/refunder_stream
+                notebook_path: ${workspace.root_path}/stages/fraud_stream
 
             - task_key: Lakebase_Reverse_ETL
               depends_on:
-                - task_key: Refund_Recommender_Stream
+                - task_key: Fraud_Detection_Stream
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/lakebase
 
-            - task_key: Databricks_App_Refund_Manager
+            - task_key: Databricks_App_Transaction_Manager
               depends_on:
                 - task_key: Lakebase_Reverse_ETL
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/apps
 
-  complaints:
+  fraud:
     resources:
       jobs:
-        caspers:
-          name: "Casper's Initializer"
+        caspers_bank:
+          name: "Casper's Bank Initializer"
           queue:
             enabled: true
           performance_target: PERFORMANCE_OPTIMIZED
@@ -145,9 +145,9 @@ targets:
               default: events
             - name: LLM_MODEL
               default: databricks-meta-llama-3-3-70b-instruct
-            - name: COMPLAINT_AGENT_ENDPOINT_NAME
-              default: caspers_complaint_agent
-            - name: COMPLAINT_RATE
+            - name: DISPUTE_AGENT_ENDPOINT_NAME
+              default: caspers_dispute_agent
+            - name: DISPUTE_RATE
               default: "0.15"
             - name: SIMULATOR_SCHEMA
               default: simulator
@@ -171,36 +171,36 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/lakeflow
 
-            - task_key: Complaint_Agent
+            - task_key: Dispute_Agent
               depends_on:
                 - task_key: Spark_Declarative_Pipeline
               notebook_task:
-                notebook_path: ${workspace.root_path}/stages/complaint_agent
+                notebook_path: ${workspace.root_path}/stages/dispute_agent
 
-            - task_key: Complaint_Generator_Stream
+            - task_key: Dispute_Generator_Stream
               depends_on:
                 - task_key: Spark_Declarative_Pipeline
               notebook_task:
-                notebook_path: ${workspace.root_path}/stages/complaint_generator_stream
+                notebook_path: ${workspace.root_path}/stages/dispute_generator_stream
 
-            - task_key: Complaint_Agent_Stream
+            - task_key: Dispute_Agent_Stream
               depends_on:
-                - task_key: Complaint_Agent
-                - task_key: Complaint_Generator_Stream
+                - task_key: Dispute_Agent
+                - task_key: Dispute_Generator_Stream
               notebook_task:
-                notebook_path: ${workspace.root_path}/stages/complaint_agent_stream
+                notebook_path: ${workspace.root_path}/stages/dispute_agent_stream
 
-            - task_key: Complaint_Lakebase
+            - task_key: Dispute_Lakebase
               depends_on:
-                - task_key: Complaint_Agent_Stream
+                - task_key: Dispute_Agent_Stream
               notebook_task:
-                notebook_path: ${workspace.root_path}/stages/complaint_lakebase
+                notebook_path: ${workspace.root_path}/stages/dispute_lakebase
 
   free:
     resources:
       jobs:
-        caspers:
-          name: "Casper's Initializer"
+        caspers_bank:
+          name: "Casper's Bank Initializer"
           queue:
             enabled: true
           performance_target: PERFORMANCE_OPTIMIZED
@@ -235,8 +235,8 @@ targets:
   all:
     resources:
       jobs:
-        caspers:
-          name: "Casper's Initializer"
+        caspers_bank:
+          name: "Casper's Bank Initializer"
           queue:
             enabled: true
           performance_target: PERFORMANCE_OPTIMIZED
@@ -248,11 +248,11 @@ targets:
               default: events
             - name: LLM_MODEL
               default: databricks-meta-llama-3-3-70b-instruct
-            - name: REFUND_AGENT_ENDPOINT_NAME
-              default: caspers_refund_agent
-            - name: COMPLAINT_AGENT_ENDPOINT_NAME
-              default: caspers_complaint_agent
-            - name: COMPLAINT_RATE
+            - name: FRAUD_AGENT_ENDPOINT_NAME
+              default: caspers_fraud_agent
+            - name: DISPUTE_AGENT_ENDPOINT_NAME
+              default: caspers_dispute_agent
+            - name: DISPUTE_RATE
               default: "0.15"
             - name: SIMULATOR_SCHEMA
               default: simulator
@@ -276,50 +276,50 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/lakeflow
 
-            - task_key: Refund_Recommender_Agent
+            - task_key: Fraud_Detection_Agent
               depends_on:
                 - task_key: Spark_Declarative_Pipeline
               notebook_task:
-                notebook_path: ${workspace.root_path}/stages/refunder_agent
+                notebook_path: ${workspace.root_path}/stages/fraud_agent
 
-            - task_key: Refund_Recommender_Stream
+            - task_key: Fraud_Detection_Stream
               depends_on:
                 - task_key: Spark_Declarative_Pipeline
               notebook_task:
-                notebook_path: ${workspace.root_path}/stages/refunder_stream
+                notebook_path: ${workspace.root_path}/stages/fraud_stream
 
-            - task_key: Complaint_Agent
+            - task_key: Dispute_Agent
               depends_on:
                 - task_key: Spark_Declarative_Pipeline
               notebook_task:
-                notebook_path: ${workspace.root_path}/stages/complaint_agent
+                notebook_path: ${workspace.root_path}/stages/dispute_agent
 
-            - task_key: Complaint_Generator_Stream
+            - task_key: Dispute_Generator_Stream
               depends_on:
                 - task_key: Spark_Declarative_Pipeline
               notebook_task:
-                notebook_path: ${workspace.root_path}/stages/complaint_generator_stream
+                notebook_path: ${workspace.root_path}/stages/dispute_generator_stream
 
-            - task_key: Complaint_Agent_Stream
+            - task_key: Dispute_Agent_Stream
               depends_on:
-                - task_key: Complaint_Agent
-                - task_key: Complaint_Generator_Stream
+                - task_key: Dispute_Agent
+                - task_key: Dispute_Generator_Stream
               notebook_task:
-                notebook_path: ${workspace.root_path}/stages/complaint_agent_stream
+                notebook_path: ${workspace.root_path}/stages/dispute_agent_stream
 
-            - task_key: Complaint_Lakebase
+            - task_key: Dispute_Lakebase
               depends_on:
-                - task_key: Complaint_Agent_Stream
+                - task_key: Dispute_Agent_Stream
               notebook_task:
-                notebook_path: ${workspace.root_path}/stages/complaint_lakebase
+                notebook_path: ${workspace.root_path}/stages/dispute_lakebase
 
             - task_key: Lakebase_Reverse_ETL
               depends_on:
-                - task_key: Refund_Recommender_Stream
+                - task_key: Fraud_Detection_Stream
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/lakebase
 
-            - task_key: Databricks_App_Refund_Manager
+            - task_key: Databricks_App_Transaction_Manager
               depends_on:
                 - task_key: Lakebase_Reverse_ETL
               notebook_task:

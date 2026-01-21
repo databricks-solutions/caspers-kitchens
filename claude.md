@@ -1,10 +1,10 @@
-# Claude Guide: Casper's Kitchens
+# Claude Guide: Casper's Bank
 
-This document explains how to work with the Casper's Kitchens repository through Claude.
+This document explains how to work with the Casper's Bank repository through Claude.
 
 ## Architecture Overview
 
-Casper's Kitchens uses a **three-layer architecture**:
+Casper's Bank uses a **three-layer architecture**:
 
 ### 1. DABs (Databricks Asset Bundles)
 **Purpose**: Infrastructure deployment - "put the pieces in place"
@@ -19,14 +19,14 @@ Casper's Kitchens uses a **three-layer architecture**:
 ### 2. Job with Stage Tasks
 **Purpose**: Runtime orchestration - "give users a dashboard to operate it"
 
-- Main job: "Casper's Initializer"
+- Main job: "Casper's Bank Initializer"
 - Stage-based tasks with dependency management
 - Runtime parameterization (CATALOG, LLM_MODEL, etc.)
 - UI-driven control (users can select which tasks to run)
 - Visual DAG in Databricks Jobs UI
 - Observable execution (logs, retries, task-level reruns)
 
-**Run**: `databricks bundle run caspers [--params "CATALOG=mycatalog"]`
+**Run**: `databricks bundle run caspers_bank [--params "CATALOG=mycatalog"]`
 
 **Why not just use DABs?** DABs deploys infrastructure, but the Job provides:
 - Runtime flexibility (change parameters without redeploying)
@@ -47,7 +47,7 @@ Casper's Kitchens uses a **three-layer architecture**:
 
 Running `databricks bundle destroy` only removes the Job definition - **all runtime resources are orphaned!**
 
-**The Solution**: `/utils/uc_state/` tracks all created resources in a UC table (`<CATALOG>._caspers_state.resources`)
+**The Solution**: `/utils/uc_state/` tracks all created resources in a UC table (`<CATALOG>._caspers_bank_state.resources`)
 
 **Cleanup workflow**:
 ```bash
@@ -350,7 +350,7 @@ rm -rf .databricks .bundle
    ```bash
    # Extract workspace path from databricks.yml
    USER=$(databricks current-user me --output json | jq -r .userName)
-   WORKSPACE_PATH="/Workspace/Users/$USER/$(cat databricks.yml | grep root_path | grep -o 'caspers-kitchens[^"]*' | head -1)"
+   WORKSPACE_PATH="/Workspace/Users/$USER/$(cat databricks.yml | grep root_path | grep -o 'caspers-bank[^"]*' | head -1)"
 
    echo "Workspace path: $WORKSPACE_PATH"
    ```
@@ -365,7 +365,7 @@ rm -rf .databricks .bundle
 
    # For specific target, verify its stages exist:
    # - free target needs: canonical_data, lakeflow
-   # - default target needs: canonical_data, refunder_agent, refunder_stream, lakebase, apps, lakeflow
+   # - default target needs: canonical_data, fraud_agent, fraud_stream, lakebase, apps, lakeflow
    # Check databricks.yml under targets.<target>.tasks to see which stages are needed
    ```
 
@@ -432,19 +432,19 @@ print(f"✅ Found {len(caspers_pipelines)} pipelines")
 
 # Check endpoint exists
 try:
-    endpoint = w.serving_endpoints.get("caspers_refund_agent")
+    endpoint = w.serving_endpoints.get("caspers_fraud_agent")
     print(f"✅ Endpoint exists: {endpoint.state}")
 except:
     print("❌ Endpoint not found")
 
 # Check app exists
 apps = w.apps.list()
-caspers_apps = [a for a in apps if "refund" in a.name.lower()]
+caspers_apps = [a for a in apps if "transaction" in a.name.lower()]
 print(f"✅ Found {len(caspers_apps)} apps")
 
 # Check job exists and status
 jobs = w.jobs.list()
-caspers_jobs = [j for j in jobs if "Casper" in j.settings.name]
+caspers_jobs = [j for j in jobs if "Casper's Bank" in j.settings.name]
 if caspers_jobs:
     job_id = caspers_jobs[0].job_id
     runs = w.jobs.list_runs(job_id=job_id, limit=1)
@@ -462,8 +462,8 @@ if caspers_jobs:
 
 ### Scenario
 
-- Pipeline is running with live data flowing
-- One task/stage fails (e.g., `Refund_Recommender_Agent` has a schema error)
+- Pipeline is running with live transaction data flowing
+- One task/stage fails (e.g., `Fraud_Detection_Agent` has a schema error)
 - Other stages are working fine
 - Full redeploy would disrupt everything and waste resources
 
@@ -478,10 +478,10 @@ if caspers_jobs:
 2. **Export the current workspace notebook**
    ```bash
    # Get your workspace path from databricks.yml (workspace.file_path)
-   # Default: /Workspace/Users/<email>/caspers-kitchens-demo
+   # Default: /Workspace/Users/<email>/caspers-bank-demo
 
    databricks workspace export \
-     /Workspace/Users/<your-email>/caspers-kitchens-demo/stages/<stage_name> \
+     /Workspace/Users/<your-email>/caspers-bank-demo/stages/<stage_name> \
      --format SOURCE
    ```
 
@@ -498,14 +498,14 @@ if caspers_jobs:
      --language PYTHON \
      --format SOURCE \
      --overwrite \
-     /Workspace/Users/<your-email>/caspers-kitchens-demo/stages/<stage_name>
+     /Workspace/Users/<your-email>/caspers-bank-demo/stages/<stage_name>
    ```
 
 5. **Verify the fix was applied**
    ```bash
    # Export again and check for your changes
    databricks workspace export \
-     /Workspace/Users/<your-email>/caspers-kitchens-demo/stages/<stage_name> \
+     /Workspace/Users/<your-email>/caspers-bank-demo/stages/<stage_name> \
      --format SOURCE | grep "<search_term>"
    ```
 
@@ -529,41 +529,41 @@ if caspers_jobs:
    git push
    ```
 
-### Real Example: Fixing location_id Schema Issue
+### Real Example: Fixing branch_id Schema Issue
 
-**Problem:** Refunder agent failed with `column 'location' cannot be resolved` because canonical dataset uses `location_id` instead of `location`.
+**Problem:** Fraud agent failed with `column 'branch' cannot be resolved` because canonical dataset uses `branch_id` instead of `branch`.
 
 **Fix applied:**
 ```bash
 # 1. Create fixed notebook with JOIN clause
-cat > /tmp/refunder_agent_fixed.py << 'EOF'
+cat > /tmp/fraud_agent_fixed.py << 'EOF'
 # Databricks notebook source
 # ... (notebook content with fixes)
-# Changed: SELECT body, event_type, order_id, ts, location
-# To: SELECT ae.body, ae.event_type, ae.order_id, ae.ts, loc.name as location
+# Changed: SELECT body, event_type, transaction_id, ts, branch
+# To: SELECT ae.body, ae.event_type, ae.transaction_id, ae.ts, br.name as branch
 #     FROM ${CATALOG}.lakeflow.all_events ae
-#     LEFT JOIN ${CATALOG}.simulator.locations loc ON ae.location_id = loc.location_id
+#     LEFT JOIN ${CATALOG}.simulator.branches br ON ae.branch_id = br.branch_id
 EOF
 
 # 2. Push to workspace
 databricks workspace import \
-  --file /tmp/refunder_agent_fixed.py \
+  --file /tmp/fraud_agent_fixed.py \
   --language PYTHON \
   --format SOURCE \
   --overwrite \
-  /Workspace/Users/nick.karpov@databricks.com/caspers-kitchens-demo/stages/refunder_agent
+  /Workspace/Users/your.email@databricks.com/caspers-bank-demo/stages/fraud_agent
 
 # 3. Verify
 databricks workspace export \
-  /Workspace/Users/nick.karpov@databricks.com/caspers-kitchens-demo/stages/refunder_agent \
+  /Workspace/Users/your.email@databricks.com/caspers-bank-demo/stages/fraud_agent \
   --format SOURCE | grep "LEFT JOIN"
 
 # 4. In UI: Click "Repair" on failed task
 
 # 5. Backport to local
-# Edit ./stages/refunder_agent.ipynb with same changes
-git add stages/refunder_agent.ipynb
-git commit -m "Fix: Add JOIN for location_id schema change"
+# Edit ./stages/fraud_agent.ipynb with same changes
+git add stages/fraud_agent.ipynb
+git commit -m "Fix: Add JOIN for branch_id schema change"
 ```
 
 ### Important Caveats
@@ -648,25 +648,31 @@ Use full redeploy instead if:
 
 ---
 
-## Current Work: Canonical Data Migration
+## Current Work: Banking Transaction Simulation
 
-**Context**: Migrating from live generator to canonical dataset approach
+**Context**: Casper's Bank simulates realistic banking transaction flows with streaming data
 
-**Preferred data source**: `/data/canonical/` (pre-generated 90-day dataset with streaming replay)
+**Data source**: `/data/canonical/` (pre-generated transaction dataset with streaming replay)
 
 **How to check current state**:
 1. Look at `databricks.yml` under each target
-2. Check which stage is used for data generation (look for tasks with `raw_data` or `canonical_data`)
-3. `free` target uses `canonical_data` stage
-4. Other targets may still use `raw_data` stage (old generator)
+2. Check which stage is used for data generation (look for tasks with `canonical_data`)
+3. All targets use `canonical_data` stage for transaction generation
 
-**Goal**: Make canonical the default for all targets
+**Banking Domain Model**:
+- **Branches**: Physical banking locations (Downtown, Uptown, Airport, etc.)
+- **Departments**: Operational units (Lending, Credit Cards, Fraud Detection, etc.)
+- **Service Points**: Processing resources (Tellers, ATMs, Loan officer desks)
+- **Products**: Banking offerings (Credit Cards, Checking Accounts, Mortgages, etc.)
+- **Transactions**: Streaming events (purchases, payments, transfers, deposits, withdrawals)
+- **Customers**: Account holders with credit cards and bank accounts
+- **Bank Officers**: Staff who process transactions and handle customer service
 
 **Why canonical is better**:
-- Reliable (no dying generators that can't restart)
+- Reliable (consistent transaction patterns)
 - Flexible (start at any day, run at any speed)
-- Portable (34.5 MB file, easy to ship)
-- Reproducible (same dataset across all environments)
+- Portable (pre-generated dataset, easy to ship)
+- Reproducible (same transaction history across all environments)
 
 **See**: `/data/canonical/README.md` for comprehensive documentation
 
@@ -749,7 +755,7 @@ databricks bundle deploy -t <target>
 
 ### Run
 ```bash
-databricks bundle run caspers [--params "CATALOG=mycatalog"]
+databricks bundle run caspers_bank [--params "CATALOG=mycatalog"]
 ```
 
 ### Cleanup

@@ -1,19 +1,19 @@
-# Casper's Kitchens - Canonical Dataset & Streaming Replay
+# Casper's Bank - Canonical Dataset & Streaming Replay
 
-This directory contains the **canonical dataset** and **streaming replay system** for Casper's Kitchens ghost kitchen simulation.
+This directory contains the **canonical dataset** and **streaming replay system** for Casper's Bank transaction simulation.
 
 ## Overview
 
-The canonical dataset replaces the previous long-running generator notebook with:
-1. **Pre-generated 90-day dataset** (34.5 MB) that can be shipped statically
-2. **Custom PySpark Streaming data source** that replays events at configurable speeds
+The canonical dataset provides:
+1. **Pre-generated 90-day transaction dataset** that can be shipped statically
+2. **Custom PySpark Streaming data source** that replays transaction events at configurable speeds
 3. **Checkpoint-based state management** for resumable, scheduled streaming
 
 This approach provides:
-- ✅ **Reliability** - No more dying generators that can't restart
+- ✅ **Reliability** - Consistent transaction patterns and event streams
 - ✅ **Flexibility** - Start at any day, run at any speed (1x, 60x, 3600x)
-- ✅ **Portability** - Single 34.5 MB file, easy to ship and deploy
-- ✅ **Reproducibility** - Same dataset across all environments
+- ✅ **Portability** - Pre-generated dataset, easy to ship and deploy
+- ✅ **Reproducibility** - Same transaction history across all environments
 
 ---
 
@@ -26,13 +26,13 @@ canonical/
 ├── caspers_data_source.py             # Standalone Python streaming source
 ├── caspers_streaming_notebook.py      # Databricks notebook version
 └── canonical_dataset/
-    ├── events.parquet                 # 1M+ events, 75K+ orders (34.5 MB)
-    ├── locations.parquet              # 4 ghost kitchen locations (6 KB)
-    ├── brands.parquet                 # 24 food brands (4 KB)
-    ├── brand_locations.parquet        # Brand availability by city/time (5 KB)
-    ├── categories.parquet             # 112 menu categories (4 KB)
-    ├── menus.parquet                  # 24 menus (3 KB)
-    └── items.parquet                  # 181 menu items with prices (9 KB)
+    ├── events.parquet                 # 1M+ transaction events, 75K+ transactions
+    ├── branches.parquet               # Bank branch locations
+    ├── product_families.parquet       # Product families (Credit Cards, Accounts, etc.)
+    ├── product_availability.parquet   # Product availability by branch/time
+    ├── categories.parquet             # Product categories
+    ├── products.parquet               # Individual banking products
+    └── accounts.parquet               # Customer accounts and cards
 ```
 
 ---
@@ -44,7 +44,7 @@ canonical/
 1. **Upload dataset to DBFS:**
    ```bash
    # Upload canonical_dataset/ directory to DBFS
-   databricks fs cp -r canonical_dataset/ dbfs:/caspers/canonical_dataset/
+   databricks fs cp -r canonical_dataset/ dbfs:/caspers_bank/canonical_dataset/
    ```
 
 2. **Import notebook:**
@@ -52,7 +52,7 @@ canonical/
 
 3. **Configure parameters:**
    ```python
-   DATASET_PATH = "/dbfs/caspers/canonical_dataset"
+   DATASET_PATH = "/dbfs/caspers_bank/canonical_dataset"
    START_DAY = 70          # Day 0-89
    SPEED_MULTIPLIER = 60.0 # 60x realtime
    ```
@@ -77,7 +77,8 @@ python3 caspers_data_source.py
 - **Start:** January 1, 2024 00:00:00
 - **End:** March 30, 2024 23:59:59
 - **Duration:** 90 days
-- **Total Orders:** 75,780
+- **Total Transactions:** 75,780+
+- **Transaction Types:** Credit card purchases, account transfers, deposits, withdrawals, payments
 - **Total Events:** 1,014,290
 
 ### Cities & Narratives
