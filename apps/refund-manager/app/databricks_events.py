@@ -16,8 +16,8 @@ CATALOG = os.getenv("DATABRICKS_CATALOG", "")
 SCHEMA  = os.getenv("DATABRICKS_SCHEMA", "lakeflow")
 
 _COLS = [
-    "body", "event_id", "event_type", "gk_id", "location",
-    "order_id", "sequence", "ts", "_rescued_data"
+    "body", "event_id", "event_type", "location_id",
+    "order_id", "sequence", "ts"
 ]
 
 def _state_name(resp) -> str | None:
@@ -33,7 +33,7 @@ def _state_name(resp) -> str | None:
 
 def fetch_order_events(order_id: str) -> List[Dict[str, Any]]:
     stmt = f"""
-        SELECT body, event_id, event_type, gk_id, location, order_id, sequence, ts, _rescued_data
+        SELECT body, event_id, event_type, location_id, order_id, sequence, ts
         FROM {CATALOG}.{SCHEMA}.all_events
         WHERE order_id = :oid
           AND event_type <> 'driver_ping'
@@ -64,14 +64,13 @@ def fetch_order_events(order_id: str) -> List[Dict[str, Any]]:
     out: List[Dict[str, Any]] = []
     for row in data:
         d = { _COLS[i]: row[i] for i in range(min(len(_COLS), len(row))) }
-        for k in ("body", "_rescued_data"):
-            v = d.get(k)
-            if isinstance(v, str):
-                s = v.strip()
-                if s.startswith("{") and s.endswith("}"):
-                    try:
-                        d[k] = json.loads(s)
-                    except Exception:
-                        pass
+        v = d.get("body")
+        if isinstance(v, str):
+            s = v.strip()
+            if s.startswith("{") and s.endswith("}"):
+                try:
+                    d["body"] = json.loads(s)
+                except Exception:
+                    pass
         out.append(d)
     return out
