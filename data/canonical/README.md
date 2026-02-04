@@ -168,7 +168,7 @@ python3 caspers_data_source.py
 
 ### How It Works
 
-The streaming system uses **checkpoint-based replay** with configurable speed:
+The streaming system uses **checkpoint-based replay** with configurable speed and infinite looping:
 
 1. **First Run (Historical Catchup):**
    - Outputs ALL data from day 0 → START_DAY @ current time
@@ -177,8 +177,14 @@ The streaming system uses **checkpoint-based replay** with configurable speed:
 
 2. **Subsequent Runs (Live Streaming):**
    - Uses speed multiplier to advance simulation time
-   - Formula: `new_sim_time = (current_time - checkpoint_time) × speed_multiplier`
+   - Formula: `new_sim_time = start_position + (current_time - sim_start_time) × speed_multiplier`
    - Example: 5 min elapsed × 60x = 5 hours of simulation time
+
+3. **Looping Behavior (Infinite Replay):**
+   - When replay passes day 89, it wraps to day 0 and continues
+   - Internal simulation time remains monotonic (virtual timeline)
+   - Emitted `ts` values continue increasing across loops
+   - `order_id` is suffixed on looped cycles (`-L1`, `-L2`, ...) to avoid key collisions
 
 ### Configuration Parameters
 
@@ -199,20 +205,15 @@ The streaming system uses **checkpoint-based replay** with configurable speed:
 
 ### Checkpoint Structure
 
-The checkpoint stores:
-```json
-{
-  "simulation_seconds": 1710219767,    // Unix timestamp of last processed event
-  "offset_timestamp": "2024-01-05T21:00:00",  // Real wall-clock time of checkpoint
-  "is_initial": false                  // First run flag (removed after first run)
-}
-```
+The replay job stores:
+- `_watermark`: last processed **virtual** simulation second (monotonic)
+- `_sim_start`: wall-clock start time for replay-speed math
 
 Each run calculates:
 ```python
-elapsed_real = current_time - checkpoint_timestamp
+elapsed_real = current_time - sim_start_time
 elapsed_sim = elapsed_real × speed_multiplier
-new_position = checkpoint_sim_seconds + elapsed_sim
+new_position = start_position + elapsed_sim
 ```
 
 ### Scheduling Patterns
