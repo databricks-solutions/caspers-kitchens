@@ -123,9 +123,9 @@ def list_recommendations(limit: int = 50, offset: int = 0, include_zero: bool = 
         
         all_recs = conn.execute(
             text(f"""
-                SELECT order_id, ts, agent_response
+                SELECT order_id, ts, order_ts, agent_response
                 FROM {RECS_TABLE}
-                ORDER BY ts DESC
+                ORDER BY order_ts DESC, order_id DESC
                 LIMIT :fetch_limit
             """),
             {"fetch_limit": fetch_limit},
@@ -144,6 +144,7 @@ def list_recommendations(limit: int = 50, offset: int = 0, include_zero: bool = 
             filtered_recs.append({
                 "order_id": r["order_id"],
                 "ts": r["ts"],
+                "order_ts": r["order_ts"],
                 "agent_response": r["agent_response"],
                 "suggestion": sug,
             })
@@ -173,6 +174,7 @@ def list_recommendations(limit: int = 50, offset: int = 0, include_zero: bool = 
         items.append({
             "order_id": r["order_id"],
             "ts": r["ts"],
+            "order_ts": r["order_ts"],
             "suggestion": r["suggestion"],  # will be ERROR_SUGGESTION for bad rows
             "decision": dec_map.get(r["order_id"]) or None,
             "status": "applied" if r["order_id"] in dec_map else "pending",
@@ -196,7 +198,7 @@ def apply_refund(body: RefundDecisionCreate):
                 SELECT agent_response
                 FROM "{RECS_SCHEMA}".pg_recommendations
                 WHERE order_id = :oid
-                ORDER BY ts DESC
+                ORDER BY ts DESC, order_ts DESC
                 LIMIT 1
             """),
             {"oid": body.order_id},
