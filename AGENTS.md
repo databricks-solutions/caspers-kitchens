@@ -590,6 +590,114 @@ Use full redeploy instead if:
 
 ---
 
+## Refund Manager App Reference
+
+**App name**: `refundmanager`
+**Source path**: `apps/refund-manager/`
+**Workspace path**: `/Workspace/Users/nick.karpov@databricks.com/caspers-kitchens-demo/apps/refund-manager`
+**URL**: `https://refundmanager-3508993729357828.aws.databricksapps.com`
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `app.yaml` | App config: command, env vars (CONNECTION_STRING, DATABRICKS_WAREHOUSE_ID, DATABRICKS_CATALOG) |
+| `app/db.py` | DB connection: uses CONNECTION_STRING if set, falls back to PG_* vars with OAuth token refresh |
+| `app/main.py` | FastAPI app: summary, recommendations list, refund decisions, order events |
+| `app/models.py` | Pydantic models, agent response parsing |
+| `app/databricks_events.py` | Fetches order events from Databricks SQL (separate from PG connection) |
+| `index.html` | Single-page frontend (Tailwind + Bootstrap modal) |
+| `requirements.txt` | Dependencies (psycopg2-binary, not psycopg) |
+| `.env` | Local env file with PROD_CONNECTION_STRING and DEV_CONNECTION_STRING |
+
+### Database Branches
+
+Connection strings for Lakebase database branches are stored in `apps/refund-manager/.env`:
+- `PROD_CONNECTION_STRING` - production branch
+- `DEV_CONNECTION_STRING` - dev branch
+
+To check which branch the remote app is pointing at:
+```bash
+source apps/refund-manager/.env
+databricks workspace export ".../apps/refund-manager/app.yaml" --format AUTO
+```
+
+To switch branches: update `app.yaml` with the desired `*_CONNECTION_STRING`, upload, and redeploy.
+
+### Database Rotation (new Lakebase instance or branch)
+
+When the database is killed and recreated, you get new connection strings. Follow this order:
+
+1. **Save new connection string** (from clipboard):
+   ```bash
+   # Update the relevant var in apps/refund-manager/.env
+   # e.g. PROD_CONNECTION_STRING=<new value>
+   ```
+
+2. **Run migrations** (before deploying — app health check will fail without tables):
+   ```bash
+   source apps/refund-manager/.env
+
+   # OG app (Python):
+   python apps/refund-manager/migrate.py "$PROD_CONNECTION_STRING"
+
+   # v2 app (Node.js):
+   cd apps/refund-manager-appkit && CONNECTION_STRING="$PROD_CONNECTION_STRING" npx tsx server/migrate.ts
+   ```
+   This creates `refund_decisions` table + `schema_migrations` tracking.
+   The `recommendations` table is created by the upstream Lakebase/streaming pipeline, not by the app.
+
+3. **Update app.yaml and redeploy** (same hot-fix pattern as usual).
+
+### Clipboard Workflow (for live demos)
+
+Use `pbpaste` to grab connection strings from clipboard without pasting into the session:
+```bash
+CONN_STRING=$(pbpaste)
+```
+Save to `.env` immediately so you don't depend on clipboard state.
+
+---
+
+## Hot Fix Pattern: Databricks Apps
+
+**When to use this:** Fix a running Databricks App without full bundle redeploy. **Prefer this over `databricks bundle deploy`** for app changes — it's faster and won't disrupt other resources.
+
+### Steps
+
+```bash
+# 1. Upload changed file(s) to workspace (use RAW for regular files, SOURCE for notebooks)
+databricks workspace import \
+  --file ./apps/<app-name>/path/to/file.py \
+  --format RAW \
+  --overwrite \
+  "/Workspace/Users/<email>/<project>/apps/<app-name>/path/to/file.py"
+
+# 2. Redeploy the app (creates new snapshot, reinstalls deps, restarts)
+databricks apps deploy <app-name> \
+  --source-code-path "/Workspace/Users/<email>/<project>/apps/<app-name>"
+```
+
+### Common Mistakes to Avoid
+
+- **`--format RAW`** for regular files (`.py`, `.yaml`, `.html`, `.txt`)
+- **`--format SOURCE --language PYTHON`** for notebooks only — using this on regular files causes type mismatch error
+- **Don't forget to redeploy** — uploading files alone doesn't restart the app
+- **Don't use `databricks bundle deploy`** just to update the app — it's slow and can get stuck
+- **Check clipboard before using `pbpaste`** in heredocs — stale clipboard will break `app.yaml`
+
+### Verify Deployment
+
+```bash
+# Check app status
+databricks apps get <app-name> --output json | jq '{state: .app_status.state, message: .active_deployment.status.message}'
+
+# Check deployed file contents
+databricks workspace export "/Workspace/Users/<email>/<project>/apps/<app-name>/path/to/file.py" --format AUTO
+```
+
+---
+
 ## Fragile Areas & Gotchas
 
 ### 1. uc_state Management

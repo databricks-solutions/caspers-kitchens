@@ -76,5 +76,6 @@ def parse_agent_response(raw: Optional[str]) -> Dict[str, Any]:
     if not isinstance(reason, str):
         reason = ""
 
-    # Valid suggestion
+    # Valid suggestion (strip internal tracking keys)
     return {"refund_usd": float(usd), "refund_class": cls, "reason": reason}
+

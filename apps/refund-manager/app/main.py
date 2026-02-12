@@ -17,37 +17,17 @@ log = logging.getLogger("refund_manager")
 
 app = FastAPI(title="Refund Manager", version="2.0.0")
 
-# ─── Configurable schemas ─────────────────────────────────────────────────────
-REFUNDS_SCHEMA = os.environ.get("REFUNDS_SCHEMA", "refunds")
-RECS_SCHEMA    = os.environ.get("RECS_SCHEMA", "recommender")
+# ─── Table names (all in public schema) ───────────────────────────────────────
+REFUNDS_TABLE = "public.refund_decisions"
+RECS_TABLE    = "public.recommendations"
 
-def _qi(name: str) -> str:
-    return '"' + name.replace('"', '""') + '"'
-
-REFUNDS_TABLE = f"{_qi(REFUNDS_SCHEMA)}.refund_decisions"
-RECS_TABLE    = f"{_qi(RECS_SCHEMA)}.pg_recommendations"
-
-# ─── Startup: ensure refunds table ────────────────────────────────────────────
-DDL = f"""
-CREATE SCHEMA IF NOT EXISTS {_qi(REFUNDS_SCHEMA)};
-
-CREATE TABLE IF NOT EXISTS {REFUNDS_TABLE} (
-    id BIGSERIAL PRIMARY KEY,
-    order_id TEXT NOT NULL,
-    decided_ts TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    amount_usd NUMERIC(10,2) NOT NULL CHECK (amount_usd >= 0),
-    refund_class TEXT NOT NULL CHECK (refund_class IN ('none','partial','full')),
-    reason TEXT NOT NULL,
-    decided_by TEXT,
-    source_suggestion JSONB
-);
-CREATE INDEX IF NOT EXISTS idx_refund_decisions_order_id ON {REFUNDS_TABLE}(order_id);
-"""
+# ─── Startup: verify database connection ──────────────────────────────────────
+# Schema is managed externally via migrate.py - run migrations before starting app
 
 @app.on_event("startup")
 def _startup():
-    with engine.begin() as conn:
-        conn.exec_driver_sql(DDL)
+    with engine.connect() as conn:
+        conn.exec_driver_sql("SELECT 1")
 
 # ─── Static SPA ───────────────────────────────────────────────────────────────
 @app.get("/")
@@ -117,13 +97,12 @@ def summary(include_zero: bool = False):
 def list_recommendations(limit: int = 50, offset: int = 0, include_zero: bool = False):
     with engine.connect() as conn:
         # Fetch a larger batch to account for filtering
-        # We fetch enough to ensure we can fill the page after filtering
-        # Using a multiplier to handle the case where many rows are filtered out
         fetch_limit = 1000 if not include_zero else limit + offset + 100
         
         all_recs = conn.execute(
             text(f"""
-                SELECT order_id, ts, order_ts, agent_response
+                SELECT order_id, ts, order_ts, agent_response,
+                       model_name, model_version, endpoint_name, is_synthetic
                 FROM {RECS_TABLE}
                 ORDER BY order_ts DESC, order_id DESC
                 LIMIT :fetch_limit
@@ -147,6 +126,10 @@ def list_recommendations(limit: int = 50, offset: int = 0, include_zero: bool = 
                 "order_ts": r["order_ts"],
                 "agent_response": r["agent_response"],
                 "suggestion": sug,
+                "model_name": r.get("model_name"),
+                "model_version": r.get("model_version"),
+                "endpoint_name": r.get("endpoint_name"),
+                "is_synthetic": r.get("is_synthetic"),
             })
         
         # Apply pagination to filtered results
@@ -175,9 +158,12 @@ def list_recommendations(limit: int = 50, offset: int = 0, include_zero: bool = 
             "order_id": r["order_id"],
             "ts": r["ts"],
             "order_ts": r["order_ts"],
-            "suggestion": r["suggestion"],  # will be ERROR_SUGGESTION for bad rows
+            "suggestion": r["suggestion"],
             "decision": dec_map.get(r["order_id"]) or None,
             "status": "applied" if r["order_id"] in dec_map else "pending",
+            "model_name": r.get("model_name"),
+            "model_version": r.get("model_version"),
+            "is_synthetic": r.get("is_synthetic"),
         })
     
     return {
@@ -196,7 +182,7 @@ def apply_refund(body: RefundDecisionCreate):
         sug_row = conn.execute(
             text(f"""
                 SELECT agent_response
-                FROM "{RECS_SCHEMA}".pg_recommendations
+                FROM {RECS_TABLE}
                 WHERE order_id = :oid
                 ORDER BY ts DESC, order_ts DESC
                 LIMIT 1
@@ -204,12 +190,11 @@ def apply_refund(body: RefundDecisionCreate):
             {"oid": body.order_id},
         ).mappings().first()
 
-        from .models import parse_agent_response, ERROR_SUGGESTION  # if not already imported at top
         source_suggestion = parse_agent_response(sug_row["agent_response"]) if sug_row else dict(ERROR_SUGGESTION)
 
         row = conn.execute(
             text(f"""
-                INSERT INTO "{REFUNDS_SCHEMA}".refund_decisions
+                INSERT INTO {REFUNDS_TABLE}
                     (order_id, amount_usd, refund_class, reason, decided_by, source_suggestion)
                 VALUES
                     (:order_id, :amount_usd, :refund_class, :reason, :decided_by, CAST(:source_suggestion AS JSONB))

@@ -1,6 +1,6 @@
 fastapi
 uvicorn[standard]
 sqlalchemy
-psycopg[binary]
+psycopg2-binary
 databricks-sdk
 databricks-sql-connector

@@ -21,6 +21,8 @@ sync:
     - .DS_Store
     - .claude/**
     - .databricks/**
+    - .venv/**
+    - "**/.venv/**"
     - ./data/universe/**
 
 scripts:

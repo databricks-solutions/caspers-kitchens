@@ -6,3 +6,5 @@ env:
     value: 'e1a2914f603fc607'
   - name: DATABRICKS_CATALOG
     value: 'cazzper'
+  - name: CONNECTION_STRING
+    value: ''  # set at deploy time, do not commit credentials
