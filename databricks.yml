@@ -232,6 +232,74 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/lakeflow
 
+  menus:
+    resources:
+      jobs:
+        caspers:
+          name: "Casper's Initializer"
+          queue:
+            enabled: true
+          performance_target: PERFORMANCE_OPTIMIZED
+
+          parameters:
+            - name: CATALOG
+              default: ${var.catalog}
+            - name: MENU_KNOWLEDGE_ENDPOINT_NAME
+              default: caspers_menu_knowledge
+            - name: INSPECTION_KNOWLEDGE_ENDPOINT_NAME
+              default: caspers_inspection_knowledge
+            - name: MENU_SUPERVISOR_ENDPOINT_NAME
+              default: caspers_menu_supervisor
+
+          tasks:
+            - task_key: Menu_Data
+              max_retries: 0
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/menu_data
+
+            - task_key: Inspection_Data
+              max_retries: 0
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/inspection_data
+
+            - task_key: Menu_Pipeline
+              max_retries: 0
+              depends_on:
+                - task_key: Menu_Data
+                - task_key: Inspection_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/menu_pipeline
+
+            - task_key: Menu_Genie
+              max_retries: 0
+              depends_on:
+                - task_key: Menu_Pipeline
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/menu_genie
+
+            - task_key: Menu_Knowledge_Agent
+              max_retries: 0
+              depends_on:
+                - task_key: Menu_Pipeline
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/menu_knowledge_agent
+
+            - task_key: Inspection_Knowledge_Agent
+              max_retries: 0
+              depends_on:
+                - task_key: Inspection_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/inspection_knowledge_agent
+
+            - task_key: Menu_Supervisor
+              max_retries: 0
+              depends_on:
+                - task_key: Menu_Genie
+                - task_key: Menu_Knowledge_Agent
+                - task_key: Inspection_Knowledge_Agent
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/menu_supervisor
+
   all:
     resources:
       jobs:
@@ -254,6 +322,12 @@ targets:
               default: caspers_complaint_agent
             - name: COMPLAINT_RATE
               default: "0.15"
+            - name: MENU_KNOWLEDGE_ENDPOINT_NAME
+              default: caspers_menu_knowledge
+            - name: INSPECTION_KNOWLEDGE_ENDPOINT_NAME
+              default: caspers_inspection_knowledge
+            - name: MENU_SUPERVISOR_ENDPOINT_NAME
+              default: caspers_menu_supervisor
             - name: SIMULATOR_SCHEMA
               default: simulator
             - name: START_DAY
@@ -324,3 +398,48 @@ targets:
                 - task_key: Lakebase_Reverse_ETL
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/apps
+
+            - task_key: Menu_Data
+              depends_on:
+                - task_key: Canonical_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/menu_data
+
+            - task_key: Inspection_Data
+              depends_on:
+                - task_key: Canonical_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/inspection_data
+
+            - task_key: Menu_Pipeline
+              depends_on:
+                - task_key: Menu_Data
+                - task_key: Inspection_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/menu_pipeline
+
+            - task_key: Menu_Genie
+              depends_on:
+                - task_key: Menu_Pipeline
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/menu_genie
+
+            - task_key: Menu_Knowledge_Agent
+              depends_on:
+                - task_key: Menu_Pipeline
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/menu_knowledge_agent
+
+            - task_key: Inspection_Knowledge_Agent
+              depends_on:
+                - task_key: Inspection_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/inspection_knowledge_agent
+
+            - task_key: Menu_Supervisor
+              depends_on:
+                - task_key: Menu_Genie
+                - task_key: Menu_Knowledge_Agent
+                - task_key: Inspection_Knowledge_Agent
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/menu_supervisor

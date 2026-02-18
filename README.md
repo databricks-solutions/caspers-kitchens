@@ -35,6 +35,7 @@ Use whichever fits your needs:
 databricks bundle deploy -t default     # full version: Data generation, Lakeflow, Agents, Lakebase & Apps
 databricks bundle deploy -t complaints  # complaints agent: Data generation, Lakeflow, Agents, Lakebase
 databricks bundle deploy -t free        # Databricks Free Edition: Data generation, Lakeflow
+databricks bundle deploy -t menus       # document intelligence: Menu & inspection PDFs, DLT pipeline, Genie, Knowledge Assistants, Multi-Agent Supervisor
 ```
 
 This creates the main job **Casper’s Initializer**, which orchestrates the full ecosystem, and places all assets in your workspace under
@@ -43,6 +44,22 @@ This creates the main job **Casper’s Initializer**, which orchestrates the ful
 > 💡 You can also deploy from the Databricks UI by cloning this repo as a [Git-based folder](https://docs.databricks.com/repos/) and clicking [Deploy Bundle](https://docs.databricks.com/aws/en/dev-tools/bundles/workspace-tutorial#deploy-the-bundle).
 
 For more about how bundles and targets work, see [databricks.yml](./databricks.yml) or the [Databricks Bundles docs](https://docs.databricks.com/en/dev-tools/bundles/index.html).
+
+### menus target
+
+The `menus` target deploys a document intelligence pipeline showcasing PDF processing, a bronze/silver/gold DLT pipeline, and a multi-agent supervisor:
+
+| Stage | What it does |
+|-------|-------------|
+| **Menu_Data** | Uploads 16 restaurant menu PDFs and structured metadata to Unity Catalog |
+| **Inspection_Data** | Uploads 12 food safety inspection report PDFs and metadata to Unity Catalog |
+| **Menu_Pipeline** | DLT pipeline (bronze/silver/gold) with data quality expectations over menu and inspection data |
+| **Menu_Genie** | Genie space for natural language SQL queries over 10 silver + gold tables |
+| **Menu_Knowledge_Agent** | Knowledge Assistant for document Q&A over menu PDFs |
+| **Inspection_Knowledge_Agent** | Knowledge Assistant for document Q&A over inspection report PDFs |
+| **Menu_Supervisor** | Multi-Agent Supervisor coordinating Genie, Menu KA, and Inspection KA |
+
+See [demos/multi-agent-supervisor/README.md](./demos/multi-agent-supervisor/README.md) for a guided demo flow with sample questions.
 
 ## 🎬 Run the Demo
 
