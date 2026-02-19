@@ -244,21 +244,75 @@ targets:
           parameters:
             - name: CATALOG
               default: ${var.catalog}
+            - name: EVENTS_VOLUME
+              default: events
+            - name: LLM_MODEL
+              default: databricks-meta-llama-3-3-70b-instruct
+            - name: REFUND_AGENT_ENDPOINT_NAME
+              default: caspers_refund_agent
             - name: MENU_KNOWLEDGE_ENDPOINT_NAME
               default: caspers_menu_knowledge
             - name: INSPECTION_KNOWLEDGE_ENDPOINT_NAME
               default: caspers_inspection_knowledge
             - name: MENU_SUPERVISOR_ENDPOINT_NAME
               default: caspers_menu_supervisor
+            - name: SIMULATOR_SCHEMA
+              default: simulator
+            - name: START_DAY
+              default: "70"
+            - name: SPEED_MULTIPLIER
+              default: "60.0"
+            - name: SCHEDULE_MINUTES
+              default: "3"
+            - name: PIPELINE_SCHEDULE_MINUTES
+              default: "0"
 
           tasks:
+            - task_key: Canonical_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/canonical_data
+
+            - task_key: Spark_Declarative_Pipeline
+              depends_on:
+                - task_key: Canonical_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/lakeflow
+
+            - task_key: Refund_Recommender_Agent
+              depends_on:
+                - task_key: Spark_Declarative_Pipeline
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/refunder_agent
+
+            - task_key: Refund_Recommender_Stream
+              depends_on:
+                - task_key: Spark_Declarative_Pipeline
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/refunder_stream
+
+            - task_key: Lakebase_Reverse_ETL
+              depends_on:
+                - task_key: Refund_Recommender_Stream
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/lakebase
+
+            - task_key: Databricks_App_Refund_Manager
+              depends_on:
+                - task_key: Lakebase_Reverse_ETL
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/apps
+
             - task_key: Menu_Data
               max_retries: 0
+              depends_on:
+                - task_key: Canonical_Data
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/menu_data
 
             - task_key: Inspection_Data
               max_retries: 0
+              depends_on:
+                - task_key: Canonical_Data
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/inspection_data
 
