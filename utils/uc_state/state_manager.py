@@ -94,7 +94,7 @@ class UCState:
         Add a resource to state.
 
         Args:
-            resource_type: Type of resource (experiments, jobs, pipelines, apps, databaseinstances, endpoints, catalogs, databasecatalogs, warehouses)
+            resource_type: Type of resource (experiments, jobs, pipelines, apps, databaseinstances, endpoints, catalogs, databasecatalogs, warehouses, genie_spaces, vector_search_endpoints, vector_search_indexes)
             resource_obj: The API return object from Databricks SDK or a dict with resource metadata
             
         Returns:
@@ -206,7 +206,7 @@ class UCState:
     def clear_all(self, dry_run: bool = False) -> Dict[str, Dict[str, List[Dict[str, str]]]]:
         """
         Remove all resources from Databricks and clear state.
-        Deletion order: experiments → jobs → pipelines → endpoints → apps → warehouses → databaseinstances → catalogs
+        Deletion order: experiments → jobs → pipelines → endpoints → genie_spaces → vector_search_indexes → vector_search_endpoints → apps → warehouses → databasecatalogs → catalogs → databaseinstances
         
         Args:
             dry_run: If True, only show what would be deleted without actually deleting
@@ -219,8 +219,8 @@ class UCState:
                 }
             }
         """
-        # Define deletion order: experiments → jobs → pipelines → endpoints → apps → warehouses → databasecatalogs → catalogs → databaseinstances
-        deletion_order = ['experiments', 'jobs', 'pipelines', 'endpoints', 'apps', 'warehouses', 'databasecatalogs', 'catalogs', 'databaseinstances']
+        # Define deletion order: experiments → jobs → pipelines → endpoints → genie_spaces → vector_search_indexes → vector_search_endpoints → apps → warehouses → databasecatalogs → catalogs → databaseinstances
+        deletion_order = ['experiments', 'jobs', 'pipelines', 'endpoints', 'genie_spaces', 'vector_search_indexes', 'vector_search_endpoints', 'apps', 'warehouses', 'databasecatalogs', 'catalogs', 'databaseinstances']
         results = {}
         
         for resource_type in deletion_order:
@@ -261,6 +261,12 @@ class UCState:
                     resource_name = resource_data if isinstance(resource_data, str) else resource_data.get('name', 'Unknown')
                 elif resource_type == 'catalogs':
                     resource_name = resource_data if isinstance(resource_data, str) else resource_data.get('name', 'Unknown')
+                elif resource_type == 'genie_spaces':
+                    resource_name = resource_data.get('title') or resource_data.get('space_id', 'Unknown')
+                elif resource_type == 'vector_search_indexes':
+                    resource_name = resource_data.get('name', 'Unknown')
+                elif resource_type == 'vector_search_endpoints':
+                    resource_name = resource_data.get('name', 'Unknown')
                 
                 if dry_run:
                     results[resource_type]["successful"].append({
@@ -349,6 +355,33 @@ class UCState:
                             deletion_successful = True
                         else:
                             error_message = "No database catalog name found in resource data"
+                    
+                    elif resource_type == 'genie_spaces':
+                        space_id = resource_data.get('space_id')
+                        if space_id:
+                            self.w.api_client.do("DELETE", f"/api/2.0/genie/spaces/{space_id}")
+                            logger.info(f"Deleted Genie space {space_id}")
+                            deletion_successful = True
+                        else:
+                            error_message = "No space_id found in resource data"
+                    
+                    elif resource_type == 'vector_search_indexes':
+                        index_name = resource_data.get('name')
+                        if index_name:
+                            self.w.vector_search_indexes.delete_index(index_name=index_name)
+                            logger.info(f"Deleted vector search index {index_name}")
+                            deletion_successful = True
+                        else:
+                            error_message = "No index name found in resource data"
+                    
+                    elif resource_type == 'vector_search_endpoints':
+                        endpoint_name = resource_data.get('name')
+                        if endpoint_name:
+                            self.w.vector_search_endpoints.delete_endpoint(endpoint_name=endpoint_name)
+                            logger.info(f"Deleted vector search endpoint {endpoint_name}")
+                            deletion_successful = True
+                        else:
+                            error_message = "No endpoint name found in resource data"
                     
                     elif resource_type == 'catalogs':
                         catalog_name = resource_data if isinstance(resource_data, str) else resource_data.get('name')
@@ -450,7 +483,7 @@ def add(catalog: str, resource_type: str, resource_obj: Any, schema: str = "_int
 
     Args:
         catalog: The catalog name to store state in
-        resource_type: Type of resource (experiments, jobs, pipelines, apps, databaseinstances, endpoints, catalogs, databasecatalogs, warehouses)
+        resource_type: Type of resource (experiments, jobs, pipelines, apps, databaseinstances, endpoints, catalogs, databasecatalogs, warehouses, genie_spaces, vector_search_endpoints, vector_search_indexes)
         resource_obj: The API return object from Databricks SDK or a dict with resource metadata
         schema: Schema name (default: _internal_state)
         table: Table name (default: resources)
