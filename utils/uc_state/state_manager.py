@@ -219,8 +219,7 @@ class UCState:
                 }
             }
         """
-        # Define deletion order: experiments → jobs → pipelines → endpoints → genie_spaces → vector_search_indexes → vector_search_endpoints → apps → warehouses → databasecatalogs → catalogs → databaseinstances
-        deletion_order = ['experiments', 'jobs', 'pipelines', 'endpoints', 'genie_spaces', 'vector_search_indexes', 'vector_search_endpoints', 'apps', 'warehouses', 'databasecatalogs', 'catalogs', 'databaseinstances']
+        deletion_order = ['experiments', 'jobs', 'pipelines', 'multi_agent_supervisors', 'knowledge_assistants', 'endpoints', 'genie_spaces', 'vector_search_indexes', 'vector_search_endpoints', 'apps', 'warehouses', 'databasecatalogs', 'catalogs', 'databaseinstances']
         results = {}
         
         for resource_type in deletion_order:
@@ -263,6 +262,10 @@ class UCState:
                     resource_name = resource_data if isinstance(resource_data, str) else resource_data.get('name', 'Unknown')
                 elif resource_type == 'genie_spaces':
                     resource_name = resource_data.get('title') or resource_data.get('space_id', 'Unknown')
+                elif resource_type == 'knowledge_assistants':
+                    resource_name = resource_data.get('name') or resource_data.get('agent_id', 'Unknown')
+                elif resource_type == 'multi_agent_supervisors':
+                    resource_name = resource_data.get('name') or resource_data.get('agent_id', 'Unknown')
                 elif resource_type == 'vector_search_indexes':
                     resource_name = resource_data.get('name', 'Unknown')
                 elif resource_type == 'vector_search_endpoints':
@@ -310,15 +313,48 @@ class UCState:
                             error_message = "No pipeline_id found in resource data"
                     
                     elif resource_type == 'endpoints':
+                        agent_id = resource_data.get('agent_id')
                         endpoint_name = resource_data.get('endpoint_name')
-                        if endpoint_name:
+                        if agent_id:
+                            for api_path in ["/api/2.0/knowledge-assistants", "/api/2.0/multi-agent-supervisors"]:
+                                try:
+                                    self.w.api_client.do("DELETE", f"{api_path}/{agent_id}")
+                                    logger.info(f"Deleted agent {agent_id} via {api_path}")
+                                    deletion_successful = True
+                                    break
+                                except Exception:
+                                    pass
+                            if not deletion_successful and endpoint_name:
+                                try:
+                                    from mlflow.deployments import get_deploy_client
+                                    client = get_deploy_client("databricks")
+                                    client.delete_endpoint(endpoint=endpoint_name)
+                                    logger.info(f"Deleted serving endpoint {endpoint_name}")
+                                    deletion_successful = True
+                                except Exception as ep_err:
+                                    error_message = f"Agent API and endpoint delete both failed: {ep_err}"
+                        elif endpoint_name:
                             from mlflow.deployments import get_deploy_client
                             client = get_deploy_client("databricks")
                             client.delete_endpoint(endpoint=endpoint_name)
                             logger.info(f"Deleted serving endpoint {endpoint_name}")
                             deletion_successful = True
                         else:
-                            error_message = "No endpoint name found in resource data"
+                            error_message = "No endpoint name or agent_id found in resource data"
+                    
+                    elif resource_type in ('knowledge_assistants', 'multi_agent_supervisors'):
+                        agent_id = resource_data.get('agent_id')
+                        agent_name = resource_data.get('name')
+                        for ref in [agent_id, agent_name]:
+                            if ref and not deletion_successful:
+                                try:
+                                    self.w.api_client.do("DELETE", f"/api/2.0/tiles/{ref}")
+                                    logger.info(f"Deleted {resource_type} {ref} via tiles API")
+                                    deletion_successful = True
+                                except Exception:
+                                    pass
+                        if not deletion_successful:
+                            error_message = f"Could not delete via /api/2.0/tiles/ with id={agent_id} or name={agent_name}"
                     
                     elif resource_type == 'apps':
                         app_name = resource_data.get('name')
