@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Casper's Kitchen Rescue</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#1B3139" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --db-primary: #FF3621;
+      --db-primary-dark: #E02E1A;
+      --db-green: #00A972;
+      --db-dark: #1B3139;
+      --db-light: #F8FAFB;
+      --db-border: #E4E7EB;
+      --gold: #F59E0B;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { background: var(--db-dark); min-height: 100dvh; font-family: system-ui, -apple-system, sans-serif; }
+
+    .screen { display: none; min-height: 100dvh; }
+    .screen.active { display: flex; flex-direction: column; }
+
+    .quest-card {
+      background: white;
+      border-radius: 16px;
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .quest-card:active { transform: scale(0.98); }
+
+    .quest-card.locked { opacity: 0.5; pointer-events: none; }
+    .quest-card.completed { border-left: 4px solid var(--db-green); }
+    .quest-card.active-quest { border-left: 4px solid var(--db-primary); }
+
+    .feature-tag {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+
+    .btn-game {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 14px 24px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 1rem;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s;
+      width: 100%;
+    }
+    .btn-game:active { transform: scale(0.97); }
+    .btn-primary { background: var(--db-primary); color: white; }
+    .btn-primary:hover { background: var(--db-primary-dark); }
+    .btn-secondary { background: white; color: var(--db-dark); border: 2px solid var(--db-border); }
+    .btn-hint { background: #FEF3C7; color: #92400E; border: 2px solid #F59E0B; }
+    .btn-sm { padding: 10px 16px; font-size: 0.875rem; width: auto; }
+
+    .input-game {
+      width: 100%; padding: 14px 16px;
+      border: 2px solid var(--db-border);
+      border-radius: 12px;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .input-game:focus { border-color: var(--db-primary); }
+
+    .score-pill {
+      background: linear-gradient(135deg, #FEF3C7, #FDE68A);
+      color: #92400E;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 0.8rem;
+    }
+
+    .result-correct { background: #D1FAE5; border: 2px solid var(--db-green); border-radius: 12px; padding: 16px; }
+    .result-wrong { background: #FEE2E2; border: 2px solid #EF4444; border-radius: 12px; padding: 16px; }
+
+    .fade-in { animation: fadeIn 0.3s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .confetti { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999; }
+
+    @media (min-width: 640px) {
+      .mobile-container { max-width: 480px; margin: 0 auto; }
+    }
+  </style>
+</head>
+<body class="text-gray-900">
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- SCREEN: Welcome -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <div id="screen-welcome" class="screen active">
+    <div class="flex-1 flex flex-col items-center justify-center px-6 py-12 mobile-container">
+      <div class="text-center mb-10 fade-in">
+        <div class="text-6xl mb-4">&#x1F354;</div>
+        <h1 class="text-3xl font-black text-white mb-2">Casper's Kitchen<br/>Rescue</h1>
+        <p class="text-gray-400 text-sm max-w-xs mx-auto">
+          Something is wrong at Casper's ghost kitchens. Use Databricks tools to investigate, diagnose, and save the business.
+        </p>
+      </div>
+
+      <div class="w-full max-w-xs space-y-4 fade-in" style="animation-delay: 0.15s">
+        <input id="playerName" type="text" class="input-game" placeholder="Enter your name" autocomplete="off" />
+        <button id="startBtn" class="btn-game btn-primary" onclick="startGame()">
+          Start Investigation
+        </button>
+      </div>
+
+      <div class="mt-8 text-center fade-in" style="animation-delay: 0.3s">
+        <p class="text-gray-500 text-xs">Powered by Databricks</p>
+        <div class="flex items-center justify-center gap-3 mt-3 text-gray-500 text-xs">
+          <span class="feature-tag bg-blue-900 text-blue-300">Genie</span>
+          <span class="feature-tag bg-purple-900 text-purple-300">Dashboards</span>
+          <span class="feature-tag bg-green-900 text-green-300">Agents</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- SCREEN: Quest Map -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <div id="screen-map" class="screen">
+    <!-- Header -->
+    <header class="bg-white/5 backdrop-blur border-b border-white/10 px-4 py-3 sticky top-0 z-10">
+      <div class="mobile-container flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">&#x1F354;</span>
+          <span class="text-white font-bold text-sm" id="mapPlayerName"></span>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="score-pill" id="mapTotalScore">0 pts</div>
+        </div>
+      </div>
+    </header>
+
+    <div class="flex-1 px-4 py-6 mobile-container">
+      <div class="mb-6">
+        <h2 class="text-white text-xl font-bold mb-1">Quest Map</h2>
+        <p class="text-gray-400 text-sm">Complete each level to unlock the next</p>
+      </div>
+
+      <div id="questList" class="space-y-4"></div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- SCREEN: Level Detail -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <div id="screen-level" class="screen">
+    <header class="bg-white/5 backdrop-blur border-b border-white/10 px-4 py-3 sticky top-0 z-10">
+      <div class="mobile-container flex items-center justify-between">
+        <button class="text-white flex items-center gap-1 text-sm font-medium" onclick="showScreen('map'); refreshMap();">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          Back
+        </button>
+        <div class="score-pill" id="levelScore">0 pts</div>
+      </div>
+    </header>
+
+    <div class="flex-1 px-4 py-6 mobile-container">
+      <div class="mb-2">
+        <span class="feature-tag bg-blue-100 text-blue-800" id="levelFeature"></span>
+      </div>
+      <h2 class="text-white text-2xl font-black mb-2" id="levelTitle"></h2>
+      <p class="text-gray-400 text-sm mb-6" id="levelStory"></p>
+
+      <div class="bg-white/10 rounded-xl p-4 mb-6">
+        <h3 class="text-white font-bold text-sm mb-2">&#x1F4CB; Instructions</h3>
+        <p class="text-gray-300 text-sm" id="levelInstructions"></p>
+      </div>
+
+      <!-- Genie / Dashboard link placeholder -->
+      <div id="levelToolLink" class="mb-6"></div>
+
+      <!-- Answer form -->
+      <div id="answerSection" class="space-y-4">
+        <h3 class="text-white font-bold text-sm">&#x1F50D; Submit Your Findings</h3>
+        <div id="answerFields"></div>
+        <div id="answerResults" class="space-y-2"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════
+    // State
+    // ═══════════════════════════════════════════════════════════
+    let playerId = null;
+    let playerName = '';
+    let currentLevel = null;
+    let levelsData = [];
+    let answeredKeys = {};  // { level: { key: true/false } }
+    let gameConfig = {};    // { genie_room_url, dashboard_url, quest_app_url }
+
+    // ═══════════════════════════════════════════════════════════
+    // Navigation
+    // ═══════════════════════════════════════════════════════════
+    function showScreen(name) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById('screen-' + name).classList.add('active');
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // API helpers
+    // ═══════════════════════════════════════════════════════════
+    async function api(path, opts = {}) {
+      const resp = await fetch(path, {
+        headers: { 'Content-Type': 'application/json' },
+        ...opts,
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.detail || resp.statusText);
+      }
+      return resp.json();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Start Game
+    // ═══════════════════════════════════════════════════════════
+    async function startGame() {
+      const nameInput = document.getElementById('playerName');
+      playerName = nameInput.value.trim();
+      if (!playerName) { nameInput.focus(); return; }
+
+      const btn = document.getElementById('startBtn');
+      btn.textContent = 'Starting...';
+      btn.disabled = true;
+
+      try {
+        // Load config separately so it doesn't block game start
+        gameConfig = await api('/api/config').catch(() => ({}));
+
+        const data = await api('/api/start', {
+          method: 'POST',
+          body: JSON.stringify({ player_name: playerName }),
+        });
+        playerId = data.player_id;
+        document.getElementById('mapPlayerName').textContent = playerName;
+        await refreshMap();
+        showScreen('map');
+      } catch (e) {
+        // Try to fetch debug info to help diagnose
+        let debugInfo = '';
+        try {
+          const dbg = await fetch('/api/debug').then(r => r.json());
+          debugInfo = '\n\nDebug: ' + JSON.stringify(dbg, null, 2);
+        } catch (_) {}
+        alert('Failed to start: ' + e.message + debugInfo);
+      } finally {
+        btn.textContent = 'Start Investigation';
+        btn.disabled = false;
+      }
+    }
+
+    // Enter key on name input
+    document.getElementById('playerName').addEventListener('keydown', e => {
+      if (e.key === 'Enter') startGame();
+    });
+
+    // ═══════════════════════════════════════════════════════════
+    // Quest Map
+    // ═══════════════════════════════════════════════════════════
+    async function refreshMap() {
+      const data = await api('/api/levels?player_id=' + playerId);
+      levelsData = data.levels;
+
+      let totalScore = 0;
+      const container = document.getElementById('questList');
+      container.innerHTML = '';
+
+      levelsData.forEach((lv, i) => {
+        totalScore += parseInt(lv.score || 0);
+
+        const statusClass = lv.status === 'completed' ? 'completed'
+          : lv.status === 'active' ? 'active-quest'
+          : 'locked';
+
+        const statusIcon = lv.status === 'completed' ? '&#x2705;'
+          : lv.status === 'active' ? '&#x1F50D;'
+          : '&#x1F512;';
+
+        const statusLabel = lv.status === 'completed' ? 'Completed'
+          : lv.status === 'active' ? 'In Progress'
+          : 'Locked';
+
+        const card = document.createElement('div');
+        card.className = `quest-card ${statusClass} fade-in`;
+        card.style.animationDelay = (i * 0.1) + 's';
+        card.innerHTML = `
+          <div class="p-5">
+            <div class="flex items-start justify-between mb-3">
+              <div class="flex items-center gap-3">
+                <span class="text-2xl">${statusIcon}</span>
+                <div>
+                  <div class="text-xs text-gray-500 font-semibold uppercase tracking-wide">Level ${lv.level}</div>
+                  <div class="text-lg font-bold" style="color: var(--db-dark);">${lv.title}</div>
+                </div>
+              </div>
+              ${lv.score > 0 ? `<div class="score-pill">${lv.score} pts</div>` : ''}
+            </div>
+            <p class="text-gray-600 text-sm mb-3">${lv.subtitle}</p>
+            <div class="flex items-center justify-between">
+              <span class="feature-tag ${featureColor(lv.feature)}">${lv.feature}</span>
+              <span class="text-xs text-gray-400">${statusLabel}</span>
+            </div>
+          </div>`;
+
+        if (lv.status === 'active' || lv.status === 'completed') {
+          card.style.cursor = 'pointer';
+          card.onclick = () => openLevel(lv);
+        }
+
+        container.appendChild(card);
+      });
+
+      document.getElementById('mapTotalScore').textContent = totalScore + ' pts';
+    }
+
+    function featureColor(feature) {
+      const map = {
+        'Genie (AI/BI)': 'bg-blue-100 text-blue-800',
+        'AI/BI Dashboards': 'bg-purple-100 text-purple-800',
+        'Agent Framework': 'bg-green-100 text-green-800',
+        'Lakeflow (SDP)': 'bg-orange-100 text-orange-800',
+        'Databricks Apps + Lakebase': 'bg-teal-100 text-teal-800',
+      };
+      return map[feature] || 'bg-gray-100 text-gray-800';
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Level Detail
+    // ═══════════════════════════════════════════════════════════
+    function openLevel(lv) {
+      currentLevel = lv;
+      answeredKeys[lv.level] = answeredKeys[lv.level] || {};
+
+      document.getElementById('levelFeature').textContent = lv.feature;
+      document.getElementById('levelFeature').className = 'feature-tag ' + featureColor(lv.feature);
+      document.getElementById('levelTitle').textContent = 'Level ' + lv.level + ': ' + lv.title;
+      document.getElementById('levelStory').textContent = lv.story;
+      document.getElementById('levelInstructions').textContent = lv.instructions;
+      document.getElementById('levelScore').textContent = (lv.score || 0) + ' pts';
+
+      // Tool link
+      const toolLink = document.getElementById('levelToolLink');
+      if (lv.level === 1) {
+        const genieUrl = gameConfig.genie_room_url || '';
+        if (genieUrl) {
+          toolLink.innerHTML = `
+            <a href="${genieUrl}" target="_blank" rel="noopener" class="btn-game btn-secondary text-center block">
+              <span class="mr-2">&#x1F9DE;</span> Open Genie Room
+            </a>
+            <div class="bg-white/10 rounded-lg p-3 mt-3">
+              <p class="text-yellow-300 text-xs font-semibold mb-1">&#x1F511; Login required</p>
+              <p class="text-gray-400 text-xs">You'll need to log into Databricks first. If you see a login page, sign in and then the Genie room will open.</p>
+              <p class="text-gray-500 text-xs mt-2 break-all font-mono">${genieUrl}</p>
+            </div>`;
+        } else {
+          toolLink.innerHTML = `
+            <div class="bg-red-900/30 border border-red-700 rounded-xl p-4 text-center">
+              <p class="text-red-300 font-bold text-sm mb-1">&#x26A0; Genie room URL not configured</p>
+              <p class="text-gray-400 text-xs">The Game_Genie_Room stage may not have run yet. Check the job in Databricks.</p>
+            </div>`;
+        }
+      } else if (lv.level === 2) {
+        const dashUrl = gameConfig.dashboard_url || '';
+        if (dashUrl) {
+          toolLink.innerHTML = `
+            <a href="${dashUrl}" target="_blank" rel="noopener" class="btn-game btn-secondary text-center block">
+              <span class="mr-2">&#x1F4CA;</span> Open Dashboard
+            </a>
+            <div class="bg-white/10 rounded-lg p-3 mt-3">
+              <p class="text-yellow-300 text-xs font-semibold mb-1">&#x1F511; Login required</p>
+              <p class="text-gray-400 text-xs">You'll need to log into Databricks first. If you see a login page, sign in and then the dashboard will open.</p>
+              <p class="text-gray-500 text-xs mt-2 break-all font-mono">${dashUrl}</p>
+            </div>`;
+        } else {
+          toolLink.innerHTML = `
+            <div class="bg-red-900/30 border border-red-700 rounded-xl p-4 text-center">
+              <p class="text-red-300 font-bold text-sm mb-1">&#x26A0; Dashboard URL not configured</p>
+              <p class="text-gray-400 text-xs">The Game_Dashboard stage may not have run yet. Check the job in Databricks.</p>
+            </div>`;
+        }
+      } else {
+        toolLink.innerHTML = '';
+      }
+
+      // Build answer fields
+      const keys = lv.question_keys || [];
+      const fieldsContainer = document.getElementById('answerFields');
+      fieldsContainer.innerHTML = '';
+      document.getElementById('answerResults').innerHTML = '';
+
+      const labels = {
+        location: 'Which location is affected?',
+        time_window: 'What time window shows the anomaly?',
+        brand: 'Which brand is most impacted?',
+        date: 'When did the slowdown start? (YYYY-MM-DD)',
+      };
+
+      keys.forEach(key => {
+        const already = answeredKeys[lv.level]?.[key];
+        const div = document.createElement('div');
+        div.className = 'fade-in';
+        div.innerHTML = `
+          <label class="text-gray-300 text-sm font-medium block mb-1">${labels[key] || key}</label>
+          <div class="flex gap-2">
+            <input type="text" id="answer-${key}" class="input-game flex-1" placeholder="Your answer..."
+                   ${already === true ? 'disabled value="Correct!"' : ''} />
+            <button class="btn-game btn-sm btn-primary" onclick="submitAnswer('${key}')"
+                    ${already === true ? 'disabled' : ''}>
+              ${already === true ? '&#x2705;' : 'Submit'}
+            </button>
+          </div>
+          <div class="flex gap-2 mt-2">
+            <button class="btn-game btn-sm btn-hint" onclick="getHint('${key}')">
+              &#x1F4A1; Hint
+            </button>
+          </div>
+          <div id="result-${key}" class="mt-2"></div>
+          <div id="hint-${key}" class="mt-1"></div>`;
+        fieldsContainer.appendChild(div);
+      });
+
+      showScreen('level');
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Submit answer
+    // ═══════════════════════════════════════════════════════════
+    async function submitAnswer(key) {
+      const input = document.getElementById('answer-' + key);
+      const answer = input.value.trim();
+      if (!answer) { input.focus(); return; }
+
+      try {
+        const data = await api('/api/submit', {
+          method: 'POST',
+          body: JSON.stringify({
+            player_id: playerId,
+            level: currentLevel.level,
+            question_key: key,
+            answer: answer,
+          }),
+        });
+
+        const resultDiv = document.getElementById('result-' + key);
+        if (data.correct) {
+          answeredKeys[currentLevel.level][key] = true;
+          resultDiv.innerHTML = `
+            <div class="result-correct fade-in">
+              <div class="font-bold text-green-800">&#x2705; ${data.message}</div>
+              <div class="text-green-700 text-sm mt-1">+${data.score} points</div>
+            </div>`;
+          input.disabled = true;
+          input.value = answer + ' (Correct!)';
+
+          // Update score display
+          const newScore = parseInt(document.getElementById('levelScore').textContent) + data.score;
+          document.getElementById('levelScore').textContent = newScore + ' pts';
+
+          if (data.next_level_unlocked) {
+            setTimeout(() => {
+              resultDiv.innerHTML += `
+                <div class="bg-yellow-50 border-2 border-yellow-400 rounded-xl p-4 mt-3 fade-in text-center">
+                  <div class="text-2xl mb-1">&#x1F513;</div>
+                  <div class="font-bold text-yellow-800">Level ${data.next_level_unlocked} Unlocked!</div>
+                </div>`;
+            }, 800);
+          }
+        } else {
+          resultDiv.innerHTML = `
+            <div class="result-wrong fade-in">
+              <div class="font-bold text-red-800">&#x274C; ${data.message}</div>
+            </div>`;
+        }
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Hint
+    // ═══════════════════════════════════════════════════════════
+    async function getHint(key) {
+      try {
+        const data = await api('/api/hint', {
+          method: 'POST',
+          body: JSON.stringify({
+            player_id: playerId,
+            level: currentLevel.level,
+            question_key: key,
+          }),
+        });
+
+        const hintDiv = document.getElementById('hint-' + key);
+        hintDiv.innerHTML = `
+          <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 fade-in">
+            <div class="text-xs font-bold text-yellow-800 mb-1">&#x1F4A1; Hint (-10 pts)</div>
+            <div class="text-sm text-yellow-900">${data.hint}</div>
+          </div>`;
+
+        // Update score
+        const cur = parseInt(document.getElementById('levelScore').textContent);
+        document.getElementById('levelScore').textContent = Math.max(cur - 10, 0) + ' pts';
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    }
+  </script>
+</body>
+</html>

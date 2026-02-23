@@ -324,3 +324,64 @@ targets:
                 - task_key: Lakebase_Reverse_ETL
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/apps
+
+  game:
+    resources:
+      jobs:
+        caspers:
+          name: "Casper's Kitchen Rescue"
+          queue:
+            enabled: true
+          performance_target: PERFORMANCE_OPTIMIZED
+
+          parameters:
+            - name: CATALOG
+              default: ${var.catalog}
+            - name: EVENTS_VOLUME
+              default: events
+            - name: SIMULATOR_SCHEMA
+              default: simulator
+            - name: START_DAY
+              default: "70"
+            - name: SPEED_MULTIPLIER
+              default: "60.0"
+            - name: SCHEDULE_MINUTES
+              default: "3"
+            - name: PIPELINE_SCHEDULE_MINUTES
+              default: "3"
+
+          tasks:
+            - task_key: Canonical_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/canonical_data
+
+            - task_key: Spark_Declarative_Pipeline
+              depends_on:
+                - task_key: Canonical_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/lakeflow
+
+            - task_key: Game_Setup
+              depends_on:
+                - task_key: Spark_Declarative_Pipeline
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/game_setup
+
+            - task_key: Game_Genie_Room
+              depends_on:
+                - task_key: Game_Setup
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/game_genie
+
+            - task_key: Game_Dashboard
+              depends_on:
+                - task_key: Game_Setup
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/game_dashboard
+
+            - task_key: Game_Quest_App
+              depends_on:
+                - task_key: Game_Genie_Room
+                - task_key: Game_Dashboard
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/game_app
