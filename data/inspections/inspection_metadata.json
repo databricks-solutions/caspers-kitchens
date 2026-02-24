@@ -1,0 +1,485 @@
+{
+  "inspections": [
+    {
+      "inspection_id": "INS-01-20240115",
+      "location_id": 1,
+      "location_name": "San Francisco",
+      "address": "1847 Market Street, San Francisco, CA 94103",
+      "jurisdiction": "San Francisco Department of Public Health",
+      "inspection_date": "2024-01-15",
+      "inspector_name": "David Kowalski",
+      "score": 82,
+      "grade": "B",
+      "violations": [
+        {
+          "code": "V-204",
+          "severity": "major",
+          "category": "Food Labeling",
+          "description": "Date-marking missing on prepared foods held more than 24 hours",
+          "corrective_action": "Label all prepped items immediately. Implement date-label audit at start and end of each shift.",
+          "deadline_days": 14
+        },
+        {
+          "code": "V-307",
+          "severity": "minor",
+          "category": "Chemical Safety",
+          "description": "Chemical cleaning supplies stored without labels in utility closet",
+          "corrective_action": "Label all chemical containers per OSHA requirements within 24 hours. Relocate to designated chemical storage area.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 2,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-01-20240212",
+      "location_id": 1,
+      "location_name": "San Francisco",
+      "address": "1847 Market Street, San Francisco, CA 94103",
+      "jurisdiction": "San Francisco Department of Public Health",
+      "inspection_date": "2024-02-12",
+      "inspector_name": "Marcus Williams",
+      "score": 87,
+      "grade": "B",
+      "violations": [
+        {
+          "code": "V-305",
+          "severity": "minor",
+          "category": "Administrative",
+          "description": "Permit or latest inspection report not posted in public view",
+          "corrective_action": "Print and post current permit and latest inspection report in customer-visible area within 24 hours.",
+          "deadline_days": 30
+        },
+        {
+          "code": "V-306",
+          "severity": "minor",
+          "category": "Maintenance",
+          "description": "Ceiling vent above dishwashing station shows condensation buildup",
+          "corrective_action": "Schedule professional deep-cleaning of exhaust system within 7 days. Add monthly cleaning to maintenance calendar.",
+          "deadline_days": 30
+        },
+        {
+          "code": "V-303",
+          "severity": "minor",
+          "category": "Personal Hygiene",
+          "description": "Employee personal items stored in food preparation area",
+          "corrective_action": "Issue verbal warning to staff member. Retrain all kitchen staff on glove-use and hand-hygiene SOP.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 3,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 3,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-01-20240318",
+      "location_id": 1,
+      "location_name": "San Francisco",
+      "address": "1847 Market Street, San Francisco, CA 94103",
+      "jurisdiction": "San Francisco Department of Public Health",
+      "inspection_date": "2024-03-18",
+      "inspector_name": "Dr. Sarah Chen",
+      "score": 96,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-201",
+          "severity": "major",
+          "category": "Facilities",
+          "description": "Handwashing sink blocked by equipment, not accessible to staff",
+          "corrective_action": "Submit maintenance request for repair within 14 days. Restrict use of affected area until repaired.",
+          "deadline_days": 14
+        },
+        {
+          "code": "V-307",
+          "severity": "minor",
+          "category": "Chemical Safety",
+          "description": "Chemical cleaning supplies stored without labels in utility closet",
+          "corrective_action": "Label all chemical containers per OSHA requirements within 24 hours. Relocate to designated chemical storage area.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 2,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-02-20240115",
+      "location_id": 2,
+      "location_name": "Silicon Valley",
+      "address": "2350 El Camino Real, Santa Clara, CA 95051",
+      "jurisdiction": "Santa Clara County Environmental Health",
+      "inspection_date": "2024-01-15",
+      "inspector_name": "Dr. Sarah Chen",
+      "score": 85,
+      "grade": "B",
+      "violations": [
+        {
+          "code": "V-201",
+          "severity": "major",
+          "category": "Facilities",
+          "description": "Handwashing sink blocked by equipment, not accessible to staff",
+          "corrective_action": "Submit maintenance request for repair within 14 days. Restrict use of affected area until repaired.",
+          "deadline_days": 14
+        },
+        {
+          "code": "V-303",
+          "severity": "minor",
+          "category": "Personal Hygiene",
+          "description": "Employee personal items stored in food preparation area",
+          "corrective_action": "Issue verbal warning to staff member. Retrain all kitchen staff on glove-use and hand-hygiene SOP.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 2,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-02-20240212",
+      "location_id": 2,
+      "location_name": "Silicon Valley",
+      "address": "2350 El Camino Real, Santa Clara, CA 95051",
+      "jurisdiction": "Santa Clara County Environmental Health",
+      "inspection_date": "2024-02-12",
+      "inspector_name": "Marcus Williams",
+      "score": 94,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-301",
+          "severity": "minor",
+          "category": "Facilities",
+          "description": "Floor tiles cracked or missing in food preparation area",
+          "corrective_action": "Submit maintenance request for repair within 14 days. Restrict use of affected area until repaired.",
+          "deadline_days": 30
+        },
+        {
+          "code": "V-204",
+          "severity": "major",
+          "category": "Food Labeling",
+          "description": "Date-marking missing on prepared foods held more than 24 hours",
+          "corrective_action": "Label all prepped items immediately. Implement date-label audit at start and end of each shift.",
+          "deadline_days": 14
+        },
+        {
+          "code": "V-302",
+          "severity": "minor",
+          "category": "Facilities",
+          "description": "Light fixture missing protective shield in food prep zone",
+          "corrective_action": "Submit maintenance request for repair within 14 days. Restrict use of affected area until repaired.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 3,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 2,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-02-20240318",
+      "location_id": 2,
+      "location_name": "Silicon Valley",
+      "address": "2350 El Camino Real, Santa Clara, CA 95051",
+      "jurisdiction": "Santa Clara County Environmental Health",
+      "inspection_date": "2024-03-18",
+      "inspector_name": "Linda Ramirez",
+      "score": 90,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-307",
+          "severity": "minor",
+          "category": "Chemical Safety",
+          "description": "Chemical cleaning supplies stored without labels in utility closet",
+          "corrective_action": "Label all chemical containers per OSHA requirements within 24 hours. Relocate to designated chemical storage area.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-03-20240115",
+      "location_id": 3,
+      "location_name": "Bellevue",
+      "address": "10456 NE 8th Street, Bellevue, WA 98004",
+      "jurisdiction": "King County Public Health",
+      "inspection_date": "2024-01-15",
+      "inspector_name": "Marcus Williams",
+      "score": 88,
+      "grade": "B",
+      "violations": [
+        {
+          "code": "V-203",
+          "severity": "major",
+          "category": "Equipment",
+          "description": "Thermometer not available or not calibrated in walk-in cooler",
+          "corrective_action": "Purchase and install calibrated thermometers within 48 hours. Add to weekly calibration checklist.",
+          "deadline_days": 14
+        },
+        {
+          "code": "V-204",
+          "severity": "major",
+          "category": "Food Labeling",
+          "description": "Date-marking missing on prepared foods held more than 24 hours",
+          "corrective_action": "Label all prepped items immediately. Implement date-label audit at start and end of each shift.",
+          "deadline_days": 14
+        },
+        {
+          "code": "V-206",
+          "severity": "major",
+          "category": "Pest Control",
+          "description": "Pest control log not up to date or pest evidence found in dry storage",
+          "corrective_action": "Contact licensed pest control service for treatment within 72 hours. Update pest control log.",
+          "deadline_days": 14
+        },
+        {
+          "code": "V-202",
+          "severity": "major",
+          "category": "Sanitation",
+          "description": "Food contact surfaces not cleaned and sanitized between uses",
+          "corrective_action": "Deep-clean and re-sanitize affected surfaces. Verify sanitizer concentration with test strips. Restock supplies.",
+          "deadline_days": 14
+        }
+      ],
+      "violation_count": 4,
+      "critical_count": 0,
+      "major_count": 4,
+      "minor_count": 0,
+      "follow_up_status": "Follow-up inspection scheduled within 30 days"
+    },
+    {
+      "inspection_id": "INS-03-20240212",
+      "location_id": 3,
+      "location_name": "Bellevue",
+      "address": "10456 NE 8th Street, Bellevue, WA 98004",
+      "jurisdiction": "King County Public Health",
+      "inspection_date": "2024-02-12",
+      "inspector_name": "Dr. Sarah Chen",
+      "score": 87,
+      "grade": "B",
+      "violations": [
+        {
+          "code": "V-206",
+          "severity": "major",
+          "category": "Pest Control",
+          "description": "Pest control log not up to date or pest evidence found in dry storage",
+          "corrective_action": "Contact licensed pest control service for treatment within 72 hours. Update pest control log.",
+          "deadline_days": 14
+        },
+        {
+          "code": "V-307",
+          "severity": "minor",
+          "category": "Chemical Safety",
+          "description": "Chemical cleaning supplies stored without labels in utility closet",
+          "corrective_action": "Label all chemical containers per OSHA requirements within 24 hours. Relocate to designated chemical storage area.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 2,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-03-20240318",
+      "location_id": 3,
+      "location_name": "Bellevue",
+      "address": "10456 NE 8th Street, Bellevue, WA 98004",
+      "jurisdiction": "King County Public Health",
+      "inspection_date": "2024-03-18",
+      "inspector_name": "Linda Ramirez",
+      "score": 90,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-306",
+          "severity": "minor",
+          "category": "Maintenance",
+          "description": "Ceiling vent above dishwashing station shows condensation buildup",
+          "corrective_action": "Schedule professional deep-cleaning of exhaust system within 7 days. Add monthly cleaning to maintenance calendar.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-04-20240115",
+      "location_id": 4,
+      "location_name": "Chicago",
+      "address": "872 N. Milwaukee Avenue, Chicago, IL 60642",
+      "jurisdiction": "Chicago Department of Public Health",
+      "inspection_date": "2024-01-15",
+      "inspector_name": "James Nakamura",
+      "score": 69,
+      "grade": "C",
+      "violations": [
+        {
+          "code": "V-302",
+          "severity": "minor",
+          "category": "Facilities",
+          "description": "Light fixture missing protective shield in food prep zone",
+          "corrective_action": "Submit maintenance request for repair within 14 days. Restrict use of affected area until repaired.",
+          "deadline_days": 30
+        },
+        {
+          "code": "V-103",
+          "severity": "critical",
+          "category": "Personal Hygiene",
+          "description": "Employee handling food without gloves after touching face/hair",
+          "corrective_action": "Issue verbal warning to staff member. Retrain all kitchen staff on glove-use and hand-hygiene SOP.",
+          "deadline_days": 3
+        },
+        {
+          "code": "V-205",
+          "severity": "major",
+          "category": "Maintenance",
+          "description": "Grease buildup on exhaust hood and filters above cooking stations",
+          "corrective_action": "Schedule professional deep-cleaning of exhaust system within 7 days. Add monthly cleaning to maintenance calendar.",
+          "deadline_days": 14
+        },
+        {
+          "code": "V-303",
+          "severity": "minor",
+          "category": "Personal Hygiene",
+          "description": "Employee personal items stored in food preparation area",
+          "corrective_action": "Issue verbal warning to staff member. Retrain all kitchen staff on glove-use and hand-hygiene SOP.",
+          "deadline_days": 30
+        },
+        {
+          "code": "V-206",
+          "severity": "major",
+          "category": "Pest Control",
+          "description": "Pest control log not up to date or pest evidence found in dry storage",
+          "corrective_action": "Contact licensed pest control service for treatment within 72 hours. Update pest control log.",
+          "deadline_days": 14
+        },
+        {
+          "code": "V-305",
+          "severity": "minor",
+          "category": "Administrative",
+          "description": "Permit or latest inspection report not posted in public view",
+          "corrective_action": "Print and post current permit and latest inspection report in customer-visible area within 24 hours.",
+          "deadline_days": 30
+        },
+        {
+          "code": "V-201",
+          "severity": "major",
+          "category": "Facilities",
+          "description": "Handwashing sink blocked by equipment, not accessible to staff",
+          "corrective_action": "Submit maintenance request for repair within 14 days. Restrict use of affected area until repaired.",
+          "deadline_days": 14
+        }
+      ],
+      "violation_count": 7,
+      "critical_count": 1,
+      "major_count": 3,
+      "minor_count": 3,
+      "follow_up_status": "Re-inspection required within 10 business days"
+    },
+    {
+      "inspection_id": "INS-04-20240212",
+      "location_id": 4,
+      "location_name": "Chicago",
+      "address": "872 N. Milwaukee Avenue, Chicago, IL 60642",
+      "jurisdiction": "Chicago Department of Public Health",
+      "inspection_date": "2024-02-12",
+      "inspector_name": "Linda Ramirez",
+      "score": 79,
+      "grade": "C",
+      "violations": [
+        {
+          "code": "V-102",
+          "severity": "critical",
+          "category": "Cross-Contamination",
+          "description": "Raw meat stored above ready-to-eat food in refrigeration unit",
+          "corrective_action": "Rearrange refrigeration to store raw proteins on lowest shelves. Retrain staff on proper storage hierarchy.",
+          "deadline_days": 3
+        },
+        {
+          "code": "V-203",
+          "severity": "major",
+          "category": "Equipment",
+          "description": "Thermometer not available or not calibrated in walk-in cooler",
+          "corrective_action": "Purchase and install calibrated thermometers within 48 hours. Add to weekly calibration checklist.",
+          "deadline_days": 14
+        },
+        {
+          "code": "V-205",
+          "severity": "major",
+          "category": "Maintenance",
+          "description": "Grease buildup on exhaust hood and filters above cooking stations",
+          "corrective_action": "Schedule professional deep-cleaning of exhaust system within 7 days. Add monthly cleaning to maintenance calendar.",
+          "deadline_days": 14
+        }
+      ],
+      "violation_count": 3,
+      "critical_count": 1,
+      "major_count": 2,
+      "minor_count": 0,
+      "follow_up_status": "Re-inspection required within 10 business days"
+    },
+    {
+      "inspection_id": "INS-04-20240318",
+      "location_id": 4,
+      "location_name": "Chicago",
+      "address": "872 N. Milwaukee Avenue, Chicago, IL 60642",
+      "jurisdiction": "Chicago Department of Public Health",
+      "inspection_date": "2024-03-18",
+      "inspector_name": "Dr. Sarah Chen",
+      "score": 91,
+      "grade": "A",
+      "violations": [],
+      "violation_count": 0,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 0,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    }
+  ],
+  "locations": [
+    {
+      "location_id": 1,
+      "name": "San Francisco",
+      "address": "1847 Market Street, San Francisco, CA 94103",
+      "jurisdiction": "San Francisco Department of Public Health"
+    },
+    {
+      "location_id": 2,
+      "name": "Silicon Valley",
+      "address": "2350 El Camino Real, Santa Clara, CA 95051",
+      "jurisdiction": "Santa Clara County Environmental Health"
+    },
+    {
+      "location_id": 3,
+      "name": "Bellevue",
+      "address": "10456 NE 8th Street, Bellevue, WA 98004",
+      "jurisdiction": "King County Public Health"
+    },
+    {
+      "location_id": 4,
+      "name": "Chicago",
+      "address": "872 N. Milwaukee Avenue, Chicago, IL 60642",
+      "jurisdiction": "Chicago Department of Public Health"
+    }
+  ]
+}

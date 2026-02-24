@@ -21,7 +21,13 @@ sync:
     - .DS_Store
     - .claude/**
     - .databricks/**
+    - .venv/**
+    - .bundle/**
     - ./data/universe/**
+    - __pycache__/**
+    - "*.pyc"
+    - images/**
+    - docs/**
 
 scripts:
   cleanup:
@@ -39,13 +45,19 @@ scripts:
 
       # Pull values we need (requires jq)
       FILE_PATH="$(printf '%s' "$RESOLVED_JSON" | jq -r '.workspace.file_path // (.workspace.root_path + "/src")')"
+
       CATALOG="$(printf '%s' "$RESOLVED_JSON" | jq -r '.variables.catalog.value // .variables.catalog.default')"
+      ENV_CATALOG="$(printenv BUNDLE_VAR_catalog 2>/dev/null || true)"
+      if [ -n "$ENV_CATALOG" ]; then
+        CATALOG="$ENV_CATALOG"
+      fi
+
+      echo "Cleaning up catalog: $CATALOG"
 
       mkdir -p .bundle
       cat > .bundle/submit.json <<JSON
       {
         "run_name": "caspers: cleanup (ephemeral)",
-        "performance_target": "PERFORMANCE_OPTIMIZED",
         "tasks": [
           {
             "task_key": "destroy",
@@ -82,7 +94,7 @@ targets:
             - name: LLM_MODEL
               default: databricks-meta-llama-3-3-70b-instruct
             - name: REFUND_AGENT_ENDPOINT_NAME
-              default: caspers_refund_agent
+              default: ${var.catalog}_refund_agent
             - name: SIMULATOR_SCHEMA
               default: simulator
             - name: START_DAY
@@ -146,7 +158,7 @@ targets:
             - name: LLM_MODEL
               default: databricks-meta-llama-3-3-70b-instruct
             - name: COMPLAINT_AGENT_ENDPOINT_NAME
-              default: caspers_complaint_agent
+              default: ${var.catalog}_complaint_agent
             - name: COMPLAINT_RATE
               default: "0.15"
             - name: SIMULATOR_SCHEMA
@@ -232,6 +244,128 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/lakeflow
 
+  menus:
+    resources:
+      jobs:
+        caspers:
+          name: "Casper's Initializer"
+          queue:
+            enabled: true
+          performance_target: PERFORMANCE_OPTIMIZED
+
+          parameters:
+            - name: CATALOG
+              default: ${var.catalog}
+            - name: EVENTS_VOLUME
+              default: events
+            - name: LLM_MODEL
+              default: databricks-meta-llama-3-3-70b-instruct
+            - name: REFUND_AGENT_ENDPOINT_NAME
+              default: ${var.catalog}_refund_agent
+            - name: MENU_KNOWLEDGE_ENDPOINT_NAME
+              default: ${var.catalog}_menu_knowledge
+            - name: INSPECTION_KNOWLEDGE_ENDPOINT_NAME
+              default: ${var.catalog}_inspection_knowledge
+            - name: MENU_SUPERVISOR_ENDPOINT_NAME
+              default: ${var.catalog}_menu_supervisor
+            - name: SIMULATOR_SCHEMA
+              default: simulator
+            - name: START_DAY
+              default: "70"
+            - name: SPEED_MULTIPLIER
+              default: "60.0"
+            - name: SCHEDULE_MINUTES
+              default: "3"
+            - name: PIPELINE_SCHEDULE_MINUTES
+              default: "0"
+
+          tasks:
+            - task_key: Canonical_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/canonical_data
+
+            - task_key: Spark_Declarative_Pipeline
+              depends_on:
+                - task_key: Canonical_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/lakeflow
+
+            - task_key: Refund_Recommender_Agent
+              depends_on:
+                - task_key: Spark_Declarative_Pipeline
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/refunder_agent
+
+            - task_key: Refund_Recommender_Stream
+              depends_on:
+                - task_key: Spark_Declarative_Pipeline
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/refunder_stream
+
+            - task_key: Lakebase_Reverse_ETL
+              depends_on:
+                - task_key: Refund_Recommender_Stream
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/lakebase
+
+            - task_key: Databricks_App_Refund_Manager
+              depends_on:
+                - task_key: Lakebase_Reverse_ETL
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/apps
+
+            - task_key: Menu_Data
+              max_retries: 0
+              depends_on:
+                - task_key: Canonical_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/menu_data
+
+            - task_key: Inspection_Data
+              max_retries: 0
+              depends_on:
+                - task_key: Canonical_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/inspection_data
+
+            - task_key: Menu_Pipeline
+              max_retries: 0
+              depends_on:
+                - task_key: Menu_Data
+                - task_key: Inspection_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/menu_pipeline
+
+            - task_key: Menu_Genie
+              max_retries: 0
+              depends_on:
+                - task_key: Menu_Pipeline
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/menu_genie
+
+            - task_key: Menu_Knowledge_Agent
+              max_retries: 0
+              depends_on:
+                - task_key: Menu_Pipeline
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/menu_knowledge_agent
+
+            - task_key: Inspection_Knowledge_Agent
+              max_retries: 0
+              depends_on:
+                - task_key: Inspection_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/inspection_knowledge_agent
+
+            - task_key: Menu_Supervisor
+              max_retries: 0
+              depends_on:
+                - task_key: Menu_Genie
+                - task_key: Menu_Knowledge_Agent
+                - task_key: Inspection_Knowledge_Agent
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/menu_supervisor
+
   all:
     resources:
       jobs:
@@ -249,11 +383,17 @@ targets:
             - name: LLM_MODEL
               default: databricks-meta-llama-3-3-70b-instruct
             - name: REFUND_AGENT_ENDPOINT_NAME
-              default: caspers_refund_agent
+              default: ${var.catalog}_refund_agent
             - name: COMPLAINT_AGENT_ENDPOINT_NAME
-              default: caspers_complaint_agent
+              default: ${var.catalog}_complaint_agent
             - name: COMPLAINT_RATE
               default: "0.15"
+            - name: MENU_KNOWLEDGE_ENDPOINT_NAME
+              default: ${var.catalog}_menu_knowledge
+            - name: INSPECTION_KNOWLEDGE_ENDPOINT_NAME
+              default: ${var.catalog}_inspection_knowledge
+            - name: MENU_SUPERVISOR_ENDPOINT_NAME
+              default: ${var.catalog}_menu_supervisor
             - name: SIMULATOR_SCHEMA
               default: simulator
             - name: START_DAY
@@ -324,3 +464,48 @@ targets:
                 - task_key: Lakebase_Reverse_ETL
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/apps
+
+            - task_key: Menu_Data
+              depends_on:
+                - task_key: Canonical_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/menu_data
+
+            - task_key: Inspection_Data
+              depends_on:
+                - task_key: Canonical_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/inspection_data
+
+            - task_key: Menu_Pipeline
+              depends_on:
+                - task_key: Menu_Data
+                - task_key: Inspection_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/menu_pipeline
+
+            - task_key: Menu_Genie
+              depends_on:
+                - task_key: Menu_Pipeline
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/menu_genie
+
+            - task_key: Menu_Knowledge_Agent
+              depends_on:
+                - task_key: Menu_Pipeline
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/menu_knowledge_agent
+
+            - task_key: Inspection_Knowledge_Agent
+              depends_on:
+                - task_key: Inspection_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/inspection_knowledge_agent
+
+            - task_key: Menu_Supervisor
+              depends_on:
+                - task_key: Menu_Genie
+                - task_key: Menu_Knowledge_Agent
+                - task_key: Inspection_Knowledge_Agent
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/menu_supervisor
