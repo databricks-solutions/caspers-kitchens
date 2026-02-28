@@ -96,6 +96,22 @@ Each event includes order ID, sequence number, timestamp, and location context. 
 - **🎨 UX Prototyping**: Fully loaded platform for design iteration
 - **🎬 Demo Creation**: Unified narrative for new feature demonstrations
 
+## Support Feature Store Notes
+
+For the support scenario (`-t support` target), feature serving is split from app OLTP storage:
+
+- App runtime tables (actions, replies, status) stay on Lakebase Autoscaling (v2).
+- Features are materialized into the offline UC table `casperskitchens.support.support_request_features`.
+- Current support features include deterministic signals (`repeat_complaints_30d`, `policy_limit_usd`) and a risk score currently computed via deterministic fallback logic in the stage.
+- The support initializer now includes a dedicated `Support_Feature_Store` task and depends on it before `Support_Lakebase`.
+
+### Current Platform Behavior (Feb 2026)
+
+- `Support Response Evals Hourly` has been fixed and is now scheduled (`UNPAUSED`).
+- The eval notebook was hardened to handle schema variations in `mlflow.genai.evaluate()` output without failing.
+- Legacy Online Table creation is currently blocked by Databricks platform behavior ("Online Table is being deprecated"), so online publish is intentionally deferred.
+- Next migration step is to map feature serving exposure to Synced Tables-compatible patterns.
+
 ## Check out the [Casper's Kitchens Blog](https://databricks-solutions.github.io/caspers-kitchens/)!
 
 ## License

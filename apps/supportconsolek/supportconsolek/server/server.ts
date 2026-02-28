@@ -1,4 +1,4 @@
-import { createApp, server, toPlugin } from "@databricks/appkit";
+import { createApp, lakebase, server, toPlugin } from "@databricks/appkit";
 import { SupportPlugin } from "./support-plugin.js";
 
 const support = toPlugin<typeof SupportPlugin, Record<string, never>, "support">(
@@ -7,5 +7,5 @@ const support = toPlugin<typeof SupportPlugin, Record<string, never>, "support">
 );
 
 createApp({
-  plugins: [support(), server()],
+  plugins: [lakebase(), support(), server()],
 }).catch(console.error);

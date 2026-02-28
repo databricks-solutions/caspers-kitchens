@@ -648,6 +648,17 @@ Use full redeploy instead if:
 
 ---
 
+## Support Target Operational Notes (Feb 2026)
+
+- `Support_Feature_Store` notebook path must be `${workspace.root_path}/stages/support_feature_store` (no `.py` suffix).
+- `Support Response Evals Hourly` should remain enabled (`pause_status: UNPAUSED`) unless explicitly paused for incident response.
+- The eval notebook in `demos/agent-compare-models/demo_materials/support-response-evals.ipynb` must tolerate output schema drift from `mlflow.genai.evaluate()` and should not fail the job when optional columns are absent.
+- `casperskitchens.support.support_request_features` is the expected offline feature table. Verify with:
+  - `databricks tables exists casperskitchens.support.support_request_features -p DEFAULT`
+- Online Table creation is currently blocked by Databricks platform deprecation messaging ("Online Table is being deprecated"). Treat online publish as a follow-up migration to Synced Tables-compatible workflows.
+
+---
+
 ## Current Work: Canonical Data Migration
 
 **Context**: Migrating from live generator to canonical dataset approach

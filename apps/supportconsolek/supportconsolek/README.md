@@ -153,6 +153,12 @@ Start the deployed app:
 databricks bundle run <APP_NAME> -t dev
 ```
 
+## Support Console Runtime Notes
+
+- The server uses the AppKit Lakebase plugin (`lakebase()`) and `createLakebasePool()` from `@databricks/appkit` for connection management.
+- Ensure the app service principal has schema/table ownership and grants on Lakebase schemas used by the app (`public` and `support` in this project).
+- Support evals are run as a separate Databricks job (`Support Response Evals Hourly`) and are not required for app startup.
+
 ### Deploy to Production
 
 1. Configure the production target in `databricks.yml`

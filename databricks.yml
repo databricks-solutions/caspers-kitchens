@@ -120,8 +120,16 @@ targets:
               default: databricks-meta-llama-3-3-70b-instruct
             - name: SUPPORT_AGENT_ENDPOINT_NAME
               default: caspers_support_agent
+            - name: SUPPORT_RISK_ENDPOINT_NAME
+              default: caspers_support_agent
             - name: SUPPORT_RATE
               default: "0.18"
+            - name: SUPPORT_ONLINE_STORE_NAME
+              default: caspers_support_online_store
+            - name: SUPPORT_ONLINE_STORE_CAPACITY
+              default: CU_1
+            - name: SUPPORT_ONLINE_TABLE_NAME
+              default: casperskitchens.support.support_request_features_online
             - name: SIMULATOR_SCHEMA
               default: simulator
             - name: START_DAY
@@ -157,9 +165,14 @@ targets:
                 - task_key: Support_Request_Generator_Stream
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/support_request_agent_stream
-            - task_key: Support_Lakebase
+            - task_key: Support_Feature_Store
               depends_on:
                 - task_key: Support_Request_Agent_Stream
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/support_feature_store
+            - task_key: Support_Lakebase
+              depends_on:
+                - task_key: Support_Feature_Store
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/support_lakebase
         support_response_evals_hourly:
