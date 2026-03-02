@@ -7,7 +7,9 @@ const DEFAULT_SESSION_TYPES = [
     description: "Plain shell session",
     badge: "terminal",
     icon: "⌂",
+    authPolicy: "both",
     default: true,
+    order: 0,
     builtIn: true,
   },
 ];

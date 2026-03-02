@@ -25,17 +25,21 @@ When running inside a Databricks App, terminal commands execute under the app's 
 - `Cmd+T` (macOS) / `Ctrl+T` (Windows/Linux) opens the same launcher.
 - Launcher controls: `↑/↓` or `j/k`, `Enter`, `Esc`, `1..9`, plus `?` (help) and `a` (about).
 - Each tab shows a tiny auth badge (`m2m` / `user`); click it to toggle auth mode for that session.
+  - Some session types can pin auth mode via `authPolicy` (`user`-only or `m2m`-only); pinned tabs show a locked auth badge and cannot be toggled.
 - Tab titles follow terminal title escape sequences from the running shell/app.
 
 ## Terminal types
 
 Session types are discovered dynamically from `terminal-types/*` at startup.
 
-- Built-in default: `terminal` (base shell, no extra launch script)
+- Built-in fallback default: `terminal` (base shell, no extra launch script)
 - Custom type folder contract:
   - `terminal-types/<type-id>/type.json`
   - `terminal-types/<type-id>/launch.sh`
 - `type.json` can include optional `icon` (unicode/custom glyph string) for CLI-style picker display.
+- `type.json` can include optional `authPolicy` (`both` default, or pinned `user` / `m2m`).
+- `type.json` can include optional `default: true` to make that type the default session type.
+- `type.json` can include optional integer `order` to control picker/tab ordering (lower first).
 - Included profiles in this repo: `claude`, `codex`, `pi` (plus built-in `terminal`).
 - Bundled logo font assets live under `public/assets/terminal-icons` (source SVGs in `assets/terminal-icons/src`).
 - Type launch scripts run on top of the base terminal runtime/auth model.
@@ -91,6 +95,11 @@ databricks apps deploy --profile SHARED
 - `POST /api/sessions/:sessionId/resize`
 - `POST /api/sessions/:sessionId/auth-mode` (body: `{ mode: "m2m" | "user" }`)
 - `DELETE /api/sessions/:sessionId`
+
+Notes:
+- auth mode is constrained by terminal type `authPolicy`
+  - `both`: mode can switch between `m2m` and `user`
+  - `user`/`m2m`: mode is pinned and disallowed switches return `AUTH_MODE_NOT_ALLOWED_FOR_SESSION_TYPE`
 
 ### WebSocket
 - `GET /ws/terminal?sessionId=<uuidv7>&cols=<n>&rows=<n>`

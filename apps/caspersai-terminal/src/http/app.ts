@@ -11,7 +11,11 @@ import { SESSION_ID_PATTERN } from "../sessions/ptySessionManager.js";
 import type { SessionAuthMode, SessionManager } from "../sessions/types.js";
 import type { RuntimeDiagnosticsManager } from "../runtime/diagnostics.js";
 import type { ServiceRegistry } from "../services/registry.js";
-import type { TerminalTypeRegistry } from "../terminalTypes/types.js";
+import type {
+  ResolvedTerminalType,
+  TerminalTypeAuthPolicy,
+  TerminalTypeRegistry,
+} from "../terminalTypes/types.js";
 import { TerminalGateway } from "../ws/terminalGateway.js";
 import { v7 as uuidv7 } from "uuid";
 
@@ -111,6 +115,65 @@ function assertUserTokenAuthEnabled(config: AppConfig): void {
   if (!config.allowUserTokenAuth) {
     throw new AppError(403, "USER_TOKEN_AUTH_DISABLED", "User-token session mode is disabled", false);
   }
+}
+
+function allowedAuthModes(policy: TerminalTypeAuthPolicy): SessionAuthMode[] {
+  if (policy === "user") {
+    return ["user"];
+  }
+
+  if (policy === "m2m") {
+    return ["m2m"];
+  }
+
+  return ["m2m", "user"];
+}
+
+function authPolicyForType(type: ResolvedTerminalType | undefined): TerminalTypeAuthPolicy {
+  return type?.authPolicy || "both";
+}
+
+function assertAuthModeAllowed(
+  mode: SessionAuthMode,
+  typeId: string,
+  policy: TerminalTypeAuthPolicy,
+): void {
+  const allowedModes = allowedAuthModes(policy);
+  if (allowedModes.includes(mode)) {
+    return;
+  }
+
+  throw new AppError(
+    400,
+    "AUTH_MODE_NOT_ALLOWED_FOR_SESSION_TYPE",
+    `authMode=${mode} is not allowed for session type '${typeId}'`,
+    false,
+    {
+      typeId,
+      policy,
+      allowedModes,
+      requestedMode: mode,
+    },
+  );
+}
+
+function resolveCreateAuthMode(
+  requestedMode: RequestedAuthMode | undefined,
+  type: ResolvedTerminalType,
+): SessionAuthMode {
+  const policy = authPolicyForType(type);
+
+  if (policy === "both") {
+    return normalizeAuthMode(requestedMode);
+  }
+
+  const pinnedMode: SessionAuthMode = policy;
+  if (requestedMode !== undefined) {
+    const normalized = normalizeAuthMode(requestedMode);
+    assertAuthModeAllowed(normalized, type.id, policy);
+  }
+
+  return pinnedMode;
 }
 
 function resolveSessionAuth(input: SessionAuthResolutionInput): SessionAuthResolution {
@@ -287,8 +350,9 @@ export function createApp(services: AppServices): express.Express {
       }
 
       const userAccessToken = readHeaderValue(req, services.config.userAccessTokenHeader);
+      const requestedAuthMode = resolveCreateAuthMode(payload.authMode, sessionType);
       const auth = resolveSessionAuth({
-        requestedMode: payload.authMode,
+        requestedMode: requestedAuthMode,
         userAccessToken,
         config: services.config,
       });
@@ -412,6 +476,11 @@ export function createApp(services: AppServices): express.Express {
       const params = parseParams(req, sessionParamsSchema);
       const payload = parseBody(req, setAuthModeBodySchema);
       const mode = normalizeAuthMode(payload.mode);
+
+      const sessionInfo = await services.sessions.getSessionInfo(params.sessionId);
+      const sessionType = services.terminalTypes.resolveType(sessionInfo.typeId);
+      const sessionTypePolicy = authPolicyForType(sessionType);
+      assertAuthModeAllowed(mode, sessionInfo.typeId, sessionTypePolicy);
 
       if (mode === "user") {
         assertUserTokenAuthEnabled(services.config);
