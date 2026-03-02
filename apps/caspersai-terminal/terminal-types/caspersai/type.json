@@ -4,7 +4,7 @@
   "description": "Launch Caspers-branded Pi coding agent session",
   "badge": "caspers",
   "icon": "⌒",
-  "authPolicy": "user",
+  "authPolicy": "both",
   "default": true,
   "order": -100,
   "entrypoint": "launch.sh"
