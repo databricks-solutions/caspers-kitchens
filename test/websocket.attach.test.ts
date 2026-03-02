@@ -125,6 +125,7 @@ test("websocket attach path streams output", async (t) => {
         name: "Terminal",
         badge: "terminal",
         description: "Plain shell session",
+        authPolicy: "both",
         default: true,
         builtIn: true,
       },
@@ -138,6 +139,7 @@ test("websocket attach path streams output", async (t) => {
         name: "Terminal",
         badge: "terminal",
         description: "Plain shell session",
+        authPolicy: "both",
         default: true,
         builtIn: true,
       };
@@ -147,6 +149,7 @@ test("websocket attach path streams output", async (t) => {
       name: "Terminal",
       badge: "terminal",
       description: "Plain shell session",
+      authPolicy: "both",
       default: true,
       builtIn: true,
     }),

@@ -128,6 +128,15 @@ body {
   color: var(--fg);
 }
 
+.tab-auth.locked {
+  cursor: default;
+  opacity: 0.8;
+}
+
+.tab-auth.locked:hover {
+  color: var(--muted);
+}
+
 .tab-type {
   border: 1px solid var(--border);
   background: #1a2433;

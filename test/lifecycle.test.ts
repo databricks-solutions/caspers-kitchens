@@ -44,13 +44,21 @@ function makeConfig(overrides?: Partial<AppConfig>): AppConfig {
 }
 
 function makeTerminalTypes(
-  custom: Array<{ id: string; name: string; badge?: string; description?: string; entrypointPath?: string }> = [],
+  custom: Array<{
+    id: string;
+    name: string;
+    badge?: string;
+    description?: string;
+    entrypointPath?: string;
+    authPolicy?: "both" | "user" | "m2m";
+  }> = [],
 ): TerminalTypeRegistry {
   const base = {
     id: "terminal",
     name: "Terminal",
     badge: "terminal",
     description: "Plain shell session",
+    authPolicy: "both",
     default: true,
     builtIn: true,
   };
@@ -62,6 +70,7 @@ function makeTerminalTypes(
       name: type.name,
       badge: type.badge || type.id,
       description: type.description,
+      authPolicy: type.authPolicy || "both",
       default: false,
       builtIn: false,
     })),
@@ -75,6 +84,7 @@ function makeTerminalTypes(
       name: type.name,
       badge: type.badge || type.id,
       description: type.description,
+      authPolicy: type.authPolicy || "both",
       default: false,
       builtIn: false,
       entrypointPath: type.entrypointPath,
@@ -199,6 +209,7 @@ test("session types endpoint lists built-in terminal type", async () => {
 
   const terminal = response.body.data.types.find((type: { id: string }) => type.id === "terminal");
   assert.equal(Boolean(terminal), true);
+  assert.equal(terminal.authPolicy, "both");
 });
 
 test("session create rejects unknown session type", async () => {
@@ -239,6 +250,87 @@ test("session create supports custom session type", async () => {
   assert.equal(sessionManager.creates.length, 1);
   assert.equal(sessionManager.creates[0].typeId, "claude");
   assert.equal(sessionManager.creates[0].typeEntrypointPath, "/tmp/terminal-types/claude/launch.sh");
+});
+
+test("session create enforces user auth policy for pinned user-only types", async () => {
+  const customTypes = makeTerminalTypes([
+    {
+      id: "caspersai",
+      name: "CaspersAI",
+      authPolicy: "user",
+    },
+  ]);
+
+  const { app } = makeApp([], undefined, customTypes);
+
+  const created = await request(app)
+    .post("/api/sessions")
+    .set("x-forwarded-access-token", "user.token.value")
+    .send({
+      typeId: "caspersai",
+    })
+    .expect(201);
+
+  assert.equal(created.body.ok, true);
+  assert.equal(created.body.data.typeId, "caspersai");
+  assert.equal(created.body.data.authMode, "user");
+});
+
+test("session create rejects disallowed auth mode for pinned type", async () => {
+  const customTypes = makeTerminalTypes([
+    {
+      id: "caspersai",
+      name: "CaspersAI",
+      authPolicy: "user",
+    },
+  ]);
+
+  const { app } = makeApp([], undefined, customTypes);
+
+  const response = await request(app)
+    .post("/api/sessions")
+    .set("x-forwarded-access-token", "user.token.value")
+    .send({
+      typeId: "caspersai",
+      authMode: "m2m",
+    })
+    .expect(400);
+
+  assert.equal(response.body.ok, false);
+  assert.equal(response.body.error.code, "AUTH_MODE_NOT_ALLOWED_FOR_SESSION_TYPE");
+});
+
+test("session auth mode toggle rejects disallowed mode for pinned type", async () => {
+  const customTypes = makeTerminalTypes([
+    {
+      id: "locked-m2m",
+      name: "Locked M2M",
+      authPolicy: "m2m",
+    },
+  ]);
+
+  const { app } = makeApp([], undefined, customTypes);
+
+  const created = await request(app)
+    .post("/api/sessions")
+    .set("x-forwarded-access-token", "user.token.value")
+    .send({
+      typeId: "locked-m2m",
+    })
+    .expect(201);
+
+  const sessionId = created.body.data.session.sessionId;
+
+  const response = await request(app)
+    .post(`/api/sessions/${encodeURIComponent(sessionId)}/auth-mode`)
+    .set("x-forwarded-access-token", "user.token.value")
+    .send({
+      mode: "user",
+    })
+    .expect(400);
+
+  assert.equal(response.body.ok, false);
+  assert.equal(response.body.error.code, "AUTH_MODE_NOT_ALLOWED_FOR_SESSION_TYPE");
 });
 
 test("session create supports user auth mode for Databricks CLI env", async () => {

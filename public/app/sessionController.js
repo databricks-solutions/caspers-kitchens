@@ -125,6 +125,10 @@ export function createSessionController({
       return;
     }
 
+    if (!sessionTypesModel.isAuthToggleEnabled(session.typeId)) {
+      return;
+    }
+
     const nextMode = session.authMode === "user" ? "m2m" : "user";
 
     api("POST", `/api/sessions/${encodeURIComponent(sessionId)}/auth-mode`, {
@@ -132,7 +136,7 @@ export function createSessionController({
     })
       .then((data) => {
         session.authMode = normalizeAuthMode(data.authMode);
-        updateTabAuth(session);
+        updateTabAuth(session, sessionTypesModel);
       })
       .catch((error) => {
         console.warn(`Failed to switch auth mode (${sessionId}):`, error.message);
@@ -172,7 +176,7 @@ export function createSessionController({
 
           if (msg.type === "auth_mode") {
             session.authMode = normalizeAuthMode(msg.mode);
-            updateTabAuth(session);
+            updateTabAuth(session, sessionTypesModel);
             return;
           }
 
@@ -331,7 +335,7 @@ export function createSessionController({
     state.sessions.set(sessionId, stateEntry);
     updateTabTitle(stateEntry);
     updateTabType(stateEntry, sessionTypesModel);
-    updateTabAuth(stateEntry);
+    updateTabAuth(stateEntry, sessionTypesModel);
 
     if (isLauncher) {
       updateTabStatus(state, sessionId, "connected");
