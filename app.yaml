@@ -1,0 +1,4 @@
+command: ["npm", "run", "start"]
+env:
+  - name: SESSION_DEFAULT_CWD
+    value: /app/python/source_code
