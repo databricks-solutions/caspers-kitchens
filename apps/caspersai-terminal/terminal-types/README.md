@@ -3,6 +3,7 @@
 Session types are discovered at startup from this directory.
 
 Current profiles in this repo:
+- `caspersai`
 - `claude`
 - `codex`
 - `pi`
@@ -77,3 +78,5 @@ Launcher env knobs:
 - `DBX_APP_TERMINAL_CLAUDE_MODEL` (optional Claude model override)
 - `DBX_APP_TERMINAL_CODEX_MODEL` (default `databricks-gpt-5-3-codex`)
 - `DBX_APP_TERMINAL_PI_FOOTER_EXTENSION` (optional path override; default `./terminal-types/pi/extensions/top-footer-line/index.ts`)
+- `DBX_APP_TERMINAL_CASPERSAI_CMD` (optional CaspersAI wrapper override)
+- `DBX_APP_TERMINAL_CASPERSAI_FOOTER_EXTENSION` (optional CaspersAI footer extension override)
