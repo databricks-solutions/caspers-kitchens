@@ -1,0 +1,9 @@
+{
+  "name": "caspers-kitchens-app-wrapper",
+  "private": true,
+  "description": "Root wrapper that runs the CaspersAI terminal app from apps/caspersai-terminal",
+  "scripts": {
+    "build": "npm --prefix apps/caspersai-terminal ci && npm --prefix apps/caspersai-terminal run build",
+    "start": "npm --prefix apps/caspersai-terminal run start"
+  }
+}

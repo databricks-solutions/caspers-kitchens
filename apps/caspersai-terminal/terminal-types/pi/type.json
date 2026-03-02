@@ -1,0 +1,8 @@
+{
+  "id": "pi",
+  "name": "Pi × \uE003",
+  "description": "Launch Pi coding agent CLI in this session",
+  "badge": "pi",
+  "icon": "π",
+  "entrypoint": "launch.sh"
+}

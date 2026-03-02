@@ -1,0 +1,17 @@
+bundle:
+  name: databricks-app-terminal
+
+sync:
+  exclude:
+    - images/**
+
+resources:
+  apps:
+    app:
+      name: databricks-app-terminal
+      description: "Databricks App Terminal: multi-session web terminal"
+      source_code_path: ./
+
+targets:
+  default:
+    default: true

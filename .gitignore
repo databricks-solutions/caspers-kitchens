@@ -11,3 +11,7 @@ __pycache__
 .claude
 .bundle
 /.vscode/
+node_modules/
+.dbx-app-terminal-tools/
+.pi-runtime-home/
+.appagent-tools/

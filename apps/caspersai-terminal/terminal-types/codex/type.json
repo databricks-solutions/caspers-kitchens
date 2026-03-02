@@ -1,0 +1,8 @@
+{
+  "id": "codex",
+  "name": "Codex × \uE003",
+  "description": "Launch Codex CLI in this session",
+  "badge": "codex",
+  "icon": "\uE002",
+  "entrypoint": "launch.sh"
+}

@@ -1,0 +1,10 @@
+node_modules
+dist
+logs
+.pi
+.databricks
+.pi-runtime-home
+.appagent-tools
+.dbx-app-terminal-tools
+*.log
+.DS_Store
