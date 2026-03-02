@@ -2,7 +2,6 @@ import type { AssistantMessage } from "@mariozechner/pi-ai";
 import type { ContextUsage, ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
 import { truncateToWidth } from "@mariozechner/pi-tui";
 
-const BANNER_WIDGET_KEY = "caspers-branding-banner";
 const FOOTER_WIDGET_KEY = "caspers-branding-footer";
 
 const BANNER = [
@@ -11,8 +10,10 @@ const BANNER = [
   " | |      / _ \\ \\___ \\| |_) |  _| | |_) \\___ \\ ",
   " | |___  / ___ \\ ___) |  __/| |___|  _ < ___) |",
   "  \\____|/_/   \\_\\____/|_|   |_____|_| \\_\\____/ ",
-  "                 Caspers × \uE003 AI                 ",
+  "                  Caspers × \uE003                  ",
 ];
+
+const PI_CREDIT = "Derived from Pi Coding Agent by Mario Zechner";
 
 const ICONS = {
   caspers: "⌒",
@@ -115,8 +116,13 @@ export default function caspersBrandingExtension(pi: ExtensionAPI) {
   const installUi = (ctx: ExtensionContext) => {
     if (!ctx.hasUI) return;
 
-    ctx.ui.setWidget(BANNER_WIDGET_KEY, BANNER, {
-      placement: "aboveEditor",
+    ctx.ui.setHeader((_tui, theme) => {
+      return {
+        render(): string[] {
+          return [...BANNER, theme.fg("dim", `  ${PI_CREDIT}`)];
+        },
+        invalidate(): void {},
+      };
     });
 
     ctx.ui.setWidget(
