@@ -421,10 +421,10 @@ export function createSessionController({
   }
 
   function createSession(typeId = "terminal", options = {}) {
-    const body = {};
-    if (sessionTypesModel.normalizeTypeId(typeId) !== "terminal") {
-      body.typeId = sessionTypesModel.normalizeTypeId(typeId);
-    }
+    const normalizedTypeId = sessionTypesModel.normalizeTypeId(typeId);
+    const body = {
+      typeId: normalizedTypeId,
+    };
 
     api("POST", "/api/sessions", body)
       .then((data) => {

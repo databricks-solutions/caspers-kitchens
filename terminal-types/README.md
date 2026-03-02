@@ -65,7 +65,7 @@ Fields:
 
 The built-in `claude`, `codex`, and `pi` terminal types source shared helper logic from `terminal-types/_shared/`.
 
-- `agent-bootstrap.sh` provides generic bootstrap primitives (host normalization, OAuth checks, `.databrickscfg`, token exchange/cache).
+- `agent-bootstrap.sh` provides generic bootstrap primitives (host normalization, auth checks for OAuth or user token mode, `.databrickscfg`, token exchange/cache).
 - `get-token.sh` performs service-principal OAuth token exchange (with `DATABRICKS_TOKEN` fallback).
 - Provider-specific CLI config generation lives inside each type's own `launch.sh`.
 

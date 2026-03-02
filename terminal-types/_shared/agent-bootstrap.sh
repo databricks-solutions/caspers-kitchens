@@ -35,10 +35,26 @@ dbx_agent_host_url() {
   printf 'https://%s' "$host"
 }
 
+dbx_agent_has_oauth_env() {
+  [[ -n "${DATABRICKS_CLIENT_ID:-}" && -n "${DATABRICKS_CLIENT_SECRET:-}" ]]
+}
+
+dbx_agent_has_token_env() {
+  [[ -n "${DATABRICKS_TOKEN:-}" ]]
+}
+
 dbx_agent_require_oauth_env() {
   [[ -n "$(dbx_agent_host_name)" ]] || dbx_agent_die "Missing DATABRICKS_HOST (or DATABRICKS_SERVER_HOSTNAME)"
-  [[ -n "${DATABRICKS_CLIENT_ID:-}" ]] || dbx_agent_die "Missing DATABRICKS_CLIENT_ID"
-  [[ -n "${DATABRICKS_CLIENT_SECRET:-}" ]] || dbx_agent_die "Missing DATABRICKS_CLIENT_SECRET"
+
+  if dbx_agent_has_oauth_env; then
+    return 0
+  fi
+
+  if dbx_agent_has_token_env; then
+    return 0
+  fi
+
+  dbx_agent_die "Missing DATABRICKS_CLIENT_ID and DATABRICKS_CLIENT_SECRET (or DATABRICKS_TOKEN)"
 }
 
 dbx_agent_add_node_path() {
@@ -51,7 +67,9 @@ dbx_agent_add_node_path() {
 
 dbx_agent_write_databrickscfg() {
   local url="$1"
-  cat > "${HOME}/.databrickscfg" << DBCFG
+
+  if dbx_agent_has_oauth_env; then
+    cat > "${HOME}/.databrickscfg" << DBCFG
 [DEFAULT]
 host = ${url}
 client_id = ${DATABRICKS_CLIENT_ID}
@@ -62,7 +80,25 @@ host = ${url}
 client_id = ${DATABRICKS_CLIENT_ID}
 client_secret = ${DATABRICKS_CLIENT_SECRET}
 DBCFG
-  chmod 600 "${HOME}/.databrickscfg"
+    chmod 600 "${HOME}/.databrickscfg"
+    return 0
+  fi
+
+  if dbx_agent_has_token_env; then
+    cat > "${HOME}/.databrickscfg" << DBCFG
+[DEFAULT]
+host = ${url}
+token = ${DATABRICKS_TOKEN}
+
+[sandbox]
+host = ${url}
+token = ${DATABRICKS_TOKEN}
+DBCFG
+    chmod 600 "${HOME}/.databrickscfg"
+    return 0
+  fi
+
+  dbx_agent_die "Missing Databricks auth env for databrickscfg generation"
 }
 
 dbx_agent_exchange_token() {
