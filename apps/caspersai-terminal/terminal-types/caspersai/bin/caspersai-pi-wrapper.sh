@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-__dbx_caspers_terminal_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-__dbx_caspers_branding_extension="${__dbx_caspers_terminal_root}/terminal-types/caspersai/extensions/caspers-branding/index.ts"
-
 export HOME="${HOME:-/home/app}"
 __dbx_default_pi_dir="${HOME}/.pi/agent"
 __dbx_caspers_pi_dir="${HOME}/.pi/caspersai-agent"
@@ -16,6 +13,7 @@ fi
 
 export PI_CODING_AGENT_DIR="${__dbx_caspers_pi_dir}"
 export DBX_CASPERS_SETTINGS_PATH="${PI_CODING_AGENT_DIR}/settings.json"
+export PI_SKIP_VERSION_CHECK="${PI_SKIP_VERSION_CHECK:-1}"
 
 python3 <<'PY'
 import json
@@ -47,9 +45,5 @@ with open(temp_path, "w", encoding="utf-8") as f:
     f.write("\n")
 os.replace(temp_path, settings_path)
 PY
-
-if [[ -f "${__dbx_caspers_branding_extension}" ]]; then
-  exec pi -e "${__dbx_caspers_branding_extension}" "$@"
-fi
 
 exec pi "$@"
