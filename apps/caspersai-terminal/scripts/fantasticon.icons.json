@@ -1,0 +1,19 @@
+{
+  "inputDir": "./assets/terminal-icons/src",
+  "outputDir": "./public/assets/terminal-icons",
+  "name": "dbx-term-icons",
+  "fontTypes": ["woff2"],
+  "assetTypes": ["json"],
+  "fontHeight": 1000,
+  "normalize": true,
+  "codepoints": {
+    "claude": 57345,
+    "codex": 57346,
+    "databricks": 57347
+  },
+  "formatOptions": {
+    "json": {
+      "indent": 2
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "id": "claude",
+  "name": "Claude Code × \uE003",
+  "description": "Launch Claude Code CLI in this session",
+  "badge": "claude",
+  "icon": "\uE001",
+  "entrypoint": "launch.sh"
+}
