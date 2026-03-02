@@ -1,0 +1,39 @@
+{
+  "name": "databricks-app-terminal",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Databricks App Terminal: multi-session web terminal running under app service principal identity",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "build:icons": "npx fantasticon -c scripts/fantasticon.icons.json",
+    "start": "node dist/index.js",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test --import tsx test/*.test.ts",
+    "smoke": "bash scripts/smoke.sh"
+  },
+  "dependencies": {
+    "@xterm/addon-fit": "^0.10.0",
+    "express": "^4.21.2",
+    "node-pty": "^1.0.0",
+    "uuid": "^11.0.5",
+    "ws": "^8.18.0",
+    "xterm": "^5.3.0",
+    "zod": "^3.24.2"
+  },
+  "optionalDependencies": {
+    "@anthropic-ai/claude-code": "2.1.62",
+    "@mariozechner/pi-coding-agent": "0.55.1",
+    "@openai/codex": "0.106.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.13.1",
+    "@types/supertest": "^6.0.3",
+    "@types/ws": "^8.5.14",
+    "supertest": "^7.1.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

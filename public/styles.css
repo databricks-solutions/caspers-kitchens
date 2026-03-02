@@ -1,0 +1,210 @@
+:root {
+  color-scheme: dark;
+  --bg: #0b0d10;
+  --panel: #12161c;
+  --border: #263040;
+  --fg: #e5edf7;
+  --muted: #90a0b7;
+  --accent: #4f8cff;
+  --danger: #ef5350;
+  --terminal-font-family: "DBX Term Icons", "Symbols Nerd Font Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+}
+
+@font-face {
+  font-family: "DBX Term Icons";
+  src: url("/assets/terminal-icons/dbx-term-icons.woff2") format("woff2");
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Symbols Nerd Font Mono";
+  src: url("/fonts/SymbolsNerdFontMono-Regular.ttf") format("truetype");
+  font-display: swap;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.app-shell {
+  height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.tabstrip {
+  display: flex;
+  align-items: stretch;
+  background: #0f1319;
+  border-bottom: 1px solid var(--border);
+}
+
+.tabs {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+
+
+.tab {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 0;
+  border-right: 1px solid var(--border);
+  border-bottom: 2px solid transparent;
+  background: #141a24;
+  color: var(--muted);
+  padding: 0.35rem 0.55rem;
+  cursor: pointer;
+}
+
+.tab:first-child {
+  border-left: 1px solid var(--border);
+}
+
+.tab.active {
+  color: var(--fg);
+  background: #17253d;
+  border-bottom-color: var(--accent);
+}
+
+.tab.launcher .tab-close,
+.tab.launcher .tab-auth,
+.tab.launcher .tab-status {
+  display: none;
+}
+
+.tab-close {
+  border: 0;
+  margin: 0;
+  background: transparent;
+  color: var(--muted);
+  width: 1rem;
+  height: 1rem;
+  line-height: 1;
+  padding: 0;
+  font-size: 0.9rem;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.tab-close:hover {
+  color: var(--danger);
+}
+
+.tab-auth {
+  border: 1px solid var(--border);
+  background: #101620;
+  color: var(--muted);
+  border-radius: 999px;
+  font-size: 0.64rem;
+  line-height: 1;
+  padding: 0.14rem 0.38rem;
+  text-transform: lowercase;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.tab-auth.user {
+  color: #8fd2ff;
+  border-color: #2e4f73;
+}
+
+.tab-auth:hover {
+  color: var(--fg);
+}
+
+.tab-type {
+  border: 1px solid var(--border);
+  background: #1a2433;
+  color: #9db8e0;
+  border-radius: 999px;
+  font-size: 0.63rem;
+  line-height: 1;
+  padding: 0.14rem 0.4rem;
+  font-family: "DBX Term Icons", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  text-transform: none;
+  flex: 0 0 auto;
+}
+
+.tab-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.84rem;
+  flex: 1;
+}
+
+.tab-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex: 0 0 auto;
+}
+
+.tab-status.connected {
+  background: #2ecc71;
+}
+
+.tab-status.disconnected {
+  background: #f39c12;
+}
+
+.tab-status.closed {
+  background: #95a5a6;
+}
+
+.tab-add {
+  border: 0;
+  border-left: 1px solid var(--border);
+  background: #1b2230;
+  color: var(--fg);
+  width: 2.4rem;
+  padding: 0;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tab-add:hover {
+  background: #22304b;
+}
+
+.terminal-main {
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.terminal-pane {
+  position: absolute;
+  inset: 0;
+  display: none;
+  overflow: hidden;
+}
+
+.terminal-pane.active {
+  display: block;
+}
+
+.terminal-host {
+  width: 100%;
+  height: 100%;
+  padding: 4px;
+}

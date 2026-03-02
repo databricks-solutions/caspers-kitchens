@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Databricks App Terminal</title>
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="stylesheet" href="/vendor/xterm/css/xterm.css" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell" id="app-shell">
+      <div class="tabstrip" id="tabstrip">
+        <div class="tabs" id="tabs"></div>
+        <button id="create-session" class="tab-add" type="button" aria-label="New tab">+</button>
+      </div>
+
+      <main class="terminal-main" id="terminal-main"></main>
+    </div>
+
+    <script src="/vendor/xterm/lib/xterm.js"></script>
+    <script src="/vendor/xterm-addon-fit/lib/addon-fit.js"></script>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
