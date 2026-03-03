@@ -1,7 +1,5 @@
 command: ['npm', 'run', 'start']
 env:
-  - name: PGHOST
-    value: "ep-mute-flower-day0ygts.database.eu-west-2.cloud.databricks.com"
   - name: PGPORT
     value: "5432"
   - name: PGDATABASE
