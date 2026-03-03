@@ -309,7 +309,7 @@ function createFallbackRegeneratedReport(params: {
       ? `${existingDraft}\n\n${contextLine}`
       : contextLine;
   } else if (!existingDraft) {
-    report.draft_response = "Thanks for reaching out. We are reviewing your request and will follow up shortly.";
+    report.draft_response = "Thanks for contacting us. We reviewed your case and prepared a concrete resolution proposal below.";
   }
 
   report.support_request_id = params.supportRequestId;
