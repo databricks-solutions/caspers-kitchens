@@ -9,18 +9,17 @@ from pyspark.sql.types import (
 )
 
 # ──────────────────────────────────────────────────────────────
-# 0. Bronze  – raw event stream
+# 0. Bronze  – raw event sources
 # ──────────────────────────────────────────────────────────────
-@dlt.table(
-    comment = "Raw event stream from both volume JSON files and Zerobus Delta table."
+@dlt.view(
+    comment = "Raw event stream from Volume JSON files (canonical / Autoloader)."
 )
-def all_events():
+def bronze_volume_events():
     CATALOG = spark.conf.get("RAW_DATA_CATALOG")
-    SCHEMA = spark.conf.get("RAW_DATA_SCHEMA")
-    VOLUME = spark.conf.get("RAW_DATA_VOLUME")
-    TABLE = spark.conf.get("RAW_DATA_TABLE", "events_ingest")
+    SCHEMA  = spark.conf.get("RAW_DATA_SCHEMA")
+    VOLUME  = spark.conf.get("RAW_DATA_VOLUME")
 
-    volume_events = (
+    return (
         spark.readStream.format("cloudFiles")
              .option("cloudFiles.format", "json")
              .load(f"/Volumes/{CATALOG}/{SCHEMA}/{VOLUME}")
@@ -35,7 +34,15 @@ def all_events():
              )
     )
 
-    zerobus_events = (
+@dlt.view(
+    comment = "Raw event stream from Zerobus Delta table (events_ingest)."
+)
+def bronze_zerobus_events():
+    CATALOG = spark.conf.get("RAW_DATA_CATALOG")
+    SCHEMA  = spark.conf.get("RAW_DATA_SCHEMA")
+    TABLE   = spark.conf.get("RAW_DATA_TABLE", "events_ingest")
+
+    return (
         spark.readStream.table(f"{CATALOG}.{SCHEMA}.{TABLE}")
              .select(
                  F.col("event_id").cast("string").alias("event_id"),
@@ -48,7 +55,14 @@ def all_events():
              )
     )
 
-    return volume_events.unionByName(zerobus_events)
+@dlt.table(
+    comment = "Union of all raw event streams — volume (JSON) and Zerobus (Delta)."
+)
+def all_events():
+    return (
+        dlt.read_stream("bronze_volume_events")
+           .unionByName(dlt.read_stream("bronze_zerobus_events"))
+    )
 
 # ──────────────────────────────────────────────────────────────
 # 1. Silver – explode order items, add extended_price

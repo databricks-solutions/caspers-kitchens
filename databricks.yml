@@ -28,6 +28,9 @@ sync:
     - "*.pyc"
     - images/**
     - docs/**
+    - apps/caspersai-terminal/node_modules/**
+    - apps/caspersai-terminal/logs/**
+    - apps/caspersai-terminal/test/**
 
 scripts:
   cleanup:
