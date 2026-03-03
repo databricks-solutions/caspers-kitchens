@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Kitchen Operations Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #0F172A; --card: #1E293B; --border: rgba(255,255,255,0.08); --danger: #EF4444; --warn: #F59E0B; --ok: #10B981; --muted: #64748b; --text: #e2e8f0; }
+    body { background: var(--bg); font-family: system-ui, -apple-system, sans-serif; color: var(--text); min-height: 100vh; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 16px; }
+
+    header { margin-bottom: 20px; }
+    header h1 { font-size: 1.4rem; font-weight: 800; color: white; }
+    header p { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+    .controls { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+    .ctrl-select {
+      background: rgba(255,255,255,0.06); color: white; border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 8px; padding: 7px 12px; font-size: 0.8rem; outline: none;
+    }
+    .ctrl-select:focus { border-color: rgba(255,255,255,0.3); }
+
+    .tab-bar { display: flex; gap: 4px; margin-bottom: 16px; }
+    .tab {
+      padding: 7px 16px; font-size: 0.8rem; font-weight: 600; border-radius: 8px;
+      cursor: pointer; border: none; color: var(--muted); background: transparent; transition: all 0.15s;
+    }
+    .tab.active { background: rgba(255,255,255,0.1); color: white; }
+    .tab:hover:not(.active) { color: #94a3b8; }
+
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .card-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .card-header h2 { font-size: 0.85rem; font-weight: 700; color: white; }
+
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 16px; }
+    .kpi { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+    .kpi-label { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 4px; }
+    .kpi-value { font-size: 1.4rem; font-weight: 800; color: white; }
+    .kpi-sub { font-size: 0.65rem; color: var(--muted); margin-top: 2px; }
+
+    .comp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    @media (max-width: 700px) { .comp-grid { grid-template-columns: 1fr; } }
+
+    .comp-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+    .comp-card h3 { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 10px; font-weight: 700; }
+    .comp-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .comp-name { font-size: 0.75rem; color: #94a3b8; width: 100px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .comp-bar-bg { flex: 1; height: 8px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; }
+    .comp-bar { height: 100%; border-radius: 4px; transition: width 0.4s; }
+    .comp-val { font-size: 0.7rem; font-weight: 700; min-width: 30px; text-align: right; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; padding: 8px 12px; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); border-bottom: 1px solid var(--border); }
+    td { padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 0.8rem; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    .badge {
+      display: inline-block; font-size: 0.65rem; font-weight: 700; padding: 2px 8px;
+      border-radius: 5px; white-space: nowrap;
+    }
+    .badge-danger { background: rgba(239,68,68,0.15); color: var(--danger); }
+    .badge-warn { background: rgba(245,158,11,0.15); color: var(--warn); }
+    .badge-ok { background: rgba(16,185,129,0.15); color: var(--ok); }
+    .badge-info { background: rgba(59,130,246,0.15); color: #3B82F6; }
+    .badge-critical { background: rgba(220,38,38,0.3); color: #FCA5A5; border: 1px solid rgba(239,68,68,0.3); }
+
+    .star { color: var(--warn); }
+    .star-empty { color: rgba(255,255,255,0.12); }
+
+    .loading { display: flex; align-items: center; justify-content: center; min-height: 180px; color: var(--muted); font-size: 0.85rem; }
+
+    .loc-link { color: white; font-weight: 700; cursor: pointer; text-decoration: none; border-bottom: 1px dashed rgba(255,255,255,0.3); transition: border-color 0.15s; }
+    .loc-link:hover { border-bottom-color: white; }
+
+    /* Complaint detail panel */
+    .detail-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+      z-index: 100; display: flex; justify-content: center; align-items: flex-start; padding: 40px 16px;
+      overflow-y: auto;
+    }
+    .detail-panel {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 14px;
+      width: 100%; max-width: 800px; max-height: calc(100vh - 80px); overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    .detail-header {
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0;
+      background: var(--bg); z-index: 2; border-radius: 14px 14px 0 0;
+    }
+    .detail-header h2 { font-size: 1rem; font-weight: 800; color: white; }
+    .detail-close {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+      color: white; border-radius: 8px; padding: 4px 12px; font-size: 0.8rem;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .detail-close:hover { background: rgba(255,255,255,0.12); }
+
+    .detail-stats { display: flex; gap: 12px; padding: 14px 20px; flex-wrap: wrap; border-bottom: 1px solid var(--border); }
+    .detail-stat { }
+    .detail-stat .ds-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 700; }
+    .detail-stat .ds-value { font-size: 1.1rem; font-weight: 800; color: white; }
+
+    .complaint-list { padding: 8px 0; }
+    .complaint-item {
+      padding: 10px 20px; border-bottom: 1px solid rgba(255,255,255,0.03);
+      display: flex; gap: 12px; align-items: flex-start; transition: background 0.1s;
+    }
+    .complaint-item:hover { background: rgba(255,255,255,0.02); }
+    .complaint-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 2px; }
+    .complaint-body { flex: 1; }
+    .complaint-meta { display: flex; gap: 8px; align-items: center; margin-bottom: 3px; flex-wrap: wrap; }
+    .complaint-date { font-size: 0.7rem; color: var(--muted); }
+    .complaint-text { font-size: 0.8rem; color: #cbd5e1; line-height: 1.4; }
+    .complaint-time { font-size: 0.65rem; color: var(--muted); }
+
+    .filter-bar { padding: 10px 20px; border-bottom: 1px solid var(--border); display: flex; gap: 6px; flex-wrap: wrap; }
+    .filter-chip {
+      padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 600;
+      cursor: pointer; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: var(--muted);
+      transition: all 0.15s;
+    }
+    .filter-chip.active { background: rgba(255,255,255,0.1); color: white; border-color: rgba(255,255,255,0.2); }
+    .filter-chip:hover:not(.active) { color: #94a3b8; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>&#x1F373; Kitchen Operations Dashboard</h1>
+      <p>Customer feedback, satisfaction scores &amp; kitchen performance</p>
+    </header>
+
+    <div class="controls">
+      <select id="locFilter" class="ctrl-select" onchange="renderAll()">
+        <option value="">All Locations</option>
+      </select>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab active" onclick="setView('overview')" id="tab-overview">Overview</button>
+      <button class="tab" onclick="setView('daily')" id="tab-daily">Daily Log</button>
+    </div>
+
+    <div id="view-overview">
+      <div class="kpi-grid" id="kpis"></div>
+      <div class="comp-grid" id="compCharts"></div>
+      <div class="card">
+        <div class="card-header">
+          <h2>Location Summary</h2>
+          <span style="font-size:0.65rem;color:var(--muted)">Click a location to view complaints</span>
+        </div>
+        <div id="summaryTable"><div class="loading">Loading data&hellip;</div></div>
+      </div>
+    </div>
+
+    <div id="view-daily" style="display:none">
+      <div class="card">
+        <div class="card-header"><h2>Daily Kitchen Log</h2></div>
+        <div id="dailyTable"><div class="loading">Loading data&hellip;</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="detailOverlay" class="detail-overlay" style="display:none" onclick="if(event.target===this)closeDetail()"></div>
+
+  <script>
+    let data = [];
+
+    async function load() {
+      try {
+        const res = await fetch('/api/kitchen-operations');
+        const json = await res.json();
+        data = json.rows || [];
+        populateFilter();
+        renderAll();
+      } catch (e) {
+        document.getElementById('summaryTable').innerHTML =
+          `<div class="loading" style="color:#EF4444">Failed to load: ${e.message}</div>`;
+      }
+    }
+
+    function setView(v) {
+      document.getElementById('view-overview').style.display = v === 'overview' ? '' : 'none';
+      document.getElementById('view-daily').style.display = v === 'daily' ? '' : 'none';
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.getElementById('tab-' + v).classList.add('active');
+      if (v === 'daily') renderDaily();
+    }
+
+    function populateFilter() {
+      const locs = [...new Set(data.map(r => r.location_name))].sort();
+      const sel = document.getElementById('locFilter');
+      locs.forEach(l => { const o = document.createElement('option'); o.value = l; o.textContent = l; sel.appendChild(o); });
+    }
+
+    function filtered() {
+      const loc = document.getElementById('locFilter').value;
+      return loc ? data.filter(r => r.location_name === loc) : data;
+    }
+
+    function avg(arr) { return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0; }
+
+    function renderAll() {
+      const d = filtered();
+      renderKPIs(d);
+      renderComparison(d);
+      renderSummary(d);
+    }
+
+    function renderKPIs(d) {
+      const totalComplaints = d.reduce((s, r) => s + Number(r.customer_complaints), 0);
+      const avgSat = avg(d.map(r => Number(r.satisfaction_score)));
+      const avgPrep = avg(d.map(r => Number(r.avg_prep_time_minutes)));
+      const complaintsToday = d.length > 0
+        ? d.filter(r => r.date === d[d.length - 1].date).reduce((s, r) => s + Number(r.customer_complaints), 0)
+        : 0;
+
+      const kpis = [
+        { label: 'Total Complaints', value: totalComplaints.toLocaleString(), sub: 'all time', cls: totalComplaints > 100 ? 'color:#EF4444' : '' },
+        { label: 'Avg Satisfaction', value: avgSat.toFixed(1) + ' / 5', sub: stars(avgSat), cls: avgSat < 3 ? 'color:#EF4444' : avgSat < 4 ? 'color:#F59E0B' : 'color:#10B981' },
+        { label: 'Avg Prep Time', value: avgPrep.toFixed(0) + ' min', sub: 'across locations', cls: avgPrep > 20 ? 'color:#EF4444' : '' },
+        { label: 'Latest Day Complaints', value: complaintsToday, sub: 'most recent date', cls: complaintsToday > 15 ? 'color:#EF4444' : '' },
+      ];
+      document.getElementById('kpis').innerHTML = kpis.map(k =>
+        `<div class="kpi"><div class="kpi-label">${k.label}</div><div class="kpi-value" style="${k.cls}">${k.value}</div><div class="kpi-sub">${k.sub}</div></div>`
+      ).join('');
+    }
+
+    function stars(score) {
+      const full = Math.round(score);
+      return Array.from({length: 5}, (_, i) => i < full ? '<span class="star">&#x2605;</span>' : '<span class="star-empty">&#x2605;</span>').join('');
+    }
+
+    function renderComparison() {
+      const byLoc = {};
+      data.forEach(r => {
+        if (!byLoc[r.location_name]) byLoc[r.location_name] = { complaints: [], sat: [], prep: [] };
+        byLoc[r.location_name].complaints.push(Number(r.customer_complaints));
+        byLoc[r.location_name].sat.push(Number(r.satisfaction_score));
+        byLoc[r.location_name].prep.push(Number(r.avg_prep_time_minutes));
+      });
+
+      const locs = Object.keys(byLoc).sort();
+      const maxComplaints = Math.max(...locs.map(l => avg(byLoc[l].complaints)));
+
+      function bar(val, max, threshHigh, threshMid) {
+        const pct = max > 0 ? (val / max * 100) : 0;
+        const color = val >= threshHigh ? '#EF4444' : val >= threshMid ? '#F59E0B' : '#10B981';
+        return `<div class="comp-bar-bg"><div class="comp-bar" style="width:${pct}%;background:${color}"></div></div>
+                <span class="comp-val" style="color:${color}">${val.toFixed(1)}</span>`;
+      }
+
+      const complaintsHtml = locs
+        .sort((a, b) => avg(byLoc[b].complaints) - avg(byLoc[a].complaints))
+        .map(l => {
+          const v = avg(byLoc[l].complaints);
+          return `<div class="comp-row"><span class="comp-name">${l}</span>${bar(v, maxComplaints, 8, 4)}</div>`;
+        }).join('');
+
+      const satHtml = locs
+        .sort((a, b) => avg(byLoc[a].sat) - avg(byLoc[b].sat))
+        .map(l => {
+          const v = avg(byLoc[l].sat);
+          const pct = v / 5 * 100;
+          const color = v < 3 ? '#EF4444' : v < 4 ? '#F59E0B' : '#10B981';
+          return `<div class="comp-row"><span class="comp-name">${l}</span>
+            <div class="comp-bar-bg"><div class="comp-bar" style="width:${pct}%;background:${color}"></div></div>
+            <span class="comp-val" style="color:${color}">${v.toFixed(1)}</span></div>`;
+        }).join('');
+
+      document.getElementById('compCharts').innerHTML = `
+        <div class="comp-card"><h3>&#x1F4E2; Avg Daily Complaints</h3>${complaintsHtml}</div>
+        <div class="comp-card"><h3>&#x2B50; Avg Satisfaction Score</h3>${satHtml}</div>
+      `;
+    }
+
+    function renderSummary() {
+      const byLoc = {};
+      data.forEach(r => {
+        if (!byLoc[r.location_name]) byLoc[r.location_name] = { complaints: [], sat: [], prep: [], topComplaints: {}, totalComplaints: 0 };
+        byLoc[r.location_name].complaints.push(Number(r.customer_complaints));
+        byLoc[r.location_name].sat.push(Number(r.satisfaction_score));
+        byLoc[r.location_name].prep.push(Number(r.avg_prep_time_minutes));
+        byLoc[r.location_name].totalComplaints += Number(r.customer_complaints);
+        const tc = r.top_complaint;
+        if (tc && tc !== 'None') byLoc[r.location_name].topComplaints[tc] = (byLoc[r.location_name].topComplaints[tc] || 0) + 1;
+      });
+
+      const locs = Object.keys(byLoc).sort((a, b) => avg(byLoc[b].complaints) - avg(byLoc[a].complaints));
+      let html = '<table><thead><tr><th>Location</th><th>Total</th><th>Avg/Day</th><th>Satisfaction</th><th>Avg Prep</th><th>Top Complaint</th></tr></thead><tbody>';
+      locs.forEach(l => {
+        const c = avg(byLoc[l].complaints);
+        const total = byLoc[l].totalComplaints;
+        const s = avg(byLoc[l].sat);
+        const p = avg(byLoc[l].prep);
+        const topEntries = Object.entries(byLoc[l].topComplaints).sort((a, b) => b[1] - a[1]);
+        const topComplaint = topEntries.length > 0 ? topEntries[0][0] : 'None';
+        const cBadge = c >= 8 ? 'badge-danger' : c >= 3 ? 'badge-warn' : 'badge-ok';
+        const sBadge = s < 3 ? 'badge-danger' : s < 4 ? 'badge-warn' : 'badge-ok';
+        html += `<tr>
+          <td><a class="loc-link" onclick="openDetail('${l.replace(/'/g,"\\'")}')">${l}</a></td>
+          <td style="font-weight:700;color:white">${total}</td>
+          <td><span class="badge ${cBadge}">${c.toFixed(1)}</span></td>
+          <td><span class="badge ${sBadge}">${s.toFixed(1)} / 5</span></td>
+          <td>${p.toFixed(1)} min</td>
+          <td>${topComplaint !== 'None' ? `<span class="badge badge-danger">${topComplaint}</span>` : '<span style="color:#64748b">\u2014</span>'}</td>
+        </tr>`;
+      });
+      html += '</tbody></table>';
+      document.getElementById('summaryTable').innerHTML = html;
+    }
+
+    function renderDaily() {
+      const d = filtered();
+      const sorted = [...d].sort((a, b) => b.date.localeCompare(a.date) || a.location_name.localeCompare(b.location_name));
+      const page = sorted.slice(0, 150);
+
+      let html = '<table><thead><tr><th>Date</th><th>Location</th><th>Complaints</th><th>Top Complaint</th><th>Satisfaction</th><th>Prep Time</th><th>Notes</th></tr></thead><tbody>';
+      page.forEach(r => {
+        const c = Number(r.customer_complaints);
+        const s = Number(r.satisfaction_score);
+        const cBadge = c >= 10 ? 'badge-danger' : c >= 4 ? 'badge-warn' : 'badge-ok';
+        const sBadge = s < 3 ? 'badge-danger' : s < 4 ? 'badge-warn' : 'badge-ok';
+        const complaint = r.top_complaint && r.top_complaint !== 'None' ? `<span class="badge badge-warn">${r.top_complaint}</span>` : '<span style="color:#64748b">\u2014</span>';
+        const notesBadge = r.notes !== 'Normal operations'
+          ? `<span class="badge badge-danger">${r.notes}</span>`
+          : `<span style="color:#64748b;font-size:0.7rem">Normal</span>`;
+        html += `<tr>
+          <td style="color:#94a3b8">${r.date}</td>
+          <td style="font-weight:600;color:white">${r.location_name}</td>
+          <td><span class="badge ${cBadge}">${c}</span></td>
+          <td>${complaint}</td>
+          <td><span class="badge ${sBadge}">${s} / 5</span></td>
+          <td>${Number(r.avg_prep_time_minutes).toFixed(1)} min</td>
+          <td>${notesBadge}</td>
+        </tr>`;
+      });
+      html += '</tbody></table>';
+      if (sorted.length > 150) html += `<div style="color:#64748b;font-size:0.7rem;text-align:center;padding:10px">Showing 150 of ${sorted.length} rows</div>`;
+      document.getElementById('dailyTable').innerHTML = html;
+    }
+
+    // ── Complaint detail generation & panel ──
+
+    const COMPLAINT_TEMPLATES = {
+      'Long wait time': [
+        'Waited over 45 minutes for a simple order. Unacceptable.',
+        'Order took forever. Staff seemed overwhelmed.',
+        'Placed order at {time}, still waiting 40 min later. Left without food.',
+        'Drive-through line barely moved for 30 minutes.',
+        'Called ahead, still waited 35 minutes after arriving.',
+        'Kids were starving. 50 minute wait for chicken nuggets??',
+        'Waited so long my lunch break ended before food arrived.',
+      ],
+      'Cold food': [
+        'Burger was ice cold when it finally arrived.',
+        'Fries were soggy and lukewarm. Clearly sitting for a while.',
+        'Soup was barely warm. Had to ask them to reheat it.',
+        'Pizza arrived cold. Cheese was solidified.',
+        'Food was obviously prepared much earlier and left sitting out.',
+      ],
+      'Wrong order': [
+        'Ordered grilled chicken, received fried. Not even close.',
+        'Missing 2 items from my order. Had to go back twice.',
+        'Got someone else\'s order entirely. Very frustrating.',
+        'Asked for no onions, order was loaded with onions.',
+        'Drink order was completely wrong. 3 out of 4 drinks mixed up.',
+      ],
+      'Order never arrived': [
+        'Delivery was marked complete but nothing showed up at our door.',
+        'Been waiting over an hour. App says delivered but no food here.',
+        'Driver apparently went to wrong address. No food, no refund yet.',
+        'Order vanished. No update from support after 45 minutes.',
+      ],
+      'Missing item': [
+        'Side salad was missing from the bag.',
+        'Paid for extra sauce, none included.',
+        'Kids meal was missing the drink.',
+      ],
+      'Allergy concern': [
+        'SEVERE: Found peanuts in dish labeled peanut-free. Customer had allergic reaction. EpiPen used on-site. Ambulance called.',
+        'Customer with tree nut allergy found traces of almond in their salad despite noting allergy at order.',
+        'Gluten-free bun request was ignored. Customer with celiac disease became ill.',
+        'Dairy-free order contained cheese. Customer with lactose intolerance experienced adverse reaction.',
+        'Allergen menu at counter was outdated. Listed items as nut-free that no longer are.',
+        'Customer reported shellfish contamination in a non-seafood dish. Cross-contamination suspected.',
+        'WARNING: Child with severe peanut allergy served dessert containing peanut butter. Parents extremely upset. Near-miss incident.',
+        'Soy allergy not flagged on the order system despite customer specifying. Dish contained soy sauce.',
+      ],
+    };
+
+    const CATEGORY_ICONS = {
+      'Long wait time': '\u23F3',
+      'Cold food': '\u2744\uFE0F',
+      'Wrong order': '\u274C',
+      'Order never arrived': '\uD83D\uDCE6',
+      'Missing item': '\uD83D\uDDD2\uFE0F',
+      'Allergy concern': '\u26A0\uFE0F',
+    };
+
+    const CATEGORY_SEVERITY = {
+      'Long wait time': 'warn',
+      'Cold food': 'warn',
+      'Wrong order': 'danger',
+      'Order never arrived': 'danger',
+      'Missing item': 'info',
+      'Allergy concern': 'critical',
+    };
+
+    function seededRandom(seed) {
+      let s = seed;
+      return function() {
+        s = (s * 16807 + 0) % 2147483647;
+        return (s - 1) / 2147483646;
+      };
+    }
+
+    function generateComplaints(locationName) {
+      const locData = data.filter(r => r.location_name === locationName);
+      const complaints = [];
+      const isChicago = locationName === 'Chicago';
+      const seed = locationName.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+      const rng = seededRandom(seed);
+
+      const anomalyCategories = ['Long wait time', 'Long wait time', 'Long wait time',
+        'Cold food', 'Cold food', 'Wrong order', 'Order never arrived'];
+      const normalCategories = ['Wrong order', 'Missing item'];
+
+      locData.forEach(row => {
+        const count = Number(row.customer_complaints);
+        if (count === 0) return;
+        const isAnomaly = count >= 10;
+
+        for (let i = 0; i < count; i++) {
+          const hour = 7 + Math.floor(rng() * 14);
+          const min = Math.floor(rng() * 60);
+          const time = `${String(hour).padStart(2,'0')}:${String(min).padStart(2,'0')}`;
+
+          let category;
+          if (isChicago && isAnomaly && i === 0 && rng() < 0.3) {
+            category = 'Allergy concern';
+          } else if (isChicago && isAnomaly && rng() < 0.08) {
+            category = 'Allergy concern';
+          } else if (isAnomaly) {
+            category = anomalyCategories[Math.floor(rng() * anomalyCategories.length)];
+          } else {
+            category = normalCategories[Math.floor(rng() * normalCategories.length)];
+          }
+
+          const templates = COMPLAINT_TEMPLATES[category] || ['No details provided.'];
+          let text = templates[Math.floor(rng() * templates.length)];
+          text = text.replace('{time}', time);
+
+          complaints.push({
+            date: row.date,
+            time: time,
+            category: category,
+            text: text,
+            severity: CATEGORY_SEVERITY[category] || 'info',
+          });
+        }
+      });
+
+      complaints.sort((a, b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time));
+      return complaints;
+    }
+
+    let activeFilter = 'all';
+
+    function openDetail(locationName) {
+      activeFilter = 'all';
+      const complaints = generateComplaints(locationName);
+      const locData = data.filter(r => r.location_name === locationName);
+      const totalComplaints = locData.reduce((s, r) => s + Number(r.customer_complaints), 0);
+      const avgSat = avg(locData.map(r => Number(r.satisfaction_score)));
+      const avgPrep = avg(locData.map(r => Number(r.avg_prep_time_minutes)));
+
+      const categoryCounts = {};
+      complaints.forEach(c => { categoryCounts[c.category] = (categoryCounts[c.category] || 0) + 1; });
+      const categories = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1]);
+      const allergyCount = categoryCounts['Allergy concern'] || 0;
+
+      const overlay = document.getElementById('detailOverlay');
+      overlay.innerHTML = `
+        <div class="detail-panel">
+          <div class="detail-header">
+            <h2>\uD83D\uDCCB ${locationName} \u2014 Complaint Log</h2>
+            <button class="detail-close" onclick="closeDetail()">\u2715 Close</button>
+          </div>
+          <div class="detail-stats">
+            <div class="detail-stat"><div class="ds-label">Total Complaints</div><div class="ds-value" style="${totalComplaints > 50 ? 'color:#EF4444' : ''}">${totalComplaints}</div></div>
+            <div class="detail-stat"><div class="ds-label">Satisfaction</div><div class="ds-value" style="color:${avgSat < 3 ? '#EF4444' : avgSat < 4 ? '#F59E0B' : '#10B981'}">${avgSat.toFixed(1)} / 5</div></div>
+            <div class="detail-stat"><div class="ds-label">Avg Prep</div><div class="ds-value">${avgPrep.toFixed(0)} min</div></div>
+            ${allergyCount > 0 ? `<div class="detail-stat"><div class="ds-label" style="color:#EF4444">Allergy Reports</div><div class="ds-value" style="color:#EF4444">${allergyCount}</div></div>` : ''}
+          </div>
+          <div class="filter-bar" id="filterBar">
+            <button class="filter-chip active" onclick="filterComplaints('all', '${locationName.replace(/'/g,"\\'")}')">All (${complaints.length})</button>
+            ${categories.map(([cat, cnt]) => {
+              const sev = CATEGORY_SEVERITY[cat] || 'info';
+              const isAllergy = cat === 'Allergy concern';
+              return `<button class="filter-chip${isAllergy ? ' badge-critical' : ''}" onclick="filterComplaints('${cat}', '${locationName.replace(/'/g,"\\'")}')">
+                ${CATEGORY_ICONS[cat] || ''} ${cat} (${cnt})
+              </button>`;
+            }).join('')}
+          </div>
+          <div class="complaint-list" id="complaintList">
+            ${renderComplaintList(complaints, 'all')}
+          </div>
+        </div>
+      `;
+      overlay.style.display = 'flex';
+    }
+
+    function filterComplaints(category, locationName) {
+      activeFilter = category;
+      const complaints = generateComplaints(locationName);
+      document.getElementById('complaintList').innerHTML = renderComplaintList(complaints, category);
+      document.querySelectorAll('#filterBar .filter-chip').forEach(c => c.classList.remove('active'));
+      event.target.classList.add('active');
+    }
+
+    function renderComplaintList(complaints, filter) {
+      const filtered = filter === 'all' ? complaints : complaints.filter(c => c.category === filter);
+      if (filtered.length === 0) return '<div style="padding:20px;text-align:center;color:var(--muted)">No complaints in this category</div>';
+
+      const shown = filtered.slice(0, 200);
+      let html = shown.map(c => {
+        const icon = CATEGORY_ICONS[c.category] || '\uD83D\uDCDD';
+        const sevClass = c.severity === 'critical' ? 'badge-critical' :
+                         c.severity === 'danger' ? 'badge-danger' :
+                         c.severity === 'warn' ? 'badge-warn' : 'badge-ok';
+        const isAllergy = c.category === 'Allergy concern';
+        const rowStyle = isAllergy ? 'background:rgba(220,38,38,0.06);border-left:3px solid #EF4444;' : '';
+        return `<div class="complaint-item" style="${rowStyle}">
+          <span class="complaint-icon">${icon}</span>
+          <div class="complaint-body">
+            <div class="complaint-meta">
+              <span class="badge ${sevClass}">${c.category}</span>
+              <span class="complaint-date">${fmtDate(c.date)}</span>
+              <span class="complaint-time">${c.time}</span>
+            </div>
+            <div class="complaint-text">${c.text}</div>
+          </div>
+        </div>`;
+      }).join('');
+
+      if (filtered.length > 200) {
+        html += `<div style="padding:12px 20px;color:var(--muted);font-size:0.7rem;text-align:center">Showing 200 of ${filtered.length} complaints</div>`;
+      }
+      return html;
+    }
+
+    function fmtDate(d) {
+      if (!d) return '';
+      const dt = new Date(d + 'T00:00:00');
+      return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    function closeDetail() {
+      document.getElementById('detailOverlay').style.display = 'none';
+    }
+
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
+
+    load();
+  </script>
+</body>
+</html>

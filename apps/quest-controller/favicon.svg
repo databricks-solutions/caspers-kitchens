@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Burger bun top -->
+  <ellipse cx="52" cy="58" rx="36" ry="22" fill="#E8A230"/>
+  <ellipse cx="52" cy="52" rx="34" ry="18" fill="#F0B840"/>
+  <!-- Sesame seeds -->
+  <ellipse cx="38" cy="46" rx="3" ry="2" fill="#FDE68A" transform="rotate(-15 38 46)"/>
+  <ellipse cx="55" cy="42" rx="3" ry="2" fill="#FDE68A" transform="rotate(10 55 42)"/>
+  <ellipse cx="66" cy="48" rx="3" ry="2" fill="#FDE68A" transform="rotate(-5 66 48)"/>
+  <!-- Lettuce -->
+  <path d="M16 62 Q22 56 30 62 Q38 56 46 62 Q54 56 62 62 Q70 56 78 62 Q86 56 88 62 L88 66 Q80 60 72 66 Q64 60 56 66 Q48 60 40 66 Q32 60 24 66 Q16 60 16 66Z" fill="#4ADE80"/>
+  <!-- Patty -->
+  <rect x="18" y="64" width="68" height="12" rx="4" fill="#7C3A1A"/>
+  <rect x="18" y="64" width="68" height="6" rx="3" fill="#92400E"/>
+  <!-- Cheese drip -->
+  <path d="M18 64 L86 64 L86 68 Q78 74 70 68 Q62 74 54 68 Q46 74 38 68 Q30 74 22 68 L18 68Z" fill="#FBBF24"/>
+  <!-- Bun bottom -->
+  <ellipse cx="52" cy="80" rx="36" ry="10" fill="#E8A230"/>
+  <rect x="16" y="76" width="72" height="6" rx="2" fill="#F0B840"/>
+  <!-- Magnifying glass -->
+  <circle cx="100" cy="36" r="18" fill="none" stroke="#94A3B8" stroke-width="5"/>
+  <circle cx="100" cy="36" r="13" fill="rgba(147,197,253,0.25)"/>
+  <line x1="113" y1="49" x2="124" y2="62" stroke="#94A3B8" stroke-width="6" stroke-linecap="round"/>
+  <!-- Exclamation in magnifying glass -->
+  <rect x="98" y="27" width="4" height="12" rx="2" fill="#EF4444"/>
+  <circle cx="100" cy="43" r="2.5" fill="#EF4444"/>
+  <!-- Tiny fire -->
+  <path d="M10 88 Q12 78 16 84 Q18 76 22 84 Q24 78 26 88Z" fill="#F97316"/>
+  <path d="M13 88 Q15 82 18 86 Q20 80 23 88Z" fill="#FBBF24"/>
+</svg>

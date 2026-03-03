@@ -488,7 +488,9 @@ targets:
             - name: SCHEDULE_MINUTES
               default: "3"
             - name: PIPELINE_SCHEDULE_MINUTES
-              default: "3"
+              default: "0"
+            - name: MENU_KNOWLEDGE_ENDPOINT_NAME
+              default: ${var.catalog}_menu_knowledge
 
           tasks:
             - task_key: Canonical_Data
@@ -501,8 +503,13 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/lakeflow
 
+            - task_key: Game_Lakebase
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/game_lakebase
+
             - task_key: Game_Setup
               depends_on:
+                - task_key: Game_Lakebase
                 - task_key: Spark_Declarative_Pipeline
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/game_setup
@@ -519,54 +526,22 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/game_dashboard
 
+            - task_key: Game_Review_App
+              depends_on:
+                - task_key: Game_Setup
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/game_review_app
+
+            - task_key: Game_Menu_KA
+              max_retries: 0
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/menu_knowledge_agent
+
             - task_key: Game_Quest_App
               depends_on:
                 - task_key: Game_Genie_Room
                 - task_key: Game_Dashboard
+                - task_key: Game_Review_App
+                - task_key: Game_Menu_KA
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/game_app
-
-            - task_key: Menu_Data
-              depends_on:
-                - task_key: Canonical_Data
-              notebook_task:
-                notebook_path: ${workspace.root_path}/stages/menu_data
-
-            - task_key: Inspection_Data
-              depends_on:
-                - task_key: Canonical_Data
-              notebook_task:
-                notebook_path: ${workspace.root_path}/stages/inspection_data
-
-            - task_key: Menu_Pipeline
-              depends_on:
-                - task_key: Menu_Data
-                - task_key: Inspection_Data
-              notebook_task:
-                notebook_path: ${workspace.root_path}/stages/menu_pipeline
-
-            - task_key: Menu_Genie
-              depends_on:
-                - task_key: Menu_Pipeline
-              notebook_task:
-                notebook_path: ${workspace.root_path}/stages/menu_genie
-
-            - task_key: Menu_Knowledge_Agent
-              depends_on:
-                - task_key: Menu_Pipeline
-              notebook_task:
-                notebook_path: ${workspace.root_path}/stages/menu_knowledge_agent
-
-            - task_key: Inspection_Knowledge_Agent
-              depends_on:
-                - task_key: Inspection_Data
-              notebook_task:
-                notebook_path: ${workspace.root_path}/stages/inspection_knowledge_agent
-
-            - task_key: Menu_Supervisor
-              depends_on:
-                - task_key: Menu_Genie
-                - task_key: Menu_Knowledge_Agent
-                - task_key: Inspection_Knowledge_Agent
-              notebook_task:
-                notebook_path: ${workspace.root_path}/stages/menu_supervisor

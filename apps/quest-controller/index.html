@@ -5,16 +5,17 @@
   <title>Casper's Kitchen Rescue</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="theme-color" content="#1B3139" />
+  <meta name="theme-color" content="#0F172A" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     :root {
       --db-primary: #FF3621;
       --db-primary-dark: #E02E1A;
       --db-green: #00A972;
-      --db-dark: #1B3139;
-      --db-light: #F8FAFB;
-      --db-border: #E4E7EB;
+      --db-dark: #0F172A;
+      --db-card: #1E293B;
+      --db-border: rgba(255,255,255,0.08);
       --gold: #F59E0B;
     }
 
@@ -25,141 +26,297 @@
     .screen.active { display: flex; flex-direction: column; }
 
     .quest-card {
-      background: white;
+      background: var(--db-card);
+      border: 1px solid var(--db-border);
       border-radius: 16px;
       overflow: hidden;
-      transition: transform 0.2s, box-shadow 0.2s;
+      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+      position: relative;
     }
     .quest-card:active { transform: scale(0.98); }
-
-    .quest-card.locked { opacity: 0.5; pointer-events: none; }
-    .quest-card.completed { border-left: 4px solid var(--db-green); }
-    .quest-card.active-quest { border-left: 4px solid var(--db-primary); }
+    .quest-card.locked { opacity: 0.4; pointer-events: none; }
+    .quest-card.completed { border-color: var(--db-green); }
+    .quest-card.completed::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--db-green), #34D399);
+    }
+    .quest-card.active-quest { border-color: var(--db-primary); }
+    .quest-card.active-quest::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--db-primary), #FB923C);
+    }
 
     .feature-tag {
-      font-size: 0.65rem;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      padding: 3px 8px;
-      border-radius: 6px;
+      font-size: 0.6rem; font-weight: 700; letter-spacing: 0.05em;
+      text-transform: uppercase; padding: 3px 8px; border-radius: 6px;
     }
 
     .btn-game {
       display: inline-flex; align-items: center; justify-content: center;
-      padding: 14px 24px;
-      border-radius: 12px;
-      font-weight: 700;
-      font-size: 1rem;
-      border: none;
-      cursor: pointer;
-      transition: all 0.15s;
-      width: 100%;
+      padding: 14px 24px; border-radius: 12px; font-weight: 700;
+      font-size: 1rem; border: none; cursor: pointer;
+      transition: all 0.15s; width: 100%;
     }
     .btn-game:active { transform: scale(0.97); }
     .btn-primary { background: var(--db-primary); color: white; }
     .btn-primary:hover { background: var(--db-primary-dark); }
-    .btn-secondary { background: white; color: var(--db-dark); border: 2px solid var(--db-border); }
-    .btn-hint { background: #FEF3C7; color: #92400E; border: 2px solid #F59E0B; }
+    .btn-secondary { background: var(--db-card); color: white; border: 1px solid rgba(255,255,255,0.15); }
+    .btn-secondary:hover { border-color: rgba(255,255,255,0.3); }
+    .btn-hint { background: rgba(245,158,11,0.15); color: #FBBF24; border: 1px solid rgba(245,158,11,0.3); }
     .btn-sm { padding: 10px 16px; font-size: 0.875rem; width: auto; }
 
     .input-game {
       width: 100%; padding: 14px 16px;
-      border: 2px solid var(--db-border);
-      border-radius: 12px;
-      font-size: 1rem;
-      outline: none;
-      transition: border-color 0.2s;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px; font-size: 1rem;
+      outline: none; transition: border-color 0.2s;
+      background: rgba(255,255,255,0.05); color: white;
     }
     .input-game:focus { border-color: var(--db-primary); }
+    .input-game::placeholder { color: rgba(255,255,255,0.3); }
+    .input-game:disabled { opacity: 0.5; }
 
     .score-pill {
-      background: linear-gradient(135deg, #FEF3C7, #FDE68A);
-      color: #92400E;
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-weight: 700;
-      font-size: 0.8rem;
+      background: linear-gradient(135deg, rgba(245,158,11,0.2), rgba(245,158,11,0.1));
+      color: #FBBF24; padding: 4px 12px; border-radius: 20px;
+      font-weight: 700; font-size: 0.8rem;
+      border: 1px solid rgba(245,158,11,0.25);
     }
 
-    .result-correct { background: #D1FAE5; border: 2px solid var(--db-green); border-radius: 12px; padding: 16px; }
-    .result-wrong { background: #FEE2E2; border: 2px solid #EF4444; border-radius: 12px; padding: 16px; }
+    .result-correct { background: rgba(0,169,114,0.15); border: 1px solid rgba(0,169,114,0.3); border-radius: 12px; padding: 16px; }
+    .result-wrong { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); border-radius: 12px; padding: 16px; }
 
     .fade-in { animation: fadeIn 0.3s ease-out; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    .confetti { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999; }
+    .level-icon {
+      width: 48px; height: 48px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; flex-shrink: 0;
+    }
+
+    .progress-bar {
+      height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px;
+      overflow: hidden; margin-top: 12px;
+    }
+    .progress-bar-fill {
+      height: 100%; border-radius: 3px; transition: width 0.6s ease;
+    }
+
+    .xp-bar {
+      height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px;
+      overflow: hidden; flex: 1;
+    }
+    .xp-bar-fill {
+      height: 100%; border-radius: 4px;
+      background: linear-gradient(90deg, #F59E0B, #FB923C);
+      transition: width 0.6s ease;
+    }
+
+    /* Collapsible instructions */
+    .instructions-toggle {
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px; overflow: hidden;
+    }
+    .instructions-toggle summary {
+      padding: 12px 16px; cursor: pointer; list-style: none;
+      display: flex; align-items: center; justify-content: space-between;
+      user-select: none; transition: background 0.15s;
+    }
+    .instructions-toggle summary:hover { background: rgba(255,255,255,0.04); }
+    .instructions-toggle summary::-webkit-details-marker { display: none; }
+    .instructions-toggle summary::after {
+      content: ''; width: 8px; height: 8px;
+      border-right: 2px solid rgba(255,255,255,0.4);
+      border-bottom: 2px solid rgba(255,255,255,0.4);
+      transform: rotate(-45deg); transition: transform 0.2s;
+    }
+    .instructions-toggle[open] summary::after { transform: rotate(45deg); }
+    .instructions-body { padding: 0 16px 16px; }
 
     @media (min-width: 640px) {
       .mobile-container { max-width: 480px; margin: 0 auto; }
     }
+
+    /* Intro animations */
+    .intro-bg { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+    .intro-float {
+      position: absolute; font-size: 1.8rem; opacity: 0.12;
+      animation: introFloat linear infinite;
+    }
+    @keyframes introFloat {
+      0%   { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+      10%  { opacity: 0.12; } 90% { opacity: 0.12; }
+      100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+    }
+    @keyframes glitch {
+      0%, 100% { text-shadow: 2px 0 #FF3621, -2px 0 #00A972; }
+      25% { text-shadow: -2px -1px #FF3621, 2px 1px #00A972; }
+      50% { text-shadow: 1px 2px #FF3621, -1px -2px #00A972; }
+      75% { text-shadow: -1px 1px #FF3621, 1px -1px #00A972; }
+    }
+    .glitch-text { animation: glitch 2s ease-in-out infinite; }
+
+    .alert-card {
+      background: rgba(255,54,33,0.12); border: 1px solid rgba(255,54,33,0.35);
+      border-radius: 12px; padding: 10px 14px;
+      opacity: 0; transform: translateX(-30px);
+      animation: slideAlert 0.5s ease-out forwards;
+    }
+    .alert-card.from-right { transform: translateX(30px); }
+    @keyframes slideAlert { to { opacity: 1; transform: translateX(0); } }
+
+    .story-line {
+      opacity: 0; transform: translateY(12px);
+      animation: storyReveal 0.6s ease-out forwards;
+    }
+    @keyframes storyReveal { to { opacity: 1; transform: translateY(0); } }
+
+    @keyframes pulse-ring {
+      0% { box-shadow: 0 0 0 0 rgba(255,54,33,0.5); }
+      70% { box-shadow: 0 0 0 12px rgba(255,54,33,0); }
+      100% { box-shadow: 0 0 0 0 rgba(255,54,33,0); }
+    }
+    .pulse-btn { animation: pulse-ring 2s ease-out infinite; }
+
+    @keyframes flicker {
+      0%, 100% { opacity: 1; } 92% { opacity: 1; }
+      93% { opacity: 0.3; } 94% { opacity: 1; }
+      96% { opacity: 0.5; } 97% { opacity: 1; }
+    }
+    .flicker { animation: flicker 3s ease-in-out infinite; }
   </style>
 </head>
-<body class="text-gray-900">
+<body class="text-gray-200">
 
-  <!-- ════════════════════════════════════════════════════════════ -->
-  <!-- SCREEN: Welcome -->
-  <!-- ════════════════════════════════════════════════════════════ -->
-  <div id="screen-welcome" class="screen active">
-    <div class="flex-1 flex flex-col items-center justify-center px-6 py-12 mobile-container">
-      <div class="text-center mb-10 fade-in">
-        <div class="text-6xl mb-4">&#x1F354;</div>
-        <h1 class="text-3xl font-black text-white mb-2">Casper's Kitchen<br/>Rescue</h1>
-        <p class="text-gray-400 text-sm max-w-xs mx-auto">
-          Something is wrong at Casper's ghost kitchens. Use Databricks tools to investigate, diagnose, and save the business.
+  <!-- SCREEN: Intro -->
+  <div id="screen-intro" class="screen">
+    <div class="intro-bg" id="introBg"></div>
+    <div class="flex-1 flex flex-col items-center justify-center px-6 py-10 mobile-container relative z-10">
+      <div class="text-center mb-6">
+        <div class="text-7xl mb-3 flicker">&#x1F354;</div>
+        <h1 class="text-3xl font-black text-white glitch-text mb-1">Casper's Kitchens</h1>
+        <p class="text-red-400 text-xs font-bold uppercase tracking-widest">&#x26A0; System Alert</p>
+      </div>
+      <div class="w-full max-w-xs space-y-3 mb-8">
+        <div class="alert-card" style="animation-delay: 0.8s">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">&#x1F4C9;</span>
+            <div><div class="text-red-300 text-xs font-bold">Revenue Anomaly Detected</div><div class="text-gray-400 text-xs">Orders vanishing at unknown location</div></div>
+          </div>
+        </div>
+        <div class="alert-card from-right" style="animation-delay: 1.4s">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">&#x1F525;</span>
+            <div><div class="text-red-300 text-xs font-bold">Operations Breakdown</div><div class="text-gray-400 text-xs">Something's going wrong &mdash; customers are leaving</div></div>
+          </div>
+        </div>
+        <div class="alert-card" style="animation-delay: 2.0s">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">&#x1F41B;</span>
+            <div><div class="text-red-300 text-xs font-bold">App Data Corrupted</div><div class="text-gray-400 text-xs">Internal dashboards showing wrong numbers</div></div>
+          </div>
+        </div>
+        <div class="alert-card from-right" style="animation-delay: 2.6s">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">&#x1F6A8;</span>
+            <div><div class="text-red-300 text-xs font-bold">Allergen Compliance Risk</div><div class="text-gray-400 text-xs">Customer reported allergic reaction</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="w-full max-w-xs space-y-3 mb-8">
+        <p class="story-line text-gray-300 text-sm leading-relaxed" style="animation-delay: 3.2s">
+          <span class="text-white font-bold">Casper's Kitchens is in crisis.</span> The ghost kitchen empire that once ran like clockwork is falling apart. Revenue is dropping, kitchens are slowing down, and nobody can figure out why.
+        </p>
+        <p class="story-line text-gray-300 text-sm leading-relaxed" style="animation-delay: 3.8s">
+          The management team is overwhelmed. They need someone who can dig into the data, trace the problems, and fix things before it's too late.
+        </p>
+        <p class="story-line text-gray-400 text-sm leading-relaxed" style="animation-delay: 4.4s">
+          That's where <span class="text-white font-bold">you</span> come in. They've hired you as their <span class="text-yellow-400 font-bold">Data Expert</span> &mdash; armed with the full power of the Databricks platform.
         </p>
       </div>
-
-      <div class="w-full max-w-xs space-y-4 fade-in" style="animation-delay: 0.15s">
-        <input id="playerName" type="text" class="input-game" placeholder="Enter your name" autocomplete="off" />
-        <button id="startBtn" class="btn-game btn-primary" onclick="startGame()">
-          Start Investigation
-        </button>
-      </div>
-
-      <div class="mt-8 text-center fade-in" style="animation-delay: 0.3s">
-        <p class="text-gray-500 text-xs">Powered by Databricks</p>
-        <div class="flex items-center justify-center gap-3 mt-3 text-gray-500 text-xs">
-          <span class="feature-tag bg-blue-900 text-blue-300">Genie</span>
-          <span class="feature-tag bg-purple-900 text-purple-300">Dashboards</span>
-          <span class="feature-tag bg-green-900 text-green-300">Agents</span>
+      <div class="w-full max-w-xs story-line" style="animation-delay: 5.0s">
+        <button class="btn-game btn-primary pulse-btn text-lg" onclick="showScreen('welcome')">Accept the Mission</button>
+        <div class="flex flex-wrap items-center justify-center gap-2 mt-5 text-gray-500 text-xs">
+          <span class="feature-tag bg-blue-900/60 text-blue-300">Genie</span>
+          <span class="feature-tag bg-purple-900/60 text-purple-300">Dashboards</span>
+          <span class="feature-tag bg-teal-900/60 text-teal-300">Apps</span>
+          <span class="feature-tag bg-green-900/60 text-green-300">KA</span>
+          <span class="feature-tag bg-orange-900/60 text-orange-300">Lineage</span>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- SCREEN: Welcome -->
+  <div id="screen-welcome" class="screen">
+    <div class="flex-1 flex flex-col items-center justify-center px-6 py-12 mobile-container">
+      <div class="text-center mb-10 fade-in">
+        <div class="text-5xl mb-3">&#x1F575;&#xFE0F;</div>
+        <h1 class="text-2xl font-black text-white mb-2">Identify Yourself, Detective</h1>
+        <p class="text-gray-400 text-sm max-w-xs mx-auto">Enter your name to begin the investigation. Your progress will be saved.</p>
+      </div>
+      <div class="w-full max-w-xs space-y-4 fade-in" style="animation-delay: 0.15s">
+        <input id="playerName" type="text" class="input-game" placeholder="Enter your name" autocomplete="off" />
+        <button id="startBtn" class="btn-game btn-primary" onclick="startGame()">Start Investigation</button>
+        <div id="welcomeBack" style="display:none" class="text-center">
+          <button class="text-gray-500 text-xs underline" onclick="forgetPlayer()">Not you? Start as someone else</button>
+        </div>
+      </div>
+      <div class="mt-8 text-center fade-in" style="animation-delay: 0.3s">
+        <button class="text-gray-500 text-xs underline mb-2" onclick="showScreen('intro')">Replay intro</button>
+        <p class="text-gray-600 text-xs">Powered by Databricks</p>
+      </div>
+    </div>
+  </div>
+
   <!-- SCREEN: Quest Map -->
-  <!-- ════════════════════════════════════════════════════════════ -->
   <div id="screen-map" class="screen">
-    <!-- Header -->
-    <header class="bg-white/5 backdrop-blur border-b border-white/10 px-4 py-3 sticky top-0 z-10">
+    <header class="bg-white/5 backdrop-blur-md border-b border-white/10 px-4 py-3 sticky top-0 z-10">
       <div class="mobile-container flex items-center justify-between">
         <div class="flex items-center gap-2">
           <span class="text-xl">&#x1F354;</span>
           <span class="text-white font-bold text-sm" id="mapPlayerName"></span>
         </div>
         <div class="flex items-center gap-3">
+          <button class="text-white text-xl" onclick="showLeaderboard()" title="Leaderboard">&#x1F3C6;</button>
           <div class="score-pill" id="mapTotalScore">0 pts</div>
         </div>
       </div>
     </header>
 
     <div class="flex-1 px-4 py-6 mobile-container">
+      <!-- Overall progress -->
       <div class="mb-6">
-        <h2 class="text-white text-xl font-bold mb-1">Quest Map</h2>
-        <p class="text-gray-400 text-sm">Complete each level to unlock the next</p>
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-white text-xl font-bold">Quest Map</h2>
+          <span class="text-gray-400 text-xs" id="progressLabel">0/5 completed</span>
+        </div>
+        <div class="xp-bar"><div class="xp-bar-fill" id="progressFill" style="width:0%"></div></div>
       </div>
-
-      <div id="questList" class="space-y-4"></div>
+      <div id="questList" class="space-y-3"></div>
     </div>
   </div>
 
-  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- SCREEN: Leaderboard -->
+  <div id="screen-leaderboard" class="screen">
+    <header class="bg-white/5 backdrop-blur-md border-b border-white/10 px-4 py-3 sticky top-0 z-10">
+      <div class="mobile-container flex items-center justify-between">
+        <button class="text-white flex items-center gap-1 text-sm font-medium" onclick="showScreen('map')">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          Back
+        </button>
+        <span class="text-white font-bold text-sm">&#x1F3C6; Leaderboard</span>
+      </div>
+    </header>
+    <div class="flex-1 px-4 py-6 mobile-container">
+      <div id="leaderboardContent" class="space-y-3"></div>
+    </div>
+  </div>
+
   <!-- SCREEN: Level Detail -->
-  <!-- ════════════════════════════════════════════════════════════ -->
   <div id="screen-level" class="screen">
-    <header class="bg-white/5 backdrop-blur border-b border-white/10 px-4 py-3 sticky top-0 z-10">
+    <header class="bg-white/5 backdrop-blur-md border-b border-white/10 px-4 py-3 sticky top-0 z-10">
       <div class="mobile-container flex items-center justify-between">
         <button class="text-white flex items-center gap-1 text-sm font-medium" onclick="showScreen('map'); refreshMap();">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
@@ -170,56 +327,115 @@
     </header>
 
     <div class="flex-1 px-4 py-6 mobile-container">
-      <div class="mb-2">
-        <span class="feature-tag bg-blue-100 text-blue-800" id="levelFeature"></span>
+      <!-- Level header -->
+      <div class="flex items-center gap-3 mb-4">
+        <div class="level-icon" id="levelIcon"></div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="feature-tag" id="levelFeature"></span>
+          </div>
+          <h2 class="text-white text-xl font-black leading-tight" id="levelTitle"></h2>
+        </div>
       </div>
-      <h2 class="text-white text-2xl font-black mb-2" id="levelTitle"></h2>
-      <p class="text-gray-400 text-sm mb-6" id="levelStory"></p>
 
-      <div class="bg-white/10 rounded-xl p-4 mb-6">
-        <h3 class="text-white font-bold text-sm mb-2">&#x1F4CB; Instructions</h3>
-        <p class="text-gray-300 text-sm" id="levelInstructions"></p>
+      <!-- Mission briefing (story) -->
+      <div class="bg-white/5 border border-white/8 rounded-xl p-4 mb-4">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-sm">&#x1F4E8;</span>
+          <span class="text-white font-bold text-sm">Mission Briefing</span>
+        </div>
+        <p class="text-gray-300 text-sm leading-relaxed" id="levelStory"></p>
       </div>
 
-      <!-- Genie / Dashboard link placeholder -->
-      <div id="levelToolLink" class="mb-6"></div>
+      <!-- Tool links -->
+      <div id="levelToolLink" class="mb-4 space-y-2"></div>
 
       <!-- Answer form -->
-      <div id="answerSection" class="space-y-4">
-        <h3 class="text-white font-bold text-sm">&#x1F50D; Submit Your Findings</h3>
-        <div id="answerFields"></div>
+      <div id="answerSection" class="space-y-3 mb-4">
+        <h3 class="text-white font-bold text-sm flex items-center gap-2">
+          <span>&#x1F50D;</span> Submit Your Findings
+        </h3>
+        <div id="answerFields" class="space-y-4"></div>
         <div id="answerResults" class="space-y-2"></div>
+      </div>
+
+      <!-- Collapsible instructions -->
+      <details class="instructions-toggle" id="instructionsBlock">
+        <summary>
+          <span class="text-gray-400 text-sm font-medium flex items-center gap-2">
+            <span>&#x1F4CB;</span> Need help? View instructions
+          </span>
+        </summary>
+        <div class="instructions-body">
+          <p class="text-gray-400 text-sm leading-relaxed" id="levelInstructions"></p>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <!-- SCREEN: Congratulations -->
+  <div id="screen-congrats" class="screen">
+    <div class="flex-1 flex flex-col items-center justify-center px-6 py-10 mobile-container relative overflow-hidden">
+      <div id="confettiBg" style="position:absolute;inset:0;pointer-events:none;z-index:0;overflow:hidden;"></div>
+      <div class="relative z-10 text-center">
+        <div class="text-7xl mb-4" style="animation: pulse 2s infinite">&#x1F3C6;</div>
+        <h1 class="text-3xl font-black text-white mb-2">Mission Complete!</h1>
+        <p class="text-yellow-400 text-sm font-bold uppercase tracking-widest mb-6">All Systems Restored</p>
+        <div class="w-full max-w-xs mx-auto space-y-4 mb-8">
+          <p class="text-gray-300 text-sm leading-relaxed">
+            Outstanding work, <span class="text-white font-bold" id="congratsName">Detective</span>!
+            You've tracked down every issue plaguing Casper's Kitchens &mdash; from the revenue anomaly
+            to the root causes and beyond.
+          </p>
+          <p class="text-gray-400 text-sm leading-relaxed">
+            The ghost kitchen empire is back on track, thanks to your data expertise
+            and the power of the Databricks platform.
+          </p>
+          <div class="bg-white/5 border border-white/10 rounded-xl p-4 mt-4">
+            <div class="text-gray-500 text-xs font-bold uppercase tracking-wide mb-1">Final Score</div>
+            <div class="text-3xl font-black text-white" id="congratsScore">0</div>
+            <div class="text-gray-500 text-xs mt-1">points earned</div>
+          </div>
+        </div>
+        <div class="w-full max-w-xs mx-auto space-y-3">
+          <button class="btn-game btn-primary" onclick="showScreen('map')">&#x1F5FA; View Quest Map</button>
+          <button class="btn-game btn-secondary" onclick="showLeaderboard()">&#x1F3C6; Leaderboard</button>
+        </div>
+        <div class="flex flex-wrap items-center justify-center gap-2 mt-6 text-gray-500 text-xs">
+          <span class="feature-tag bg-blue-900/60 text-blue-300">&#x2705; Genie</span>
+          <span class="feature-tag bg-purple-900/60 text-purple-300">&#x2705; Dashboards</span>
+          <span class="feature-tag bg-teal-900/60 text-teal-300">&#x2705; Apps</span>
+          <span class="feature-tag bg-green-900/60 text-green-300">&#x2705; KA</span>
+          <span class="feature-tag bg-orange-900/60 text-orange-300">&#x2705; Lineage</span>
+        </div>
       </div>
     </div>
   </div>
 
   <script>
-    // ═══════════════════════════════════════════════════════════
     // State
-    // ═══════════════════════════════════════════════════════════
     let playerId = null;
     let playerName = '';
     let currentLevel = null;
     let levelsData = [];
-    let answeredKeys = {};  // { level: { key: true/false } }
-    let gameConfig = {};    // { genie_room_url, dashboard_url, quest_app_url }
+    let answeredKeys = {};
+    let gameConfig = {};
 
-    // ═══════════════════════════════════════════════════════════
-    // Navigation
-    // ═══════════════════════════════════════════════════════════
+    const LEVEL_ICONS = {
+      1: { emoji: '&#x1F4C8;', bg: 'background: linear-gradient(135deg, #1E3A5F, #2563EB)' },
+      2: { emoji: '&#x1F4CA;', bg: 'background: linear-gradient(135deg, #4C1D95, #7C3AED)' },
+      3: { emoji: '&#x1F4BB;', bg: 'background: linear-gradient(135deg, #134E4A, #0D9488)' },
+      4: { emoji: '&#x1F916;', bg: 'background: linear-gradient(135deg, #14532D, #22C55E)' },
+      5: { emoji: '&#x1F517;', bg: 'background: linear-gradient(135deg, #78350F, #F59E0B)' },
+    };
+
     function showScreen(name) {
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
       document.getElementById('screen-' + name).classList.add('active');
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // API helpers
-    // ═══════════════════════════════════════════════════════════
     async function api(path, opts = {}) {
-      const resp = await fetch(path, {
-        headers: { 'Content-Type': 'application/json' },
-        ...opts,
-      });
+      const resp = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...opts });
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({}));
         throw new Error(err.detail || resp.statusText);
@@ -227,94 +443,121 @@
       return resp.json();
     }
 
-    // ═══════════════════════════════════════════════════════════
     // Start Game
-    // ═══════════════════════════════════════════════════════════
     async function startGame() {
       const nameInput = document.getElementById('playerName');
       playerName = nameInput.value.trim();
       if (!playerName) { nameInput.focus(); return; }
 
       const btn = document.getElementById('startBtn');
-      btn.textContent = 'Starting...';
-      btn.disabled = true;
+      btn.textContent = 'Loading...'; btn.disabled = true;
 
       try {
-        // Load config separately so it doesn't block game start
-        gameConfig = await api('/api/config').catch(() => ({}));
-
         const data = await api('/api/start', {
-          method: 'POST',
-          body: JSON.stringify({ player_name: playerName }),
+          method: 'POST', body: JSON.stringify({ player_name: playerName }),
         });
         playerId = data.player_id;
+        gameConfig = data.config || {};
+        levelsData = data.levels || [];
+
+        localStorage.setItem('ckr_player_name', playerName);
+        localStorage.setItem('ckr_player_id', playerId);
         document.getElementById('mapPlayerName').textContent = playerName;
-        await refreshMap();
+
+        if (data.resumed) {
+          levelsData.forEach(lv => {
+            if (lv.status === 'completed') {
+              answeredKeys[lv.level] = {};
+              (lv.question_keys || []).forEach(k => { answeredKeys[lv.level][k] = true; });
+            }
+          });
+        }
+        renderMap();
         showScreen('map');
       } catch (e) {
-        // Try to fetch debug info to help diagnose
         let debugInfo = '';
-        try {
-          const dbg = await fetch('/api/debug').then(r => r.json());
-          debugInfo = '\n\nDebug: ' + JSON.stringify(dbg, null, 2);
-        } catch (_) {}
+        try { const dbg = await fetch('/api/debug').then(r => r.json()); debugInfo = '\n\nDebug: ' + JSON.stringify(dbg, null, 2); } catch (_) {}
         alert('Failed to start: ' + e.message + debugInfo);
       } finally {
-        btn.textContent = 'Start Investigation';
-        btn.disabled = false;
+        btn.textContent = 'Start Investigation'; btn.disabled = false;
       }
     }
 
-    // Enter key on name input
+    function forgetPlayer() {
+      localStorage.removeItem('ckr_player_name');
+      localStorage.removeItem('ckr_player_id');
+      document.getElementById('playerName').value = '';
+      document.getElementById('startBtn').textContent = 'Start Investigation';
+      document.getElementById('welcomeBack').style.display = 'none';
+      document.getElementById('playerName').focus();
+    }
+
     document.getElementById('playerName').addEventListener('keydown', e => {
       if (e.key === 'Enter') startGame();
     });
 
-    // ═══════════════════════════════════════════════════════════
-    // Quest Map
-    // ═══════════════════════════════════════════════════════════
-    async function refreshMap() {
-      const data = await api('/api/levels?player_id=' + playerId);
-      levelsData = data.levels;
+    (function init() {
+      const savedName = localStorage.getItem('ckr_player_name');
+      if (savedName) {
+        document.getElementById('playerName').value = savedName;
+        document.getElementById('startBtn').textContent = 'Continue Investigation';
+        document.getElementById('welcomeBack').style.display = 'block';
+      }
+      showScreen('intro');
+      const bg = document.getElementById('introBg');
+      if (bg) {
+        const icons = ['&#x1F354;','&#x1F355;','&#x1F969;','&#x1F35C;','&#x1F371;','&#x1F37F;','&#x1F96A;','&#x1F32E;','&#x1F363;','&#x26A0;','&#x1F4C9;','&#x1F525;','&#x1F6A8;'];
+        for (let i = 0; i < 18; i++) {
+          const el = document.createElement('span');
+          el.className = 'intro-float';
+          el.innerHTML = icons[Math.floor(Math.random() * icons.length)];
+          el.style.left = (Math.random() * 90 + 5) + '%';
+          el.style.animationDuration = (12 + Math.random() * 18) + 's';
+          el.style.animationDelay = (Math.random() * 15) + 's';
+          el.style.fontSize = (1.2 + Math.random() * 1.2) + 'rem';
+          bg.appendChild(el);
+        }
+      }
+    })();
 
+    fetch('/api/warmup').catch(() => {});
+
+    // Quest Map
+    function renderMap() {
       let totalScore = 0;
+      let completed = 0;
       const container = document.getElementById('questList');
       container.innerHTML = '';
 
       levelsData.forEach((lv, i) => {
         totalScore += parseInt(lv.score || 0);
+        if (lv.status === 'completed') completed++;
 
         const statusClass = lv.status === 'completed' ? 'completed'
-          : lv.status === 'active' ? 'active-quest'
-          : 'locked';
+          : lv.status === 'active' ? 'active-quest' : 'locked';
 
-        const statusIcon = lv.status === 'completed' ? '&#x2705;'
-          : lv.status === 'active' ? '&#x1F50D;'
-          : '&#x1F512;';
+        const statusLabel = lv.status === 'completed' ? '&#x2705; Completed'
+          : lv.status === 'active' ? '&#x1F50D; In Progress' : '&#x1F512; Locked';
 
-        const statusLabel = lv.status === 'completed' ? 'Completed'
-          : lv.status === 'active' ? 'In Progress'
-          : 'Locked';
+        const icon = LEVEL_ICONS[lv.level] || { emoji: '&#x2753;', bg: 'background: #334155' };
 
         const card = document.createElement('div');
         card.className = `quest-card ${statusClass} fade-in`;
-        card.style.animationDelay = (i * 0.1) + 's';
+        card.style.animationDelay = (i * 0.08) + 's';
         card.innerHTML = `
-          <div class="p-5">
-            <div class="flex items-start justify-between mb-3">
-              <div class="flex items-center gap-3">
-                <span class="text-2xl">${statusIcon}</span>
-                <div>
-                  <div class="text-xs text-gray-500 font-semibold uppercase tracking-wide">Level ${lv.level}</div>
-                  <div class="text-lg font-bold" style="color: var(--db-dark);">${lv.title}</div>
-                </div>
+          <div class="p-4 flex items-center gap-3">
+            <div class="level-icon" style="${icon.bg}">${icon.emoji}</div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-0.5">
+                <span class="text-gray-500 text-xs font-bold uppercase">Level ${lv.level}</span>
+                <span class="feature-tag ${featureColor(lv.feature)}">${lv.feature}</span>
               </div>
-              ${lv.score > 0 ? `<div class="score-pill">${lv.score} pts</div>` : ''}
+              <div class="text-white font-bold text-sm">${lv.title}</div>
+              <div class="text-gray-500 text-xs mt-0.5">${lv.subtitle}</div>
             </div>
-            <p class="text-gray-600 text-sm mb-3">${lv.subtitle}</p>
-            <div class="flex items-center justify-between">
-              <span class="feature-tag ${featureColor(lv.feature)}">${lv.feature}</span>
-              <span class="text-xs text-gray-400">${statusLabel}</span>
+            <div class="text-right flex-shrink-0">
+              ${lv.score > 0 ? `<div class="score-pill text-xs mb-1">${lv.score} pts</div>` : ''}
+              <div class="text-xs text-gray-500">${statusLabel}</div>
             </div>
           </div>`;
 
@@ -322,31 +565,44 @@
           card.style.cursor = 'pointer';
           card.onclick = () => openLevel(lv);
         }
-
         container.appendChild(card);
       });
 
       document.getElementById('mapTotalScore').textContent = totalScore + ' pts';
+      const total = levelsData.length || 5;
+      document.getElementById('progressLabel').textContent = completed + '/' + total + ' completed';
+      document.getElementById('progressFill').style.width = (completed / total * 100) + '%';
+
+      if (completed === total && total > 0 && !window._congratsShown) {
+        window._congratsShown = true;
+        document.getElementById('congratsName').textContent = playerName;
+        document.getElementById('congratsScore').textContent = totalScore + ' pts';
+        spawnConfetti();
+        setTimeout(() => showScreen('congrats'), 600);
+      }
     }
+
+    function refreshMap() { renderMap(); }
 
     function featureColor(feature) {
       const map = {
-        'Genie (AI/BI)': 'bg-blue-100 text-blue-800',
-        'AI/BI Dashboards': 'bg-purple-100 text-purple-800',
-        'Agent Framework': 'bg-green-100 text-green-800',
-        'Lakeflow (SDP)': 'bg-orange-100 text-orange-800',
-        'Databricks Apps + Lakebase': 'bg-teal-100 text-teal-800',
+        'Genie (AI/BI)': 'bg-blue-900/60 text-blue-300',
+        'AI/BI Dashboards': 'bg-purple-900/60 text-purple-300',
+        'Databricks Apps': 'bg-teal-900/60 text-teal-300',
+        'Knowledge Assistant': 'bg-green-900/60 text-green-300',
+        'UC Lineage': 'bg-orange-900/60 text-orange-300',
       };
-      return map[feature] || 'bg-gray-100 text-gray-800';
+      return map[feature] || 'bg-gray-700 text-gray-300';
     }
 
-    // ═══════════════════════════════════════════════════════════
     // Level Detail
-    // ═══════════════════════════════════════════════════════════
     function openLevel(lv) {
       currentLevel = lv;
       answeredKeys[lv.level] = answeredKeys[lv.level] || {};
 
+      const icon = LEVEL_ICONS[lv.level] || { emoji: '&#x2753;', bg: 'background: #334155' };
+      document.getElementById('levelIcon').innerHTML = icon.emoji;
+      document.getElementById('levelIcon').setAttribute('style', icon.bg);
       document.getElementById('levelFeature').textContent = lv.feature;
       document.getElementById('levelFeature').className = 'feature-tag ' + featureColor(lv.feature);
       document.getElementById('levelTitle').textContent = 'Level ' + lv.level + ': ' + lv.title;
@@ -354,69 +610,86 @@
       document.getElementById('levelInstructions').textContent = lv.instructions;
       document.getElementById('levelScore').textContent = (lv.score || 0) + ' pts';
 
-      // Tool link
-      const toolLink = document.getElementById('levelToolLink');
-      if (lv.level === 1) {
-        const genieUrl = gameConfig.genie_room_url || '';
-        if (genieUrl) {
-          toolLink.innerHTML = `
-            <a href="${genieUrl}" target="_blank" rel="noopener" class="btn-game btn-secondary text-center block">
-              <span class="mr-2">&#x1F9DE;</span> Open Genie Room
-            </a>
-            <div class="bg-white/10 rounded-lg p-3 mt-3">
-              <p class="text-yellow-300 text-xs font-semibold mb-1">&#x1F511; Login required</p>
-              <p class="text-gray-400 text-xs">You'll need to log into Databricks first. If you see a login page, sign in and then the Genie room will open.</p>
-              <p class="text-gray-500 text-xs mt-2 break-all font-mono">${genieUrl}</p>
-            </div>`;
-        } else {
-          toolLink.innerHTML = `
-            <div class="bg-red-900/30 border border-red-700 rounded-xl p-4 text-center">
-              <p class="text-red-300 font-bold text-sm mb-1">&#x26A0; Genie room URL not configured</p>
-              <p class="text-gray-400 text-xs">The Game_Genie_Room stage may not have run yet. Check the job in Databricks.</p>
-            </div>`;
-        }
-      } else if (lv.level === 2) {
-        const dashUrl = gameConfig.dashboard_url || '';
-        if (dashUrl) {
-          toolLink.innerHTML = `
-            <a href="${dashUrl}" target="_blank" rel="noopener" class="btn-game btn-secondary text-center block">
-              <span class="mr-2">&#x1F4CA;</span> Open Dashboard
-            </a>
-            <div class="bg-white/10 rounded-lg p-3 mt-3">
-              <p class="text-yellow-300 text-xs font-semibold mb-1">&#x1F511; Login required</p>
-              <p class="text-gray-400 text-xs">You'll need to log into Databricks first. If you see a login page, sign in and then the dashboard will open.</p>
-              <p class="text-gray-500 text-xs mt-2 break-all font-mono">${dashUrl}</p>
-            </div>`;
-        } else {
-          toolLink.innerHTML = `
-            <div class="bg-red-900/30 border border-red-700 rounded-xl p-4 text-center">
-              <p class="text-red-300 font-bold text-sm mb-1">&#x26A0; Dashboard URL not configured</p>
-              <p class="text-gray-400 text-xs">The Game_Dashboard stage may not have run yet. Check the job in Databricks.</p>
-            </div>`;
-        }
-      } else {
-        toolLink.innerHTML = '';
-      }
+      // Close instructions by default
+      document.getElementById('instructionsBlock').removeAttribute('open');
 
-      // Build answer fields
+      // Tool links — supports multiple per level
+      const toolLink = document.getElementById('levelToolLink');
+      const toolMeta = {
+        1: [{ key: 'genie_room_url',  icon: '&#x1F9DE;', label: 'Open Genie Room' }],
+        2: [{ key: 'dashboard_url',   icon: '&#x1F4CA;', label: 'Open Dashboard' }],
+        3: [
+          { key: 'city_ops_url',    icon: '&#x1F6E3;', label: 'Open City Operations Dashboard' },
+          { key: 'kitchen_ops_url', icon: '&#x1F373;', label: 'Open Kitchen Operations Dashboard' },
+        ],
+        4: [
+          { key: 'menu_docs_url',   icon: '&#x1F4C4;', label: 'Browse Menu Documents' },
+          { key: 'menu_ka_url',     icon: '&#x1F916;', label: 'Ask Knowledge Assistant' },
+        ],
+        5: [{ key: 'lineage_url',     icon: '&#x1F517;', label: 'Open Catalog Explorer' }],
+      };
+      const tools = toolMeta[lv.level] || [];
+      let linksHtml = '';
+      tools.forEach(tm => {
+        const toolUrl = gameConfig[tm.key] || '';
+        if (toolUrl) {
+          linksHtml += `
+            <a href="${toolUrl}" target="_blank" rel="noopener"
+               class="btn-game btn-secondary text-center block">
+              <span class="mr-2">${tm.icon}</span> ${tm.label}
+            </a>`;
+        } else {
+          linksHtml += `
+            <div class="bg-red-900/20 border border-red-800/30 rounded-xl p-3 text-center">
+              <p class="text-red-400 font-bold text-xs">&#x26A0; ${tm.label.replace('Open ','')} not configured</p>
+              <p class="text-gray-500 text-xs">The setup stage may not have run yet.</p>
+            </div>`;
+        }
+      });
+      if (tools.length > 0) {
+        linksHtml += `
+          <div class="bg-white/5 rounded-lg p-2.5 mt-1">
+            <p class="text-yellow-400/70 text-xs font-medium">&#x1F511; Databricks login required to access tools</p>
+          </div>`;
+      }
+      toolLink.innerHTML = linksHtml;
+
+      // Answer fields
       const keys = lv.question_keys || [];
       const fieldsContainer = document.getElementById('answerFields');
       fieldsContainer.innerHTML = '';
       document.getElementById('answerResults').innerHTML = '';
 
-      const labels = {
-        location: 'Which location is affected?',
-        time_window: 'What time window shows the anomaly?',
-        brand: 'Which brand is most impacted?',
-        date: 'When did the slowdown start? (YYYY-MM-DD)',
+      const labelsByLevel = {
+        1: {
+          location: 'Which location has the biggest gap between projected and actual revenue?',
+          start_date: 'On what date did the revenue divergence begin?',
+        },
+        2: {
+          cause: 'What is causing the revenue decline at this location?',
+          date: 'When did this problem start?',
+        },
+        3: {
+          delivery_cause: 'What external factor is causing issues at this location?',
+          prep_cause: 'What issue is unique to this location compared to others?',
+        },
+        4: {
+          brand: 'Which brand has the most peanut-containing items?',
+          item: 'What is the most expensive peanut item on their menu?',
+        },
+        5: {
+          silver_table: 'What silver table feeds all gold tables?',
+          gold_count: 'How many gold tables does the pipeline produce?',
+        },
       };
+      const labels = labelsByLevel[lv.level] || {};
 
       keys.forEach(key => {
         const already = answeredKeys[lv.level]?.[key];
         const div = document.createElement('div');
         div.className = 'fade-in';
         div.innerHTML = `
-          <label class="text-gray-300 text-sm font-medium block mb-1">${labels[key] || key}</label>
+          <label class="text-gray-300 text-sm font-medium block mb-1.5">${labels[key] || key}</label>
           <div class="flex gap-2">
             <input type="text" id="answer-${key}" class="input-game flex-1" placeholder="Your answer..."
                    ${already === true ? 'disabled value="Correct!"' : ''} />
@@ -425,10 +698,8 @@
               ${already === true ? '&#x2705;' : 'Submit'}
             </button>
           </div>
-          <div class="flex gap-2 mt-2">
-            <button class="btn-game btn-sm btn-hint" onclick="getHint('${key}')">
-              &#x1F4A1; Hint
-            </button>
+          <div class="mt-2">
+            <button class="btn-game btn-sm btn-hint" onclick="getHint('${key}')">&#x1F4A1; Hint</button>
           </div>
           <div id="result-${key}" class="mt-2"></div>
           <div id="hint-${key}" class="mt-1"></div>`;
@@ -438,23 +709,19 @@
       showScreen('level');
     }
 
-    // ═══════════════════════════════════════════════════════════
     // Submit answer
-    // ═══════════════════════════════════════════════════════════
     async function submitAnswer(key) {
       const input = document.getElementById('answer-' + key);
       const answer = input.value.trim();
       if (!answer) { input.focus(); return; }
 
+      const btn = input.nextElementSibling;
+      btn.disabled = true; btn.textContent = '...';
+
       try {
         const data = await api('/api/submit', {
           method: 'POST',
-          body: JSON.stringify({
-            player_id: playerId,
-            level: currentLevel.level,
-            question_key: key,
-            answer: answer,
-          }),
+          body: JSON.stringify({ player_id: playerId, level: currentLevel.level, question_key: key, answer: answer }),
         });
 
         const resultDiv = document.getElementById('result-' + key);
@@ -462,64 +729,127 @@
           answeredKeys[currentLevel.level][key] = true;
           resultDiv.innerHTML = `
             <div class="result-correct fade-in">
-              <div class="font-bold text-green-800">&#x2705; ${data.message}</div>
-              <div class="text-green-700 text-sm mt-1">+${data.score} points</div>
+              <div class="font-bold text-green-400">&#x2705; ${data.message}</div>
+              <div class="text-green-300/70 text-sm mt-1">+${data.score} points</div>
             </div>`;
           input.disabled = true;
           input.value = answer + ' (Correct!)';
+          btn.innerHTML = '&#x2705;';
 
-          // Update score display
-          const newScore = parseInt(document.getElementById('levelScore').textContent) + data.score;
-          document.getElementById('levelScore').textContent = newScore + ' pts';
+          currentLevel.score = (currentLevel.score || 0) + data.score;
+          document.getElementById('levelScore').textContent = currentLevel.score + ' pts';
+
+          const allKeys = currentLevel.question_keys || [];
+          const allDone = allKeys.every(k => answeredKeys[currentLevel.level]?.[k]);
+          if (allDone) currentLevel.status = 'completed';
 
           if (data.next_level_unlocked) {
+            const next = levelsData.find(l => l.level === data.next_level_unlocked);
+            if (next) next.status = 'active';
             setTimeout(() => {
               resultDiv.innerHTML += `
-                <div class="bg-yellow-50 border-2 border-yellow-400 rounded-xl p-4 mt-3 fade-in text-center">
+                <div class="bg-yellow-900/30 border border-yellow-700/40 rounded-xl p-4 mt-3 fade-in text-center">
                   <div class="text-2xl mb-1">&#x1F513;</div>
-                  <div class="font-bold text-yellow-800">Level ${data.next_level_unlocked} Unlocked!</div>
+                  <div class="font-bold text-yellow-400">Level ${data.next_level_unlocked} Unlocked!</div>
                 </div>`;
             }, 800);
           }
         } else {
+          btn.disabled = false; btn.textContent = 'Submit';
           resultDiv.innerHTML = `
             <div class="result-wrong fade-in">
-              <div class="font-bold text-red-800">&#x274C; ${data.message}</div>
+              <div class="font-bold text-red-400">&#x274C; ${data.message}</div>
             </div>`;
         }
       } catch (e) {
+        btn.disabled = false; btn.textContent = 'Submit';
         alert('Error: ' + e.message);
       }
     }
 
-    // ═══════════════════════════════════════════════════════════
+    // Leaderboard
+    async function showLeaderboard() {
+      showScreen('leaderboard');
+      const container = document.getElementById('leaderboardContent');
+      container.innerHTML = '<p class="text-gray-500 text-sm text-center">Loading...</p>';
+
+      try {
+        const data = await api('/api/leaderboard');
+        const rows = data.leaderboard || [];
+        if (!rows.length) {
+          container.innerHTML = '<p class="text-gray-500 text-sm text-center">No players yet. Be the first!</p>';
+          return;
+        }
+        let html = '';
+        rows.forEach((row, i) => {
+          const rank = i + 1;
+          const medal = rank === 1 ? '&#x1F947;' : rank === 2 ? '&#x1F948;' : rank === 3 ? '&#x1F949;' : `<span class="text-gray-500 text-sm font-bold">${rank}</span>`;
+          const isMe = row.player_name === playerName;
+          const bg = isMe ? 'bg-yellow-900/20 border border-yellow-700/30' : 'bg-white/5 border border-white/5';
+          html += `
+            <div class="${bg} rounded-xl p-4 flex items-center gap-4 fade-in" style="animation-delay:${i * 0.05}s">
+              <div class="text-2xl w-8 text-center">${medal}</div>
+              <div class="flex-1 min-w-0">
+                <div class="text-white font-bold text-sm truncate">${row.player_name}${isMe ? ' (you)' : ''}</div>
+                <div class="text-gray-500 text-xs">${row.levels_completed || 0} levels &middot; ${row.total_hints || 0} hints</div>
+              </div>
+              <div class="score-pill">${row.total_score || 0} pts</div>
+            </div>`;
+        });
+        container.innerHTML = html;
+      } catch (e) {
+        container.innerHTML = '<p class="text-red-400 text-sm text-center">Failed to load leaderboard.</p>';
+      }
+    }
+
     // Hint
-    // ═══════════════════════════════════════════════════════════
     async function getHint(key) {
+      const hintDiv = document.getElementById('hint-' + key);
+      hintDiv.innerHTML = `<div class="bg-yellow-900/20 border border-yellow-700/30 rounded-lg p-3 fade-in"><div class="text-xs font-bold text-yellow-400 mb-1">&#x1F4A1; Loading hint...</div></div>`;
+
       try {
         const data = await api('/api/hint', {
           method: 'POST',
-          body: JSON.stringify({
-            player_id: playerId,
-            level: currentLevel.level,
-            question_key: key,
-          }),
+          body: JSON.stringify({ player_id: playerId, level: currentLevel.level, question_key: key }),
         });
 
-        const hintDiv = document.getElementById('hint-' + key);
-        hintDiv.innerHTML = `
-          <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 fade-in">
-            <div class="text-xs font-bold text-yellow-800 mb-1">&#x1F4A1; Hint (-10 pts)</div>
-            <div class="text-sm text-yellow-900">${data.hint}</div>
-          </div>`;
+        currentLevel.score = Math.max((currentLevel.score || 0) - 10, 0);
+        currentLevel.hints_used = (currentLevel.hints_used || 0) + 1;
+        document.getElementById('levelScore').textContent = currentLevel.score + ' pts';
 
-        // Update score
-        const cur = parseInt(document.getElementById('levelScore').textContent);
-        document.getElementById('levelScore').textContent = Math.max(cur - 10, 0) + ' pts';
+        hintDiv.innerHTML = `
+          <div class="bg-yellow-900/20 border border-yellow-700/30 rounded-lg p-3 fade-in">
+            <div class="text-xs font-bold text-yellow-400 mb-1">&#x1F4A1; Hint (-10 pts)</div>
+            <div class="text-sm text-yellow-200/80">${data.hint}</div>
+          </div>`;
       } catch (e) {
-        alert('Error: ' + e.message);
+        hintDiv.innerHTML = `<div class="bg-red-900/20 border border-red-700/30 rounded-lg p-3 fade-in"><div class="text-sm text-red-400">Failed to load hint. Try again.</div></div>`;
+      }
+    }
+    function spawnConfetti() {
+      const container = document.getElementById('confettiBg');
+      if (!container) return;
+      container.innerHTML = '';
+      const colors = ['#EF4444','#F59E0B','#10B981','#3B82F6','#8B5CF6','#EC4899','#F97316','#06B6D4'];
+      const shapes = ['\u2605','\u2666','\u25CF','\u25A0','\u2764'];
+      for (let i = 0; i < 60; i++) {
+        const el = document.createElement('span');
+        el.textContent = shapes[Math.floor(Math.random() * shapes.length)];
+        el.style.cssText = `
+          position:absolute; font-size:${10 + Math.random() * 16}px;
+          color:${colors[Math.floor(Math.random() * colors.length)]};
+          left:${Math.random() * 100}%; top:-20px; opacity:0.9;
+          animation: confettiFall ${2 + Math.random() * 3}s linear ${Math.random() * 2}s infinite;
+        `;
+        container.appendChild(el);
       }
     }
   </script>
+  <style>
+    @keyframes confettiFall {
+      0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(110vh) rotate(720deg); opacity: 0.3; }
+    }
+  </style>
 </body>
 </html>

@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>City Operations Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0F172A; --card: #1E293B; --card-border: rgba(255,255,255,0.08);
+      --danger: #EF4444; --warn: #F59E0B; --ok: #10B981; --info: #3B82F6;
+      --text: #e2e8f0; --muted: #64748b;
+    }
+    body { background: var(--bg); font-family: system-ui, -apple-system, sans-serif; color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+    .top-bar { background: var(--card); border-bottom: 1px solid var(--card-border); padding: 8px 16px; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; }
+    .top-bar h1 { font-size: 1rem; font-weight: 700; color: white; }
+    .top-bar p { font-size: 0.65rem; color: var(--muted); margin-top: 1px; }
+
+    .controls { background: var(--card); border-bottom: 1px solid var(--card-border); padding: 8px 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; flex-shrink: 0; }
+    .ctrl-group { display: flex; flex-direction: column; gap: 2px; }
+    .ctrl-group label { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+    .ctrl-select {
+      background: rgba(255,255,255,0.06); color: white; border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 6px; padding: 5px 10px; font-size: 0.8rem; outline: none;
+    }
+    .ctrl-select:focus { border-color: rgba(255,255,255,0.3); }
+
+    .date-slider-wrap { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 180px; }
+    .date-slider-wrap input[type=range] {
+      flex: 1; -webkit-appearance: none; height: 4px; border-radius: 2px;
+      background: rgba(255,255,255,0.12); outline: none;
+    }
+    .date-slider-wrap input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+      background: var(--info); cursor: pointer; border: 2px solid white;
+    }
+
+    .play-btn {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15);
+      color: white; border-radius: 6px; padding: 4px 10px; font-size: 0.8rem;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .play-btn:hover { background: rgba(255,255,255,0.1); }
+
+    .main-area { flex: 1; display: flex; overflow: hidden; position: relative; }
+    #map { flex: 1; z-index: 1; }
+
+    /* ── Right sidebar ── */
+    .sidebar {
+      width: 280px; flex-shrink: 0; background: var(--card); border-left: 1px solid var(--card-border);
+      display: flex; flex-direction: column; overflow: hidden; z-index: 2;
+    }
+    .sidebar-section { padding: 10px 12px; border-bottom: 1px solid var(--card-border); }
+    .sidebar-section h3 { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 8px; font-weight: 700; }
+    .sidebar-scroll { flex: 1; overflow-y: auto; }
+
+    .alert-card {
+      background: rgba(255,255,255,0.04); border: 1px solid var(--card-border);
+      border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; transition: all 0.15s;
+      cursor: pointer; position: relative;
+    }
+    .alert-card:hover { background: rgba(255,255,255,0.07); }
+    .alert-card.critical { border-left: 3px solid var(--danger); }
+    .alert-card.warning { border-left: 3px solid var(--warn); }
+    .alert-card.normal { border-left: 3px solid var(--ok); opacity: 0.6; }
+
+    .alert-city { font-size: 0.8rem; font-weight: 700; color: white; margin-bottom: 2px; }
+    .alert-detail { font-size: 0.7rem; color: var(--muted); line-height: 1.3; }
+    .alert-badge {
+      display: inline-block; font-size: 0.6rem; font-weight: 700; padding: 1px 6px;
+      border-radius: 4px; margin-top: 4px; text-transform: uppercase;
+    }
+    .alert-badge.danger { background: rgba(239,68,68,0.15); color: var(--danger); }
+    .alert-badge.warn { background: rgba(245,158,11,0.15); color: var(--warn); }
+    .alert-badge.ok { background: rgba(16,185,129,0.15); color: var(--ok); }
+
+    /* ── Map overlays ── */
+    .city-label {
+      font-size: 11px; font-weight: 700; color: white; text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+      white-space: nowrap; pointer-events: none;
+    }
+    .traffic-ring {
+      border-radius: 50%; pointer-events: none; position: absolute;
+      transform: translate(-50%, -50%);
+    }
+    .pulse-ring {
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
+      50% { transform: translate(-50%, -50%) scale(1.3); opacity: 0.2; }
+      100% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
+    }
+
+    .traffic-bar {
+      height: 6px; border-radius: 3px; transition: width 0.3s;
+    }
+
+    /* ── Comparison panel (bottom of sidebar) ── */
+    .comparison { padding: 10px 12px; }
+    .comparison h3 { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 8px; font-weight: 700; }
+    .comp-row {
+      display: flex; align-items: center; gap: 6px; margin-bottom: 5px;
+    }
+    .comp-name { font-size: 0.7rem; color: #94a3b8; width: 90px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .comp-bar-bg { flex: 1; height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+    .comp-bar { height: 100%; border-radius: 3px; transition: width 0.4s; }
+    .comp-val { font-size: 0.65rem; font-weight: 700; min-width: 28px; text-align: right; }
+
+    .leaflet-container { background: var(--bg) !important; }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <div>
+      <h1>&#x1F6E3; City Operations Center</h1>
+      <p>Real-time traffic congestion, weather &amp; event monitoring</p>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center;">
+      <div class="ctrl-group">
+        <label>Location</label>
+        <select id="selLocation" class="ctrl-select" onchange="render()">
+          <option value="__all__">All Cities</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="ctrl-group" style="flex:1; min-width:180px">
+      <label>Date &mdash; <span id="dateLabel" style="color:white;font-weight:600"></span></label>
+      <div class="date-slider-wrap">
+        <input type="range" id="dateSlider" min="0" max="0" value="0" oninput="onDateSlide()" />
+        <button class="play-btn" id="playBtn" onclick="togglePlay()">&#x25B6;</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-area">
+    <div id="map"></div>
+    <div class="sidebar">
+      <div class="sidebar-section">
+        <h3>&#x1F697; Traffic Congestion</h3>
+        <div id="trafficBars"></div>
+      </div>
+      <div class="sidebar-scroll">
+        <div class="sidebar-section">
+          <h3>&#x26A0; Active Alerts</h3>
+          <div id="alertList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const CITY_COORDS = {
+      'San Francisco': [37.77, -122.42],
+      'Chicago':       [41.88, -87.63],
+      'Silicon Valley': [37.39, -121.89],
+      'Bellevue':      [47.61, -122.20],
+      'New York':      [40.71, -74.01],
+      'Los Angeles':   [34.05, -118.24],
+      'Seattle':       [47.61, -122.33],
+      'Austin':        [30.27, -97.74],
+    };
+
+    let rawData = [];
+    let allDates = [];
+    let mapLayers = [];
+    let playInterval = null;
+
+    const map = L.map('map', {
+      center: [39.5, -98.5],
+      zoom: 4,
+      zoomControl: true,
+      attributionControl: false,
+    });
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: 18,
+    }).addTo(map);
+
+    async function load() {
+      try {
+        const res = await fetch('/api/city-operations');
+        const json = await res.json();
+        rawData = json.rows || [];
+        init();
+      } catch (e) {
+        document.getElementById('alertList').innerHTML =
+          `<div class="alert-card critical"><div class="alert-city">Error</div><div class="alert-detail">${e.message}</div></div>`;
+      }
+    }
+
+    function init() {
+      const locs = [...new Set(rawData.map(r => r.location_name))].sort();
+      const sel = document.getElementById('selLocation');
+      locs.forEach(l => {
+        const opt = document.createElement('option');
+        opt.value = l; opt.textContent = l;
+        sel.appendChild(opt);
+      });
+
+      allDates = [...new Set(rawData.map(r => r.date))].sort();
+      const slider = document.getElementById('dateSlider');
+      slider.max = allDates.length - 1;
+      slider.value = allDates.length - 1;
+
+      const bounds = locs.map(l => CITY_COORDS[l]).filter(Boolean);
+      if (bounds.length) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 6 });
+
+      onDateSlide();
+    }
+
+    function onDateSlide() {
+      const idx = parseInt(document.getElementById('dateSlider').value);
+      document.getElementById('dateLabel').textContent = fmtDate(allDates[idx] || '');
+      render();
+    }
+
+    function fmtDate(d) {
+      if (!d) return '';
+      const dt = new Date(d + 'T00:00:00');
+      return dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    function togglePlay() {
+      if (playInterval) { clearInterval(playInterval); playInterval = null; document.getElementById('playBtn').innerHTML = '&#x25B6;'; return; }
+      document.getElementById('playBtn').innerHTML = '&#x23F8;';
+      const slider = document.getElementById('dateSlider');
+      if (parseInt(slider.value) >= allDates.length - 1) slider.value = 0;
+      playInterval = setInterval(() => {
+        let v = parseInt(slider.value) + 1;
+        if (v >= allDates.length) { clearInterval(playInterval); playInterval = null; document.getElementById('playBtn').innerHTML = '&#x25B6;'; return; }
+        slider.value = v;
+        onDateSlide();
+      }, 200);
+    }
+
+    function trafficColor(val) {
+      if (val >= 75) return '#EF4444';
+      if (val >= 55) return '#F59E0B';
+      return '#10B981';
+    }
+
+    function render() {
+      mapLayers.forEach(m => map.removeLayer(m));
+      mapLayers = [];
+
+      const idx = parseInt(document.getElementById('dateSlider').value);
+      const currentDate = allDates[idx] || '';
+      const locFilter = document.getElementById('selLocation').value;
+
+      const dayData = rawData.filter(r => r.date === currentDate);
+      const filtered = locFilter === '__all__' ? dayData : dayData.filter(r => r.location_name === locFilter);
+      const sorted = [...filtered].sort((a, b) => Number(b.traffic_congestion_index) - Number(a.traffic_congestion_index));
+
+      // ── Map markers ──
+      sorted.forEach(row => {
+        const coords = CITY_COORDS[row.location_name];
+        if (!coords) return;
+
+        const traffic = Number(row.traffic_congestion_index);
+        const color = trafficColor(traffic);
+        const isCritical = traffic >= 75;
+
+        // Outer glow ring
+        const outerRadius = 25000 + traffic * 500;
+        const outer = L.circle(coords, {
+          radius: outerRadius,
+          color: 'transparent',
+          fillColor: color,
+          fillOpacity: 0.08,
+          weight: 0,
+        }).addTo(map);
+        mapLayers.push(outer);
+
+        // Middle ring
+        const midRadius = 15000 + traffic * 300;
+        const mid = L.circle(coords, {
+          radius: midRadius,
+          color: 'transparent',
+          fillColor: color,
+          fillOpacity: 0.15,
+          weight: 0,
+        }).addTo(map);
+        mapLayers.push(mid);
+
+        // Core ring
+        const coreRadius = 8000 + traffic * 150;
+        const core = L.circle(coords, {
+          radius: coreRadius,
+          color: color,
+          fillColor: color,
+          fillOpacity: 0.3,
+          weight: isCritical ? 2 : 1,
+          dashArray: isCritical ? '' : '4 4',
+        }).addTo(map);
+        mapLayers.push(core);
+
+        // Pulsing center for critical cities
+        if (isCritical) {
+          const pulseMarker = L.marker(coords, {
+            icon: L.divIcon({
+              className: '',
+              html: `<div style="width:20px;height:20px;border-radius:50%;background:${color};opacity:0.5;box-shadow:0 0 20px ${color};" class="pulse-ring"></div>`,
+              iconSize: [20, 20],
+              iconAnchor: [10, 10],
+            }),
+          }).addTo(map);
+          mapLayers.push(pulseMarker);
+        }
+
+        // Center dot
+        const dot = L.circleMarker(coords, {
+          radius: 5,
+          color: 'white',
+          fillColor: color,
+          fillOpacity: 1,
+          weight: 2,
+        }).addTo(map);
+        dot.on('click', () => zoomToCity(row));
+        mapLayers.push(dot);
+
+        // City name label
+        const label = L.marker(coords, {
+          icon: L.divIcon({
+            className: 'city-label',
+            html: `${row.location_name}<br><span style="font-size:9px;color:${color};font-weight:800">${traffic.toFixed(0)}</span>`,
+            iconSize: [120, 30],
+            iconAnchor: [-8, 8],
+          }),
+        }).addTo(map);
+        mapLayers.push(label);
+
+        // Event marker if active
+        const hasEvent = row.active_events && row.active_events !== 'None';
+        if (hasEvent) {
+          const evMarker = L.marker([coords[0] + 0.25, coords[1]], {
+            icon: L.divIcon({
+              className: '',
+              html: `<div style="background:rgba(239,68,68,0.9);color:white;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.2);">&#x26A0; ${row.active_events}</div>`,
+              iconSize: [200, 20],
+              iconAnchor: [100, 10],
+            }),
+          }).addTo(map);
+          mapLayers.push(evMarker);
+        }
+
+        // Weather icon
+        const wIcons = { 'Clear': '\u2600\uFE0F', 'Rain': '\uD83C\uDF27\uFE0F', 'Overcast': '\u2601\uFE0F', 'Snow': '\u2744\uFE0F', 'Storm': '\u26C8\uFE0F' };
+        const wIcon = wIcons[row.weather_condition] || '\u2601\uFE0F';
+        const weatherSev = Number(row.weather_severity);
+        if (weatherSev >= 2 || row.weather_condition !== 'Clear') {
+          const wMarker = L.marker([coords[0] - 0.2, coords[1]], {
+            icon: L.divIcon({
+              className: '',
+              html: `<div style="font-size:18px;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.7));">${wIcon}</div>`,
+              iconSize: [24, 24],
+              iconAnchor: [12, 12],
+            }),
+          }).addTo(map);
+          mapLayers.push(wMarker);
+        }
+      });
+
+      // ── Sidebar: Traffic comparison bars ──
+      const barsHtml = sorted.map(row => {
+        const t = Number(row.traffic_congestion_index);
+        const c = trafficColor(t);
+        return `<div class="comp-row">
+          <span class="comp-name">${row.location_name}</span>
+          <div class="comp-bar-bg"><div class="comp-bar" style="width:${t}%;background:${c}"></div></div>
+          <span class="comp-val" style="color:${c}">${t.toFixed(0)}</span>
+        </div>`;
+      }).join('');
+      document.getElementById('trafficBars').innerHTML = barsHtml;
+
+      // ── Sidebar: Weather & Event alerts ──
+      const alerts = sorted.map(row => {
+        const traffic = Number(row.traffic_congestion_index);
+        const hasEvent = row.active_events && row.active_events !== 'None';
+        const weatherSev = Number(row.weather_severity);
+        const items = [];
+
+        if (traffic >= 75) {
+          items.push(`<span class="alert-badge danger">Traffic: ${traffic.toFixed(0)}/100</span>`);
+        } else if (traffic >= 55) {
+          items.push(`<span class="alert-badge warn">Traffic: ${traffic.toFixed(0)}/100</span>`);
+        }
+
+        if (hasEvent) {
+          items.push(`<span class="alert-badge danger">${row.active_events}</span>`);
+        }
+
+        if (row.weather_condition !== 'Clear') {
+          const wClass = weatherSev >= 3 ? 'warn' : 'ok';
+          items.push(`<span class="alert-badge ${wClass}">${row.weather_condition} (sev ${weatherSev})</span>`);
+        }
+
+        if (items.length === 0) return '';
+
+        const severity = traffic >= 75 || hasEvent ? 'critical' : traffic >= 55 ? 'warning' : 'normal';
+        return `<div class="alert-card ${severity}" onclick="flyToCity('${row.location_name}')">
+          <div class="alert-city">${row.location_name}</div>
+          <div class="alert-detail">${items.join(' ')}</div>
+        </div>`;
+      }).filter(Boolean).join('');
+
+      document.getElementById('alertList').innerHTML = alerts ||
+        '<div style="color:var(--muted);font-size:0.75rem;padding:8px;">No active alerts for this date</div>';
+    }
+
+    function flyToCity(name) {
+      const c = CITY_COORDS[name];
+      if (c) map.flyTo(c, 10, { duration: 1 });
+    }
+
+    function zoomToCity(row) {
+      const c = CITY_COORDS[row.location_name];
+      if (c) map.flyTo(c, 10, { duration: 0.8 });
+    }
+
+    load();
+  </script>
+</body>
+</html>
