@@ -383,13 +383,28 @@ export class SupportPlugin extends Plugin {
         "[support] lakebase current_user:",
         identity.rows[0]?.current_user ?? "unknown",
       );
+      const executeSetupDdl = async (sql: string): Promise<void> => {
+        try {
+          await this.pool?.query(sql);
+        } catch (error) {
+          const message = extractErrorMessage(error).toLowerCase();
+          if (
+            message.includes("must be owner of table")
+            || message.includes("permission denied")
+          ) {
+            console.warn("[support] skipping startup DDL:", extractErrorMessage(error));
+            return;
+          }
+          throw error;
+        }
+      };
       this.workspaceClient = new WorkspaceClient({
         host: process.env.DATABRICKS_HOST,
         ...(process.env.DATABRICKS_CONFIG_PROFILE && {
           profile: process.env.DATABRICKS_CONFIG_PROFILE,
         }),
       });
-      await this.pool.query(
+      await executeSetupDdl(
         `CREATE TABLE IF NOT EXISTS support.operator_regenerated_reports (
            regenerated_report_id BIGSERIAL PRIMARY KEY,
            support_request_id TEXT NOT NULL,
@@ -401,7 +416,7 @@ export class SupportPlugin extends Plugin {
            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
          )`,
       );
-      await this.pool.query(
+      await executeSetupDdl(
         `CREATE TABLE IF NOT EXISTS support.request_status (
            support_request_id TEXT PRIMARY KEY,
            status TEXT NOT NULL DEFAULT 'pending',
@@ -411,7 +426,7 @@ export class SupportPlugin extends Plugin {
            notes TEXT
          )`,
       );
-      await this.pool.query(
+      await executeSetupDdl(
         `CREATE TABLE IF NOT EXISTS support.response_ratings (
            rating_id BIGSERIAL PRIMARY KEY,
            support_request_id TEXT NOT NULL,
@@ -425,7 +440,7 @@ export class SupportPlugin extends Plugin {
            UNIQUE (support_request_id)
          )`,
       );
-      await this.pool.query(
+      await executeSetupDdl(
         `CREATE UNIQUE INDEX IF NOT EXISTS response_ratings_support_request_id_uq
          ON support.response_ratings (support_request_id)`,
       );
