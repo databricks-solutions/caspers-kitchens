@@ -12,17 +12,43 @@ from pyspark.sql.types import (
 # 0. Bronze  – raw event stream
 # ──────────────────────────────────────────────────────────────
 @dlt.table(
-    comment = "Raw JSON events as ingested (one file per event)."
+    comment = "Raw event stream from both volume JSON files and Zerobus Delta table."
 )
 def all_events():
     CATALOG = spark.conf.get("RAW_DATA_CATALOG")
     SCHEMA = spark.conf.get("RAW_DATA_SCHEMA")
     VOLUME = spark.conf.get("RAW_DATA_VOLUME")
-    return (
-        spark.readStream.format("cloudFiles") 
+    TABLE = spark.conf.get("RAW_DATA_TABLE", "events_ingest")
+
+    volume_events = (
+        spark.readStream.format("cloudFiles")
              .option("cloudFiles.format", "json")
              .load(f"/Volumes/{CATALOG}/{SCHEMA}/{VOLUME}")
+             .select(
+                 F.col("event_id").cast("string").alias("event_id"),
+                 F.col("event_type").cast("string").alias("event_type"),
+                 F.col("ts").cast("string").alias("ts"),
+                 F.col("location_id").cast("int").alias("location_id"),
+                 F.col("order_id").cast("string").alias("order_id"),
+                 F.col("sequence").cast("int").alias("sequence"),
+                 F.col("body").cast("string").alias("body"),
+             )
     )
+
+    zerobus_events = (
+        spark.readStream.table(f"{CATALOG}.{SCHEMA}.{TABLE}")
+             .select(
+                 F.col("event_id").cast("string").alias("event_id"),
+                 F.col("event_type").cast("string").alias("event_type"),
+                 F.col("ts").cast("string").alias("ts"),
+                 F.col("location_id").cast("int").alias("location_id"),
+                 F.col("order_id").cast("string").alias("order_id"),
+                 F.col("sequence").cast("int").alias("sequence"),
+                 F.col("body").cast("string").alias("body"),
+             )
+    )
+
+    return volume_events.unionByName(zerobus_events)
 
 # ──────────────────────────────────────────────────────────────
 # 1. Silver – explode order items, add extended_price
