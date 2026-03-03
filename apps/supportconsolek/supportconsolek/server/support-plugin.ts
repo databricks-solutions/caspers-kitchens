@@ -376,6 +376,13 @@ export class SupportPlugin extends Plugin {
   async setup(): Promise<void> {
     try {
       this.pool = await createLakebasePool();
+      const identity = await this.pool.query<{ current_user: string }>(
+        "SELECT current_user",
+      );
+      console.log(
+        "[support] lakebase current_user:",
+        identity.rows[0]?.current_user ?? "unknown",
+      );
       this.workspaceClient = new WorkspaceClient({
         host: process.env.DATABRICKS_HOST,
         ...(process.env.DATABRICKS_CONFIG_PROFILE && {
