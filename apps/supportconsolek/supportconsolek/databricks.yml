@@ -17,6 +17,4 @@ resources:
 targets:
   default:
     default: true
-    workspace:
-      host: https://dbc-df6b51a2-a992.cloud.databricks.com
 
