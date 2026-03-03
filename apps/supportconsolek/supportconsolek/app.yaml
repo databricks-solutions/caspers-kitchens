@@ -1,7 +1,7 @@
 command: ['npm', 'run', 'start']
 env:
   - name: PGHOST
-    value: "ep-icy-voice-d1skfonp.database.us-west-2.cloud.databricks.com"
+    value: "ep-mute-flower-day0ygts.database.eu-west-2.cloud.databricks.com"
   - name: PGPORT
     value: "5432"
   - name: PGDATABASE
@@ -9,7 +9,7 @@ env:
   - name: PGSSLMODE
     value: "require"
   - name: LAKEBASE_ENDPOINT
-    value: "projects/casperskitchens-support-db/branches/production/endpoints/ep-icy-voice-d1skfonp"
+    value: "projects/casperskitchens-support-db/branches/production/endpoints/primary"
   - name: DATABRICKS_WAREHOUSE_ID
     value: "e5ed18828056f3cf"
   - name: SUPPORT_AGENT_ENDPOINT_NAME
