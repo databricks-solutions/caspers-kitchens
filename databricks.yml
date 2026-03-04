@@ -108,6 +108,18 @@ targets:
               default: "3"
             - name: PIPELINE_SCHEDULE_MINUTES
               default: "0"
+            - name: INGEST_MODE
+              default: "volume"
+            - name: RAW_EVENTS_TABLE
+              default: events_ingest
+            - name: ZEROBUS_REGION
+              default: ""
+            - name: ZEROBUS_ENDPOINT
+              default: ""
+            - name: ZEROBUS_BATCH_SIZE
+              default: "1000"
+            - name: ZEROBUS_FLUSH_EVERY_BATCHES
+              default: "10"
 
           tasks:
             - task_key: Canonical_Data
@@ -174,6 +186,18 @@ targets:
               default: "3"
             - name: PIPELINE_SCHEDULE_MINUTES
               default: "0"
+            - name: INGEST_MODE
+              default: "volume"
+            - name: RAW_EVENTS_TABLE
+              default: events_ingest
+            - name: ZEROBUS_REGION
+              default: ""
+            - name: ZEROBUS_ENDPOINT
+              default: ""
+            - name: ZEROBUS_BATCH_SIZE
+              default: "1000"
+            - name: ZEROBUS_FLUSH_EVERY_BATCHES
+              default: "10"
 
           tasks:
             - task_key: Canonical_Data
@@ -235,6 +259,18 @@ targets:
               default: "3"
             - name: PIPELINE_SCHEDULE_MINUTES
               default: "3"
+            - name: INGEST_MODE
+              default: "volume"
+            - name: RAW_EVENTS_TABLE
+              default: events_ingest
+            - name: ZEROBUS_REGION
+              default: ""
+            - name: ZEROBUS_ENDPOINT
+              default: ""
+            - name: ZEROBUS_BATCH_SIZE
+              default: "1000"
+            - name: ZEROBUS_FLUSH_EVERY_BATCHES
+              default: "10"
 
           tasks:
             - task_key: Canonical_Data
@@ -281,6 +317,18 @@ targets:
               default: "3"
             - name: PIPELINE_SCHEDULE_MINUTES
               default: "0"
+            - name: INGEST_MODE
+              default: "volume"
+            - name: RAW_EVENTS_TABLE
+              default: events_ingest
+            - name: ZEROBUS_REGION
+              default: ""
+            - name: ZEROBUS_ENDPOINT
+              default: ""
+            - name: ZEROBUS_BATCH_SIZE
+              default: "1000"
+            - name: ZEROBUS_FLUSH_EVERY_BATCHES
+              default: "10"
 
           tasks:
             - task_key: Canonical_Data
@@ -377,6 +425,18 @@ targets:
               default: "3"
             - name: PIPELINE_SCHEDULE_MINUTES
               default: "0"
+            - name: INGEST_MODE
+              default: "volume"
+            - name: RAW_EVENTS_TABLE
+              default: events_ingest
+            - name: ZEROBUS_REGION
+              default: ""
+            - name: ZEROBUS_ENDPOINT
+              default: ""
+            - name: ZEROBUS_BATCH_SIZE
+              default: "1000"
+            - name: ZEROBUS_FLUSH_EVERY_BATCHES
+              default: "10"
 
           tasks:
             - task_key: Canonical_Data

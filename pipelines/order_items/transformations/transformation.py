@@ -9,19 +9,59 @@ from pyspark.sql.types import (
 )
 
 # ──────────────────────────────────────────────────────────────
-# 0. Bronze  – raw event stream
+# 0. Bronze  – raw event sources
 # ──────────────────────────────────────────────────────────────
-@dlt.table(
-    comment = "Raw JSON events as ingested (one file per event)."
+@dlt.view(
+    comment = "Raw event stream from Volume JSON files (canonical / Autoloader)."
 )
-def all_events():
+def bronze_volume_events():
     CATALOG = spark.conf.get("RAW_DATA_CATALOG")
-    SCHEMA = spark.conf.get("RAW_DATA_SCHEMA")
-    VOLUME = spark.conf.get("RAW_DATA_VOLUME")
+    SCHEMA  = spark.conf.get("RAW_DATA_SCHEMA")
+    VOLUME  = spark.conf.get("RAW_DATA_VOLUME")
+
     return (
-        spark.readStream.format("cloudFiles") 
+        spark.readStream.format("cloudFiles")
              .option("cloudFiles.format", "json")
              .load(f"/Volumes/{CATALOG}/{SCHEMA}/{VOLUME}")
+             .select(
+                 F.col("event_id").cast("string").alias("event_id"),
+                 F.col("event_type").cast("string").alias("event_type"),
+                 F.col("ts").cast("string").alias("ts"),
+                 F.col("location_id").cast("int").alias("location_id"),
+                 F.col("order_id").cast("string").alias("order_id"),
+                 F.col("sequence").cast("int").alias("sequence"),
+                 F.col("body").cast("string").alias("body"),
+             )
+    )
+
+@dlt.view(
+    comment = "Raw event stream from Zerobus Delta table (events_ingest)."
+)
+def bronze_zerobus_events():
+    CATALOG = spark.conf.get("RAW_DATA_CATALOG")
+    SCHEMA  = spark.conf.get("RAW_DATA_SCHEMA")
+    TABLE   = spark.conf.get("RAW_DATA_TABLE", "events_ingest")
+
+    return (
+        spark.readStream.table(f"{CATALOG}.{SCHEMA}.{TABLE}")
+             .select(
+                 F.col("event_id").cast("string").alias("event_id"),
+                 F.col("event_type").cast("string").alias("event_type"),
+                 F.col("ts").cast("string").alias("ts"),
+                 F.col("location_id").cast("int").alias("location_id"),
+                 F.col("order_id").cast("string").alias("order_id"),
+                 F.col("sequence").cast("int").alias("sequence"),
+                 F.col("body").cast("string").alias("body"),
+             )
+    )
+
+@dlt.table(
+    comment = "Union of all raw event streams — volume (JSON) and Zerobus (Delta)."
+)
+def all_events():
+    return (
+        dlt.read_stream("bronze_volume_events")
+           .unionByName(dlt.read_stream("bronze_zerobus_events"))
     )
 
 # ──────────────────────────────────────────────────────────────
