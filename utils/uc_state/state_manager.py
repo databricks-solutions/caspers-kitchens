@@ -343,9 +343,10 @@ class UCState:
                             error_message = "No endpoint name or agent_id found in resource data"
                     
                     elif resource_type in ('knowledge_assistants', 'multi_agent_supervisors'):
+                        tile_id = resource_data.get('tile_id')
                         agent_id = resource_data.get('agent_id')
                         agent_name = resource_data.get('name')
-                        for ref in [agent_id, agent_name]:
+                        for ref in [tile_id, agent_id, agent_name]:
                             if ref and not deletion_successful:
                                 try:
                                     self.w.api_client.do("DELETE", f"/api/2.0/tiles/{ref}")
@@ -354,7 +355,7 @@ class UCState:
                                 except Exception:
                                     pass
                         if not deletion_successful:
-                            error_message = f"Could not delete via /api/2.0/tiles/ with id={agent_id} or name={agent_name}"
+                            error_message = f"Could not delete via /api/2.0/tiles/ with tile_id={tile_id}, agent_id={agent_id}, or name={agent_name}"
                     
                     elif resource_type == 'apps':
                         app_name = resource_data.get('name')
