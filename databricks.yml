@@ -28,6 +28,9 @@ sync:
     - "*.pyc"
     - images/**
     - docs/**
+    - apps/caspersai-terminal/node_modules/**
+    - apps/caspersai-terminal/logs/**
+    - apps/caspersai-terminal/test/**
 
 scripts:
   cleanup:
@@ -283,36 +286,6 @@ targets:
             - task_key: Canonical_Data
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/canonical_data
-
-            - task_key: Spark_Declarative_Pipeline
-              depends_on:
-                - task_key: Canonical_Data
-              notebook_task:
-                notebook_path: ${workspace.root_path}/stages/lakeflow
-
-            - task_key: Refund_Recommender_Agent
-              depends_on:
-                - task_key: Spark_Declarative_Pipeline
-              notebook_task:
-                notebook_path: ${workspace.root_path}/stages/refunder_agent
-
-            - task_key: Refund_Recommender_Stream
-              depends_on:
-                - task_key: Spark_Declarative_Pipeline
-              notebook_task:
-                notebook_path: ${workspace.root_path}/stages/refunder_stream
-
-            - task_key: Lakebase_Reverse_ETL
-              depends_on:
-                - task_key: Refund_Recommender_Stream
-              notebook_task:
-                notebook_path: ${workspace.root_path}/stages/lakebase
-
-            - task_key: Databricks_App_Refund_Manager
-              depends_on:
-                - task_key: Lakebase_Reverse_ETL
-              notebook_task:
-                notebook_path: ${workspace.root_path}/stages/apps
 
             - task_key: Menu_Data
               max_retries: 0
