@@ -33,6 +33,29 @@ _config_cache: Dict[str, str] = {}
 _cache_loaded_at: float = 0
 
 
+def _ensure_published_dashboard_url(url: str) -> str:
+    """Ensure dashboard URL opens published view, not edit mode."""
+    if not url or "dashboardsv3" not in url:
+        return url
+    try:
+        from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+        parsed = urlparse(url)
+        params = parse_qs(parsed.query, keep_blank_values=True)
+        params["view"] = ["published"]
+        new_query = urlencode(params, doseq=True)
+        return urlunparse((parsed.scheme, parsed.netloc, parsed.path, parsed.params, new_query, parsed.fragment))
+    except Exception:
+        return url
+
+
+def _config_with_published_dashboard(cfg: Dict[str, str]) -> Dict[str, str]:
+    """Return config with dashboard_url forced to published view."""
+    out = dict(cfg)
+    if "dashboard_url" in out:
+        out["dashboard_url"] = _ensure_published_dashboard_url(out["dashboard_url"])
+    return out
+
+
 def _load_caches(force: bool = False):
     """Reload answers, levels and config from the database (with TTL guard)."""
     global _answers_cache, _levels_cache, _levels_set, _config_cache, _cache_loaded_at
@@ -113,6 +136,10 @@ class HintRequest(BaseModel):
     player_id: str
     level: int
     question_key: str
+
+
+class ResetRequest(BaseModel):
+    player_id: str
 
 
 # ─── Static SPA ──────────────────────────────────────────────────────────────
@@ -208,7 +235,7 @@ def start_game(body: StartGameRequest, bg: BackgroundTasks):
             "player_id": player_id,
             "player_name": body.player_name.strip(),
             "levels": _build_levels_response(state_map),
-            "config": _config_cache,
+            "config": _config_with_published_dashboard(_config_cache),
             "resumed": True,
         }
 
@@ -221,7 +248,7 @@ def start_game(body: StartGameRequest, bg: BackgroundTasks):
         "player_id": player_id,
         "player_name": body.player_name.strip(),
         "levels": _build_levels_response({}),
-        "config": _config_cache,
+        "config": _config_with_published_dashboard(_config_cache),
         "resumed": False,
     }
 
@@ -344,6 +371,18 @@ def _persist_hint(player_id: str, level: int):
         log.error("Failed to persist hint: %s", e)
 
 
+@app.post("/api/reset")
+def reset_progress(body: ResetRequest):
+    """Delete player's progress so they can start again."""
+    try:
+        execute_pg("DELETE FROM quest_state WHERE player_id = %s", (body.player_id,))
+        execute_pg("DELETE FROM leaderboard WHERE player_id = %s", (body.player_id,))
+        return {"ok": True}
+    except Exception as e:
+        log.exception("Reset failed: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/api/hint")
 def get_hint(body: HintRequest, bg: BackgroundTasks):
     cache_key = f"{body.level}:{body.question_key}"
@@ -353,6 +392,16 @@ def get_hint(body: HintRequest, bg: BackgroundTasks):
 
     bg.add_task(_persist_hint, body.player_id, body.level)
     return {"hint": cached["hint"]}
+
+
+# Fixed fake users for leaderboard comparison (name -> total_score)
+_FAKE_LEADERBOARD = [
+    {"player_name": "Ali", "total_score": 100000001, "levels_completed": 5, "total_hints": 0},
+    {"player_name": "Matei", "total_score": 100000000, "levels_completed": 5, "total_hints": 0},
+    {"player_name": "Holly", "total_score": 12345, "levels_completed": 5, "total_hints": 0},
+    {"player_name": "Nick", "total_score": 350, "levels_completed": 2, "total_hints": 0},
+    {"player_name": "Youssef", "total_score": -300, "levels_completed": 0, "total_hints": 30},
+]
 
 
 @app.get("/api/leaderboard")
@@ -368,7 +417,14 @@ def get_leaderboard():
             ORDER BY total_score DESC
             LIMIT 20"""
     )
-    return {"leaderboard": rows}
+    # Merge with fake users (fixed scores for comparison); real users added unless name collision
+    fake_names = {r["player_name"] for r in _FAKE_LEADERBOARD}
+    by_name = {r["player_name"]: dict(r) for r in _FAKE_LEADERBOARD}
+    for r in rows:
+        if r["player_name"] not in fake_names:
+            by_name[r["player_name"]] = dict(r)
+    merged = sorted(by_name.values(), key=lambda x: (x.get("total_score") or 0), reverse=True)
+    return {"leaderboard": merged}
 
 
 @app.get("/api/player/{player_id}/score")
@@ -397,10 +453,10 @@ def get_config():
         )
         fresh = {r["config_key"]: r["config_value"] for r in rows}
         _config_cache.update(fresh)
-        return fresh
+        return _config_with_published_dashboard(fresh)
     except Exception as e:
         log.warning("Config read failed, returning cache: %s", e)
-        return _config_cache
+        return _config_with_published_dashboard(_config_cache)
 
 
 # ─── Health & Debug ──────────────────────────────────────────────────────────

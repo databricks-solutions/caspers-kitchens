@@ -79,12 +79,9 @@ class UCState:
         
         try:
             from pyspark.sql import SparkSession
-            spark = SparkSession.getActiveSession()
-            if spark:
-                spark.sql(create_table_sql)
-                logger.info(f"Ensured table {self.full_table_name} exists")
-            else:
-                logger.warning("No active Spark session found, cannot create table")
+            spark = SparkSession.builder.getOrCreate()
+            spark.sql(create_table_sql)
+            logger.info(f"Ensured table {self.full_table_name} exists")
         except Exception as e:
             logger.error(f"Error creating table: {e}")
             raise
@@ -112,21 +109,25 @@ class UCState:
             # Handle primitive types or dictionaries
             resource_data = json.dumps(resource_obj, default=str)
         
-        insert_sql = f"""
-        INSERT INTO {self.full_table_name} 
-        (internal_id, resource_type, resource_data, created_at)
-        VALUES ('{internal_id}', '{resource_type}', '{resource_data}', CURRENT_TIMESTAMP())
-        """
-        
         try:
             from pyspark.sql import SparkSession
-            spark = SparkSession.getActiveSession()
-            if spark:
-                spark.sql(insert_sql)
-                logger.info(f"Added {resource_type} resource with ID {internal_id}")
-                return internal_id
-            else:
-                raise RuntimeError("No active Spark session found")
+            from pyspark.sql.types import StructType, StructField, StringType, TimestampType
+            from pyspark.sql.functions import current_timestamp
+
+            spark = SparkSession.builder.getOrCreate()
+            schema = StructType([
+                StructField("internal_id", StringType(), False),
+                StructField("resource_type", StringType(), False),
+                StructField("resource_data", StringType(), False),
+                StructField("created_at", TimestampType(), True),
+            ])
+            row = (internal_id, resource_type, resource_data, None)
+            df = spark.createDataFrame([row], schema=schema).withColumn(
+                "created_at", current_timestamp()
+            ).select("internal_id", "resource_type", "resource_data", "created_at")
+            df.write.format("delta").mode("append").saveAsTable(self.full_table_name)
+            logger.info(f"Added {resource_type} resource with ID {internal_id}")
+            return internal_id
         except Exception as e:
             logger.error(f"Error adding resource: {e}")
             raise
@@ -151,20 +152,17 @@ class UCState:
         
         try:
             from pyspark.sql import SparkSession
-            spark = SparkSession.getActiveSession()
-            if spark:
-                df = spark.sql(query_sql)
-                results = []
-                for row in df.collect():
-                    results.append({
-                        'internal_id': row['internal_id'],
-                        'resource_type': row['resource_type'],
-                        'resource_data': json.loads(row['resource_data']),
-                        'created_at': row['created_at']
-                    })
-                return results
-            else:
-                raise RuntimeError("No active Spark session found")
+            spark = SparkSession.builder.getOrCreate()
+            df = spark.sql(query_sql)
+            results = []
+            for row in df.collect():
+                results.append({
+                    'internal_id': row['internal_id'],
+                    'resource_type': row['resource_type'],
+                    'resource_data': json.loads(row['resource_data']),
+                    'created_at': row['created_at']
+                })
+            return results
         except Exception as e:
             logger.error(f"Error listing resources: {e}")
             raise
@@ -186,19 +184,16 @@ class UCState:
         
         try:
             from pyspark.sql import SparkSession
-            spark = SparkSession.getActiveSession()
-            if spark:
-                # Check if exists first
-                exists_df = spark.sql(f"SELECT 1 FROM {self.full_table_name} WHERE internal_id = '{internal_id}'")
-                if exists_df.count() == 0:
-                    logger.warning(f"Resource with ID {internal_id} not found")
-                    return False
-                
-                spark.sql(delete_sql)
-                logger.info(f"Removed resource with ID {internal_id}")
-                return True
-            else:
-                raise RuntimeError("No active Spark session found")
+            spark = SparkSession.builder.getOrCreate()
+            # Check if exists first
+            exists_df = spark.sql(f"SELECT 1 FROM {self.full_table_name} WHERE internal_id = '{internal_id}'")
+            if exists_df.count() == 0:
+                logger.warning(f"Resource with ID {internal_id} not found")
+                return False
+            
+            spark.sql(delete_sql)
+            logger.info(f"Removed resource with ID {internal_id}")
+            return True
         except Exception as e:
             logger.error(f"Error removing resource: {e}")
             raise
@@ -206,7 +201,7 @@ class UCState:
     def clear_all(self, dry_run: bool = False) -> Dict[str, Dict[str, List[Dict[str, str]]]]:
         """
         Remove all resources from Databricks and clear state.
-        Deletion order: experiments → jobs → pipelines → multi_agent_supervisors → knowledge_assistants → genie_spaces → endpoints → vector_search_indexes → vector_search_endpoints → apps → warehouses → databasecatalogs → catalogs → databaseinstances → postgres_projects
+        Deletion order: experiments → jobs → pipelines → multi_agent_supervisors → knowledge_assistants → genie_spaces → endpoints → vector_search_indexes → vector_search_endpoints → dashboards → apps → warehouses → databasecatalogs → catalogs → databaseinstances → postgres_projects
         
         Args:
             dry_run: If True, only show what would be deleted without actually deleting
@@ -219,7 +214,7 @@ class UCState:
                 }
             }
         """
-        deletion_order = ['experiments', 'jobs', 'pipelines', 'multi_agent_supervisors', 'knowledge_assistants', 'genie_spaces', 'endpoints', 'vector_search_indexes', 'vector_search_endpoints', 'apps', 'warehouses', 'databasecatalogs', 'catalogs', 'databaseinstances', 'postgres_projects']
+        deletion_order = ['experiments', 'jobs', 'pipelines', 'multi_agent_supervisors', 'knowledge_assistants', 'genie_spaces', 'endpoints', 'vector_search_indexes', 'vector_search_endpoints', 'dashboards', 'apps', 'warehouses', 'databasecatalogs', 'catalogs', 'databaseinstances', 'postgres_projects']
         results = {}
         
         for resource_type in deletion_order:
@@ -272,6 +267,8 @@ class UCState:
                     resource_name = resource_data.get('name', 'Unknown')
                 elif resource_type == 'vector_search_endpoints':
                     resource_name = resource_data.get('name', 'Unknown')
+                elif resource_type == 'dashboards':
+                    resource_name = resource_data.get('display_name') or resource_data.get('dashboard_id', 'Unknown')
                 
                 if dry_run:
                     results[resource_type]["successful"].append({
@@ -432,6 +429,15 @@ class UCState:
                         else:
                             error_message = "No endpoint name found in resource data"
                     
+                    elif resource_type == 'dashboards':
+                        dashboard_id = resource_data.get('dashboard_id')
+                        if dashboard_id:
+                            self.w.lakeview.trash(dashboard_id=dashboard_id)
+                            logger.info(f"Trashed Lakeview dashboard {dashboard_id}")
+                            deletion_successful = True
+                        else:
+                            error_message = "No dashboard_id found in resource data"
+                    
                     elif resource_type == 'catalogs':
                         catalog_name = resource_data if isinstance(resource_data, str) else resource_data.get('name')
                         if catalog_name:
@@ -487,21 +493,18 @@ class UCState:
         
         try:
             from pyspark.sql import SparkSession
-            spark = SparkSession.getActiveSession()
-            if spark:
-                df = spark.sql(query_sql)
-                rows = df.collect()
-                if rows:
-                    row = rows[0]
-                    return {
-                        'internal_id': row['internal_id'],
-                        'resource_type': row['resource_type'],
-                        'resource_data': json.loads(row['resource_data']),
-                        'created_at': row['created_at']
-                    }
-                return None
-            else:
-                raise RuntimeError("No active Spark session found")
+            spark = SparkSession.builder.getOrCreate()
+            df = spark.sql(query_sql)
+            rows = df.collect()
+            if rows:
+                row = rows[0]
+                return {
+                    'internal_id': row['internal_id'],
+                    'resource_type': row['resource_type'],
+                    'resource_data': json.loads(row['resource_data']),
+                    'created_at': row['created_at']
+                }
+            return None
         except Exception as e:
             logger.error(f"Error getting resource by ID: {e}")
             raise

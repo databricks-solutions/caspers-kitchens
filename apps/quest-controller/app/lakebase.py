@@ -3,20 +3,23 @@ import os
 import logging
 import socket
 import subprocess
-import uuid
 from typing import Any, Dict, List, Optional
 
 import psycopg
 from databricks.sdk import WorkspaceClient
+from databricks.sdk.core import Config
 
 log = logging.getLogger("quest_controller.lakebase")
 
 _w = WorkspaceClient()
+_cfg = Config()
 
 PGHOST = os.environ.get("PGHOST", "")
 PGPORT = os.environ.get("PGPORT", "5432")
 PGDATABASE = os.environ.get("PGDATABASE", "game")
 PGSSLMODE = os.environ.get("PGSSLMODE", "require")
+# Lakebase OAuth: service principal client ID (same pattern as refund-manager)
+PGUSER = os.environ.get("PGUSER") or os.environ.get("DATABRICKS_CLIENT_ID") or getattr(_cfg, "client_id", None) or ""
 # Lakebase Provisioned: instance name for w.database credential
 INSTANCE_NAME = os.environ.get("LAKEBASE_INSTANCE_NAME", "")
 # Lakebase Autoscaling: endpoint path for w.postgres credential
@@ -58,32 +61,23 @@ def _resolve_host_ipv4(hostname: str) -> str:
 
 
 def _get_token() -> str:
-    """Generate a fresh database credential token via the SDK."""
-    try:
-        if POSTGRES_ENDPOINT:
-            # Lakebase Autoscaling: OAuth token via w.postgres
-            cred = _w.postgres.generate_database_credential(endpoint=POSTGRES_ENDPOINT)
-            return cred.token
-        if INSTANCE_NAME:
-            # Lakebase Provisioned: token via w.database
-            cred = _w.database.generate_database_credential(
-                request_id=str(uuid.uuid4()),
-                instance_names=[INSTANCE_NAME],
-            )
-            return cred.token
-    except AttributeError:
-        pass
-    headers = _w.config.authenticate()
-    return headers.get("Authorization", "").removeprefix("Bearer ")
+    """Get OAuth token for Lakebase. Use app OAuth token (same as refund-manager)."""
+    # Refund-manager uses oauth_token for Lakebase; generate_database_credential can fail
+    # if app's SP lacks Lakebase project permissions.
+    return _w.config.oauth_token().access_token
 
 
 def _get_user() -> str:
-    """Resolve username at runtime so it matches the token identity."""
+    """Resolve username. For Lakebase OAuth, use DATABRICKS_CLIENT_ID (set by Databricks Apps) or PGUSER."""
     global _resolved_user
     if _resolved_user:
         return _resolved_user
-    _resolved_user = _w.current_user.me().user_name
-    log.info("Resolved PG user: %s", _resolved_user)
+    if PGUSER:
+        _resolved_user = PGUSER
+        log.info("Using Lakebase user (PGUSER/DATABRICKS_CLIENT_ID)")
+    else:
+        _resolved_user = _w.current_user.me().user_name
+        log.info("Using current user (fallback): %s", _resolved_user)
     return _resolved_user
 
 

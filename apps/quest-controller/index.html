@@ -309,10 +309,20 @@
         <span class="text-white font-bold text-sm">&#x1F3C6; Leaderboard</span>
       </div>
     </header>
-    <div class="flex-1 px-4 py-6 mobile-container">
+    <div class="flex-1 px-4 py-6 mobile-container overflow-y-auto">
       <div id="leaderboardContent" class="space-y-3"></div>
+      <div id="leaderboardShare" class="mt-6 pt-4 border-t border-white/10"></div>
     </div>
   </div>
+
+  <!-- Loading overlay (shown during restore from hash) -->
+  <div id="loadingOverlay" class="fixed inset-0 z-[9998] flex flex-col items-center justify-center bg-[#0F172A]" style="display:none;">
+    <div class="text-4xl mb-4 animate-pulse">&#x1F354;</div>
+    <div class="text-gray-400 text-sm font-medium">Loading your progress...</div>
+  </div>
+
+  <!-- Firework overlay (shown when last level completed) -->
+  <div id="fireworkOverlay" class="fixed inset-0 z-[9999] pointer-events-none overflow-hidden flex items-center justify-center" style="display:none;background:linear-gradient(180deg,rgba(15,23,42,0.85) 0%,rgba(15,23,42,0.98) 100%);"></div>
 
   <!-- SCREEN: Level Detail -->
   <div id="screen-level" class="screen">
@@ -357,6 +367,7 @@
         </h3>
         <div id="answerFields" class="space-y-4"></div>
         <div id="answerResults" class="space-y-2"></div>
+        <div id="nextLevelBtn" class="mt-4"></div>
       </div>
 
       <!-- Collapsible instructions -->
@@ -429,18 +440,40 @@
       5: { emoji: '&#x1F517;', bg: 'background: linear-gradient(135deg, #78350F, #F59E0B)' },
     };
 
-    function showScreen(name) {
+    function showScreen(name, levelNum) {
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
       document.getElementById('screen-' + name).classList.add('active');
+      // Update hash so refresh keeps the same page
+      const hash = name === 'level' && levelNum ? `#level/${levelNum}` : `#${name}`;
+      if (location.hash !== hash) location.hash = hash;
     }
 
+    const API_BASE = (() => {
+      const p = window.location.pathname.replace(/\/$/, '');
+      return p || '';
+    })();
+
     async function api(path, opts = {}) {
-      const resp = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...opts });
-      if (!resp.ok) {
-        const err = await resp.json().catch(() => ({}));
-        throw new Error(err.detail || resp.statusText);
+      const url = (API_BASE + path).replace(/\/+/g, '/');
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000);
+      try {
+        const resp = await fetch(url, {
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          ...opts,
+        });
+        clearTimeout(timeout);
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.detail || resp.statusText);
+        }
+        return resp.json();
+      } catch (e) {
+        clearTimeout(timeout);
+        if (e.name === 'AbortError') throw new Error('Request timed out. Please try again.');
+        throw e;
       }
-      return resp.json();
     }
 
     // Start Game
@@ -459,6 +492,7 @@
         playerId = data.player_id;
         gameConfig = data.config || {};
         levelsData = data.levels || [];
+        answeredKeys = {};
 
         localStorage.setItem('ckr_player_name', playerName);
         localStorage.setItem('ckr_player_id', playerId);
@@ -476,7 +510,7 @@
         showScreen('map');
       } catch (e) {
         let debugInfo = '';
-        try { const dbg = await fetch('/api/debug').then(r => r.json()); debugInfo = '\n\nDebug: ' + JSON.stringify(dbg, null, 2); } catch (_) {}
+        try { const dbg = await fetch((API_BASE || '') + '/api/debug').then(r => r.json()); debugInfo = '\n\nDebug: ' + JSON.stringify(dbg, null, 2); } catch (_) {}
         alert('Failed to start: ' + e.message + debugInfo);
       } finally {
         btn.textContent = 'Start Investigation'; btn.disabled = false;
@@ -496,6 +530,58 @@
       if (e.key === 'Enter') startGame();
     });
 
+    async function restoreFromHash() {
+      const hash = (location.hash || '#intro').replace(/^#/, '');
+      if (!hash || hash === 'intro') return false;
+      if (hash === 'welcome') {
+        showScreen('welcome');
+        return true;
+      }
+      const savedName = localStorage.getItem('ckr_player_name');
+      if (!savedName) return false;
+      const match = hash.match(/^level\/(\d+)$/);
+      const targetScreen = match ? 'level' : hash;
+      const levelNum = match ? parseInt(match[1], 10) : null;
+      if (!['map', 'level', 'leaderboard', 'congrats'].includes(targetScreen)) return false;
+
+      try {
+        const data = await api('/api/start', {
+          method: 'POST',
+          body: JSON.stringify({ player_name: savedName }),
+        });
+        playerId = data.player_id;
+        playerName = savedName;
+        gameConfig = data.config || {};
+        levelsData = data.levels || [];
+        answeredKeys = {};
+        document.getElementById('mapPlayerName').textContent = playerName;
+        if (data.resumed) {
+          levelsData.forEach(lv => {
+            if (lv.status === 'completed') {
+              answeredKeys[lv.level] = {};
+              (lv.question_keys || []).forEach(k => { answeredKeys[lv.level][k] = true; });
+            }
+          });
+        }
+        renderMap();
+        if (targetScreen === 'map') showScreen('map');
+        else if (targetScreen === 'level' && levelNum) {
+          const lv = levelsData.find(l => l.level === levelNum);
+          if (lv && (lv.status === 'active' || lv.status === 'completed')) openLevel(lv);
+          else showScreen('map');
+        } else if (targetScreen === 'leaderboard') showLeaderboard();
+        else if (targetScreen === 'congrats') {
+          const total = levelsData.reduce((s, l) => s + (l.score || 0), 0);
+          document.getElementById('congratsName').textContent = playerName;
+          document.getElementById('congratsScore').textContent = total + ' pts';
+          showScreen('congrats');
+        } else showScreen('map');
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
     (function init() {
       const savedName = localStorage.getItem('ckr_player_name');
       if (savedName) {
@@ -503,7 +589,6 @@
         document.getElementById('startBtn').textContent = 'Continue Investigation';
         document.getElementById('welcomeBack').style.display = 'block';
       }
-      showScreen('intro');
       const bg = document.getElementById('introBg');
       if (bg) {
         const icons = ['&#x1F354;','&#x1F355;','&#x1F969;','&#x1F35C;','&#x1F371;','&#x1F37F;','&#x1F96A;','&#x1F32E;','&#x1F363;','&#x26A0;','&#x1F4C9;','&#x1F525;','&#x1F6A8;'];
@@ -518,9 +603,45 @@
           bg.appendChild(el);
         }
       }
+      const hash = (location.hash || '#intro').replace(/^#/, '');
+      const needsRestore = hash && hash !== 'intro' && hash !== 'welcome' && savedName &&
+        (['map', 'leaderboard', 'congrats'].includes(hash) || /^level\/\d+$/.test(hash));
+      if (needsRestore) {
+        document.getElementById('loadingOverlay').style.display = 'flex';
+      } else {
+        showScreen('intro');
+      }
+      restoreFromHash().then(restored => {
+        document.getElementById('loadingOverlay').style.display = 'none';
+        if (!restored) {
+          if (needsRestore && savedName) {
+            location.hash = '#welcome';
+            showScreen('welcome');
+          } else if (location.hash && location.hash !== '#intro' && location.hash !== '#welcome') {
+            location.hash = '#intro';
+            showScreen('intro');
+          }
+        }
+      });
+      window.addEventListener('hashchange', () => {
+        if (!playerId) return;
+        const hash = (location.hash || '').replace(/^#/, '');
+        const match = hash.match(/^level\/(\d+)$/);
+        if (hash === 'map') showScreen('map');
+        else if (match) {
+          const lv = levelsData.find(l => l.level === parseInt(match[1], 10));
+          if (lv) openLevel(lv);
+        } else if (hash === 'leaderboard') showLeaderboard();
+        else if (hash === 'congrats') {
+          const total = levelsData.reduce((s, l) => s + (l.score || 0), 0);
+          document.getElementById('congratsName').textContent = playerName;
+          document.getElementById('congratsScore').textContent = total + ' pts';
+          showScreen('congrats');
+        }
+      });
     })();
 
-    fetch('/api/warmup').catch(() => {});
+    fetch((API_BASE || '') + '/api/warmup').catch(() => {});
 
     // Quest Map
     function renderMap() {
@@ -577,8 +698,13 @@
         window._congratsShown = true;
         document.getElementById('congratsName').textContent = playerName;
         document.getElementById('congratsScore').textContent = totalScore + ' pts';
-        spawnConfetti();
-        setTimeout(() => showScreen('congrats'), 600);
+        spawnFirework();
+        setTimeout(() => {
+          document.getElementById('fireworkOverlay').style.display = 'none';
+          document.getElementById('fireworkOverlay').innerHTML = '';
+          showLeaderboard();
+          location.hash = '#leaderboard';
+        }, 2500);
       }
     }
 
@@ -631,7 +757,19 @@
       const tools = toolMeta[lv.level] || [];
       let linksHtml = '';
       tools.forEach(tm => {
-        const toolUrl = gameConfig[tm.key] || '';
+        let toolUrl = gameConfig[tm.key] || '';
+        // Ensure dashboard links open published view, not edit mode (Level 2)
+        if (toolUrl && tm.key === 'dashboard_url') {
+          try {
+            const u = new URL(toolUrl);
+            u.searchParams.set('view', 'published');
+            toolUrl = u.toString();
+          } catch (_) {
+            if (!toolUrl.includes('view=published')) {
+              toolUrl = toolUrl + (toolUrl.includes('?') ? '&' : '?') + 'view=published';
+            }
+          }
+        }
         if (toolUrl) {
           linksHtml += `
             <a href="${toolUrl}" target="_blank" rel="noopener"
@@ -659,6 +797,7 @@
       const fieldsContainer = document.getElementById('answerFields');
       fieldsContainer.innerHTML = '';
       document.getElementById('answerResults').innerHTML = '';
+      document.getElementById('nextLevelBtn').innerHTML = '';
 
       const labelsByLevel = {
         1: {
@@ -667,7 +806,7 @@
         },
         2: {
           cause: 'What is causing the revenue decline at this location?',
-          date: 'When did this problem start?',
+          date: 'What is the average time?',
         },
         3: {
           delivery_cause: 'What external factor is causing issues at this location?',
@@ -706,7 +845,24 @@
         fieldsContainer.appendChild(div);
       });
 
-      showScreen('level');
+      showScreen('level', lv.level);
+      renderNextLevelButton();
+    }
+
+    function renderNextLevelButton() {
+      const btn = document.getElementById('nextLevelBtn');
+      if (!btn || !currentLevel) { btn.innerHTML = ''; return; }
+      const next = levelsData.find(l => l.level === currentLevel.level + 1);
+      if (next && (next.status === 'active' || next.status === 'completed')) {
+        btn.innerHTML = `
+          <div class="bg-yellow-900/20 border border-yellow-700/30 rounded-xl p-4 text-center fade-in">
+            <button class="btn-game btn-primary" onclick="openLevel(levelsData.find(l => l.level === ${next.level}))">
+              &#x27A1; Next: ${next.title}
+            </button>
+          </div>`;
+      } else {
+        btn.innerHTML = '';
+      }
     }
 
     // Submit answer
@@ -752,7 +908,19 @@
                   <div class="text-2xl mb-1">&#x1F513;</div>
                   <div class="font-bold text-yellow-400">Level ${data.next_level_unlocked} Unlocked!</div>
                 </div>`;
+              renderNextLevelButton();
             }, 800);
+          }
+          const isLastLevel = !levelsData.find(l => l.level === currentLevel.level + 1);
+          if (allDone && isLastLevel) {
+            window._congratsShown = true;
+            spawnFirework();
+            setTimeout(() => {
+              document.getElementById('fireworkOverlay').style.display = 'none';
+              document.getElementById('fireworkOverlay').innerHTML = '';
+              showLeaderboard();
+              location.hash = '#leaderboard';
+            }, 2500);
           }
         } else {
           btn.disabled = false; btn.textContent = 'Submit';
@@ -778,6 +946,7 @@
         const rows = data.leaderboard || [];
         if (!rows.length) {
           container.innerHTML = '<p class="text-gray-500 text-sm text-center">No players yet. Be the first!</p>';
+          document.getElementById('leaderboardShare').innerHTML = '';
           return;
         }
         let html = '';
@@ -797,9 +966,58 @@
             </div>`;
         });
         container.innerHTML = html;
+        const allCompleted = levelsData.length > 0 && levelsData.every(l => l.status === 'completed');
+        const shareHtml = `
+          <button class="btn-game btn-secondary flex-1" onclick="shareOnSocial()">
+            &#x1F4E2; Share on social media
+          </button>`;
+        const tryAgainHtml = allCompleted ? `
+          <button class="btn-game btn-primary flex-1" onclick="tryAgain()">
+            &#x1F504; Try Again
+          </button>` : '';
+        document.getElementById('leaderboardShare').innerHTML = `
+          <div class="flex flex-col sm:flex-row gap-2">
+            ${shareHtml}
+            ${tryAgainHtml}
+          </div>`;
       } catch (e) {
         container.innerHTML = '<p class="text-red-400 text-sm text-center">Failed to load leaderboard.</p>';
+        document.getElementById('leaderboardShare').innerHTML = '';
       }
+    }
+
+    async function tryAgain() {
+      if (!playerId) return;
+      try {
+        await api('/api/reset', {
+          method: 'POST',
+          body: JSON.stringify({ player_id: playerId }),
+        });
+      } catch (_) {}
+      playerId = null;
+      playerName = '';
+      levelsData = [];
+      answeredKeys = {};
+      currentLevel = null;
+      forgetPlayer();
+      window._congratsShown = false;
+      location.hash = '#welcome';
+      showScreen('welcome');
+    }
+
+    function shareOnSocial() {
+      const total = levelsData.reduce((s, l) => s + (l.score || 0), 0);
+      const text = `I just completed Casper's Kitchen Rescue with ${total} points! \u1F354\u1F355`;
+      const shareData = { title: "Casper's Kitchen Rescue", text, url: window.location.href.split('#')[0] };
+      if (navigator.share) {
+        navigator.share(shareData).catch(() => copyShareFallback(text));
+      } else {
+        copyShareFallback(text);
+      }
+    }
+    function copyShareFallback(text) {
+      const full = text + ' ' + window.location.href.split('#')[0];
+      navigator.clipboard.writeText(full).then(() => alert('Copied to clipboard! Share it anywhere you like.')).catch(() => prompt('Copy this:', full));
     }
 
     // Hint
@@ -842,6 +1060,40 @@
           animation: confettiFall ${2 + Math.random() * 3}s linear ${Math.random() * 2}s infinite;
         `;
         container.appendChild(el);
+      }
+    }
+
+    function spawnFirework() {
+      const overlay = document.getElementById('fireworkOverlay');
+      if (!overlay) return;
+      overlay.style.display = 'flex';
+      overlay.innerHTML = '';
+      const colors = ['#EF4444','#F59E0B','#10B981','#3B82F6','#8B5CF6','#EC4899','#F97316','#06B6D4','#FBBF24'];
+      const shapes = ['\u2605','\u2729','\u2730','\u2764','\u2666'];
+      const centerX = 50, centerY = 50;
+      for (let burst = 0; burst < 5; burst++) {
+        setTimeout(() => {
+          const cx = centerX + (Math.random() - 0.5) * 40;
+          const cy = centerY + (Math.random() - 0.5) * 30;
+          const color = colors[Math.floor(Math.random() * colors.length)];
+          for (let i = 0; i < 48; i++) {
+            const el = document.createElement('span');
+            el.textContent = shapes[Math.floor(Math.random() * shapes.length)];
+            const angle = (i / 48) * Math.PI * 2;
+            const dist = 60 + Math.random() * 50;
+            const dx = Math.cos(angle) * dist;
+            const dy = Math.sin(angle) * dist;
+            el.style.cssText = `
+              position:absolute; font-size:${12 + Math.random() * 14}px;
+              color:${color}; left:50%; top:50%; transform:translate(-50%,-50%);
+            `;
+            el.animate([
+              { transform: 'translate(-50%,-50%) scale(1)', opacity: 1 },
+              { transform: `translate(calc(-50% + ${dx}vw), calc(-50% + ${dy}vh)) scale(0.5)`, opacity: 0 }
+            ], { duration: 1800, fill: 'forwards', easing: 'ease-out' });
+            overlay.appendChild(el);
+          }
+        }, burst * 350);
       }
     }
   </script>

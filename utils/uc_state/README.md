@@ -72,6 +72,7 @@ Supported resource types and their cleanup methods:
 - `pipelines` → `w.pipelines.delete(pipeline_id)`  
 - `models` → `mlflow.deployments.delete_endpoint(name)`
 - `apps` → `w.apps.delete(name)`
+- `dashboards` → `w.lakeview.trash(dashboard_id)` (Lakeview/AI BI dashboards)
 - `databaseinstances` → `w.database.delete_database_instance(name)`
 - `postgres_projects` → `w.postgres.delete_project(name)` (Lakebase Autoscaling)
 - `catalogs` → `w.catalogs.delete(name, force=True)`

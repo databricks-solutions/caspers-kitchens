@@ -420,12 +420,12 @@
     function generateComplaints(locationName) {
       const locData = data.filter(r => r.location_name === locationName);
       const complaints = [];
-      const isChicago = locationName === 'Chicago';
       const seed = locationName.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
       const rng = seededRandom(seed);
 
       const anomalyCategories = ['Long wait time', 'Long wait time', 'Long wait time',
-        'Cold food', 'Cold food', 'Wrong order', 'Order never arrived'];
+        'Cold food', 'Cold food', 'Allergy concern', 'Allergy concern',
+        'Wrong order', 'Order never arrived'];
       const normalCategories = ['Wrong order', 'Missing item'];
 
       locData.forEach(row => {
@@ -439,9 +439,9 @@
           const time = `${String(hour).padStart(2,'0')}:${String(min).padStart(2,'0')}`;
 
           let category;
-          if (isChicago && isAnomaly && i === 0 && rng() < 0.3) {
+          if (isAnomaly && i === 0 && rng() < 0.3) {
             category = 'Allergy concern';
-          } else if (isChicago && isAnomaly && rng() < 0.08) {
+          } else if (isAnomaly && rng() < 0.08) {
             category = 'Allergy concern';
           } else if (isAnomaly) {
             category = anomalyCategories[Math.floor(rng() * anomalyCategories.length)];

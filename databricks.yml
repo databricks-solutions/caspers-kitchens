@@ -499,6 +499,8 @@ targets:
                 notebook_path: ${workspace.root_path}/stages/menu_data
 
             - task_key: Game_Lakebase
+              depends_on:
+                - task_key: Canonical_Data
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/game_lakebase
 
