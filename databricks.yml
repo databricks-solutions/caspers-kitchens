@@ -43,16 +43,31 @@ scripts:
         TARGET_FLAG="-t $DATABRICKS_BUNDLE_TARGET"
       fi
 
-      # Get fully-resolved bundle config (includes target overrides)
-      RESOLVED_JSON="$(databricks bundle validate $TARGET_FLAG --output json)"
+      # Catalog: env vars first (CLI does not pass --var to script env, so use BUNDLE_VAR_catalog or CATALOG)
+      CATALOG="$(printenv CATALOG 2>/dev/null || true)"
+      if [ -z "$CATALOG" ]; then
+        CATALOG="$(printenv BUNDLE_VAR_catalog 2>/dev/null || true)"
+      fi
+
+      # Build --var flags for validate so resolved config uses the right catalog
+      VAR_FLAGS=""
+      if [ -n "$CATALOG" ]; then
+        VAR_FLAGS="--var catalog=$CATALOG"
+      fi
+
+      # Get fully-resolved bundle config (includes target and var overrides)
+      RESOLVED_JSON="$(databricks bundle validate $TARGET_FLAG $VAR_FLAGS --output json)"
 
       # Pull values we need (requires jq)
       FILE_PATH="$(printf '%s' "$RESOLVED_JSON" | jq -r '.workspace.file_path // (.workspace.root_path + "/src")')"
 
-      CATALOG="$(printf '%s' "$RESOLVED_JSON" | jq -r '.variables.catalog.value // .variables.catalog.default')"
-      ENV_CATALOG="$(printenv BUNDLE_VAR_catalog 2>/dev/null || true)"
-      if [ -n "$ENV_CATALOG" ]; then
-        CATALOG="$ENV_CATALOG"
+      # Catalog from resolved config if not set via env
+      if [ -z "$CATALOG" ]; then
+        CATALOG="$(printf '%s' "$RESOLVED_JSON" | jq -r '.variables.catalog.value // .variables.catalog.default // empty')"
+      fi
+      if [ -z "$CATALOG" ]; then
+        echo "Error: CATALOG not set. Use: BUNDLE_VAR_catalog=mycatalog databricks bundle run cleanup"
+        exit 1
       fi
 
       echo "Cleaning up catalog: $CATALOG"
@@ -442,7 +457,7 @@ targets:
     resources:
       jobs:
         caspers:
-          name: "Casper's Kitchen Rescue"
+          name: "Casper's Initializer"
           queue:
             enabled: true
           performance_target: PERFORMANCE_OPTIMIZED
@@ -476,6 +491,13 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/lakeflow
 
+            - task_key: Menu_Data
+              max_retries: 0
+              depends_on:
+                - task_key: Canonical_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/menu_data
+
             - task_key: Game_Lakebase
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/game_lakebase
@@ -507,6 +529,8 @@ targets:
 
             - task_key: Game_Menu_KA
               max_retries: 0
+              depends_on:
+                - task_key: Menu_Data
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/menu_knowledge_agent
 

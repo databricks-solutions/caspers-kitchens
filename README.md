@@ -36,6 +36,7 @@ databricks bundle deploy -t default     # full version: Data generation, Lakeflo
 databricks bundle deploy -t complaints  # complaints agent: Data generation, Lakeflow, Agents, Lakebase
 databricks bundle deploy -t free        # Databricks Free Edition: Data generation, Lakeflow
 databricks bundle deploy -t menus       # document intelligence: Menu & inspection PDFs, DLT pipeline, Genie, Knowledge Assistants, Multi-Agent Supervisor
+databricks bundle deploy -t game        # Casper's quest 
 ```
 
 This creates the main job **Casper’s Initializer**, which orchestrates the full ecosystem, and places all assets in your workspace under
@@ -82,7 +83,12 @@ This spins up all the components—data generator, pipelines, agents, and apps�
 To clean up:
 
 ```bash
-databricks bundle run cleanup (--params "CATALOG=mycatalog")
+# Option 1: Wrapper script (recommended)
+./cleanup.sh mycatalog
+
+# Option 2: Environment variable (--var is not passed to the cleanup script by the CLI)
+BUNDLE_VAR_catalog=mycatalog databricks bundle run cleanup
+
 databricks bundle destroy
 ```
 

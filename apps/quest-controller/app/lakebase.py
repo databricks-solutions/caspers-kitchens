@@ -17,7 +17,10 @@ PGHOST = os.environ.get("PGHOST", "")
 PGPORT = os.environ.get("PGPORT", "5432")
 PGDATABASE = os.environ.get("PGDATABASE", "game")
 PGSSLMODE = os.environ.get("PGSSLMODE", "require")
+# Lakebase Provisioned: instance name for w.database credential
 INSTANCE_NAME = os.environ.get("LAKEBASE_INSTANCE_NAME", "")
+# Lakebase Autoscaling: endpoint path for w.postgres credential
+POSTGRES_ENDPOINT = os.environ.get("POSTGRES_ENDPOINT", "")
 
 _resolved_ip: Optional[str] = None
 _resolved_user: Optional[str] = None
@@ -57,14 +60,21 @@ def _resolve_host_ipv4(hostname: str) -> str:
 def _get_token() -> str:
     """Generate a fresh database credential token via the SDK."""
     try:
-        cred = _w.database.generate_database_credential(
-            request_id=str(uuid.uuid4()),
-            instance_names=[INSTANCE_NAME],
-        )
-        return cred.token
+        if POSTGRES_ENDPOINT:
+            # Lakebase Autoscaling: OAuth token via w.postgres
+            cred = _w.postgres.generate_database_credential(endpoint=POSTGRES_ENDPOINT)
+            return cred.token
+        if INSTANCE_NAME:
+            # Lakebase Provisioned: token via w.database
+            cred = _w.database.generate_database_credential(
+                request_id=str(uuid.uuid4()),
+                instance_names=[INSTANCE_NAME],
+            )
+            return cred.token
     except AttributeError:
-        headers = _w.config.authenticate()
-        return headers.get("Authorization", "").removeprefix("Bearer ")
+        pass
+    headers = _w.config.authenticate()
+    return headers.get("Authorization", "").removeprefix("Bearer ")
 
 
 def _get_user() -> str:

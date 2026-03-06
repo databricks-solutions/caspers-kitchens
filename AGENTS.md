@@ -320,7 +320,7 @@ rm -rf .databricks .bundle
 
 1. **Clean existing deployment**
    ```bash
-   databricks bundle run cleanup --params "CATALOG=testcatalog"
+   databricks bundle run cleanup --var catalog=testcatalog
    databricks bundle destroy -t <target>
    ```
 
@@ -754,7 +754,7 @@ databricks bundle run caspers [--params "CATALOG=mycatalog"]
 
 ### Cleanup
 ```bash
-databricks bundle run cleanup [--params "CATALOG=mycatalog"]
+BUNDLE_VAR_catalog=mycatalog databricks bundle run cleanup
 databricks bundle destroy -t <target>
 rm -rf .databricks .bundle  # If cache issues
 ```

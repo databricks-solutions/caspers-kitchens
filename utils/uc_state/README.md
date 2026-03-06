@@ -73,4 +73,5 @@ Supported resource types and their cleanup methods:
 - `models` → `mlflow.deployments.delete_endpoint(name)`
 - `apps` → `w.apps.delete(name)`
 - `databaseinstances` → `w.database.delete_database_instance(name)`
+- `postgres_projects` → `w.postgres.delete_project(name)` (Lakebase Autoscaling)
 - `catalogs` → `w.catalogs.delete(name, force=True)`

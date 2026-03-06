@@ -206,7 +206,7 @@ class UCState:
     def clear_all(self, dry_run: bool = False) -> Dict[str, Dict[str, List[Dict[str, str]]]]:
         """
         Remove all resources from Databricks and clear state.
-        Deletion order: experiments → jobs → pipelines → multi_agent_supervisors → knowledge_assistants → genie_spaces → endpoints → vector_search_indexes → vector_search_endpoints → apps → warehouses → databasecatalogs → catalogs → databaseinstances
+        Deletion order: experiments → jobs → pipelines → multi_agent_supervisors → knowledge_assistants → genie_spaces → endpoints → vector_search_indexes → vector_search_endpoints → apps → warehouses → databasecatalogs → catalogs → databaseinstances → postgres_projects
         
         Args:
             dry_run: If True, only show what would be deleted without actually deleting
@@ -219,7 +219,7 @@ class UCState:
                 }
             }
         """
-        deletion_order = ['experiments', 'jobs', 'pipelines', 'multi_agent_supervisors', 'knowledge_assistants', 'genie_spaces', 'endpoints', 'vector_search_indexes', 'vector_search_endpoints', 'apps', 'warehouses', 'databasecatalogs', 'catalogs', 'databaseinstances']
+        deletion_order = ['experiments', 'jobs', 'pipelines', 'multi_agent_supervisors', 'knowledge_assistants', 'genie_spaces', 'endpoints', 'vector_search_indexes', 'vector_search_endpoints', 'apps', 'warehouses', 'databasecatalogs', 'catalogs', 'databaseinstances', 'postgres_projects']
         results = {}
         
         for resource_type in deletion_order:
@@ -256,6 +256,8 @@ class UCState:
                     resource_name = resource_data.get('name') or resource_data.get('id', 'Unknown')
                 elif resource_type == 'databaseinstances':
                     resource_name = resource_data.get('name', 'Unknown')
+                elif resource_type == 'postgres_projects':
+                    resource_name = resource_data.get('name') or resource_data.get('project_id', 'Unknown')
                 elif resource_type == 'databasecatalogs':
                     resource_name = resource_data if isinstance(resource_data, str) else resource_data.get('name', 'Unknown')
                 elif resource_type == 'catalogs':
@@ -383,6 +385,16 @@ class UCState:
                             deletion_successful = True
                         else:
                             error_message = "No instance name found in resource data"
+
+                    elif resource_type == 'postgres_projects':
+                        project_name = resource_data.get('name')
+                        if project_name:
+                            op = self.w.postgres.delete_project(name=project_name)
+                            op.wait()
+                            logger.info(f"Deleted Lakebase Autoscaling project {project_name}")
+                            deletion_successful = True
+                        else:
+                            error_message = "No project name found in resource data"
                     
                     elif resource_type == 'databasecatalogs':
                         catalog_name = resource_data if isinstance(resource_data, str) else resource_data.get('name')
