@@ -395,7 +395,7 @@ targets:
 
             - task_key: Support_Request_Agent_Stream
               depends_on:
-                - task_key: Support_Request_Generator_Stream
+                - task_key: Spark_Declarative_Pipeline
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/support_request_agent_stream
 
