@@ -33,6 +33,7 @@ Use whichever fits your needs:
 
 ```bash
 databricks bundle deploy -t default     # full version: Data generation, Lakeflow, Agents, Lakebase & Apps
+databricks bundle deploy -t support     # support agent: Data generation, Lakeflow, Support Agent, Lakebase & Apps
 databricks bundle deploy -t complaints  # complaints agent: Data generation, Lakeflow, Agents, Lakebase
 databricks bundle deploy -t free        # Databricks Free Edition: Data generation, Lakeflow
 databricks bundle deploy -t menus       # document intelligence: Menu & inspection PDFs, DLT pipeline, Genie, Knowledge Assistants, Multi-Agent Supervisor
