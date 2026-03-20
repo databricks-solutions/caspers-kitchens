@@ -1,0 +1,14 @@
+command: ['npm', 'run', 'start']
+env:
+  - name: PGPORT
+    value: "5432"
+  - name: PGDATABASE
+    value: "databricks_postgres"
+  - name: PGSSLMODE
+    value: "require"
+  - name: LAKEBASE_ENDPOINT
+    value: "projects/casperskitchens-support-db/branches/production/endpoints/primary"
+  - name: DATABRICKS_WAREHOUSE_ID
+    value: "e5ed18828056f3cf"
+  - name: SUPPORT_AGENT_ENDPOINT_NAME
+    value: "caspers_support_agent"
