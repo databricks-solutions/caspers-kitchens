@@ -1,0 +1,63 @@
+@import "@databricks/appkit-ui/styles.css";
+
+:root,
+:root.light,
+:root.dark,
+html.light,
+html.dark {
+  --radius: 0.625rem;
+  --background: #f6f8fb;
+  --foreground: #1f2937;
+  --card: #ffffff;
+  --card-foreground: #111827;
+  --popover: #ffffff;
+  --popover-foreground: #111827;
+  --primary: #ff3621;
+  --primary-foreground: #ffffff;
+  --secondary: #edf2f8;
+  --secondary-foreground: #1f2937;
+  --muted: #f3f6fa;
+  --muted-foreground: #4b5563;
+  --accent: #e7efff;
+  --accent-foreground: #1e3a8a;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --success: #0f9d58;
+  --success-foreground: #ffffff;
+  --warning: #f59e0b;
+  --warning-foreground: #111827;
+  --border: #d9e1eb;
+  --input: #d9e1eb;
+  --ring: #ff6f61;
+  --chart-1: #2563eb;
+  --chart-2: #16a34a;
+  --chart-3: #f59e0b;
+  --chart-4: #a855f7;
+  --chart-5: #0ea5e9;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #111827;
+  --sidebar-primary: #ff3621;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #edf2f8;
+  --sidebar-accent-foreground: #1f2937;
+  --sidebar-border: #d9e1eb;
+  --sidebar-ring: #ff6f61;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root,
+  :root.light,
+  :root.dark,
+  html.light,
+  html.dark {
+    color-scheme: light;
+  }
+}
+
+html,
+body,
+#root {
+  background: var(--background);
+  color: var(--foreground);
+}

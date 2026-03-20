@@ -31,6 +31,9 @@ sync:
     - apps/caspersai-terminal/node_modules/**
     - apps/caspersai-terminal/logs/**
     - apps/caspersai-terminal/test/**
+    - apps/supportconsolek/**/.databricks/**
+    - apps/supportconsolek/**/node_modules/**
+    - apps/supportconsolek/**/dist/**
 
 scripts:
   cleanup:
@@ -399,11 +402,11 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/support_request_agent_stream
 
-            # - task_key: Support_Lakebase_And_App
-            #   depends_on:
-            #     - task_key: Support_Request_Agent_Stream
-            #   notebook_task:
-            #     notebook_path: ${workspace.root_path}/stages/support_lakebase
+            - task_key: Support_Lakebase_And_App
+              depends_on:
+                - task_key: Support_Request_Agent_Stream
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/support_lakebase
 
   all:
     resources:

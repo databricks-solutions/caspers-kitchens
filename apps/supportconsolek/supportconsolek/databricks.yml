@@ -1,0 +1,20 @@
+bundle:
+  name: supportconsolek
+
+
+resources:
+  apps:
+    app:
+      name: "casperskitchens-supportconsole"
+      description: "Support console"
+      source_code_path: ./
+
+      # Uncomment to enable on behalf of user API scopes. Available scopes: sql, dashboards.genie, files.files
+      # user_api_scopes:
+      #   - sql
+
+
+targets:
+  default:
+    default: true
+
