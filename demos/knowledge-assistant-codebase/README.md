@@ -1,47 +1,36 @@
-# Evaluating Chunking Strategies for Code RAG
+# Knowledge Assistant Codebase: Chunking Strategy Comparison
 
-A methodology for comparing chunking strategies using MLflow's genai evaluation framework.
+Companion code for [Building a Knowledge Assistant over Code](https://www.databricks.com/blog/building-knowledge-assistant-over-code).
 
-## The Problem
-
-You've built a RAG system over your codebase. How do you know if your chunking strategy is working well? And how would you measure if a different approach would work better?
-
-This notebook demonstrates a systematic approach to evaluating chunking strategies using MLflow, with custom scorers that capture what built-in metrics miss.
+This notebook demonstrates a systematic approach to evaluating chunking strategies for RAG over code using MLflow's GenAI evaluation framework with Databricks Knowledge Assistant.
 
 ## What's Here
 
-- `chunking_strategy_comparison.ipynb` - Full evaluation comparing three chunking strategies
-- `eval_questions_final.csv` - 46 evaluation questions across four categories
+- `chunking_strategy_comparison.ipynb` — Full evaluation comparing three chunking strategies
+- `eval_questions_final.csv` — 46 evaluation questions across five categories
+
+## Strategies Compared
+
+| Strategy | Approach | Preserves Code Structure? |
+|----------|----------|--------------------------|
+| Naive | Fixed-size character chunks with overlap | No |
+| Language-Aware | LangChain `RecursiveCharacterTextSplitter.from_language()` | Partially |
+| AST-Based | Tree-sitter parsing via [ASTChunk](https://github.com/yilinjz/astchunk) with metadata headers | Yes |
 
 ## Quick Start
 
 ```bash
-# Install dependencies
-pip install astchunk langchain-text-splitters mlflow nbformat pandas numpy \
-    databricks-sdk databricks-vectorsearch matplotlib
-
-# Run the notebook
-# Requires Databricks workspace access for embedding model, LLM, and LLM judge
+pip install astchunk langchain-text-splitters "mlflow>=3.10.0" nbformat pandas numpy
 ```
 
-## Strategies Compared
-
-| Strategy | Approach |
-|----------|----------|
-| **Naive** | Fixed-size character chunks with overlap |
-| **Language-aware** | LangChain's `RecursiveCharacterTextSplitter.from_language()` |
-| **AST-based** | Tree-sitter parsing via `astchunk` with metadata headers |
+Requires a Databricks workspace with access to:
+- `databricks-gte-large-en` (embedding)
+- `databricks-claude-sonnet-4` (generation, via Knowledge Assistant)
+- `databricks-claude-opus-4-6` (LLM judge)
 
 ## Key Findings
 
-- AST-based chunking improved retrieval sufficiency compared to naive approaches based on strict character limits
-- Built-in Correctness scorer was too strict; custom `answer_correctness` judge gave more actionable signal
-- The evaluation methodology generalizes to other RAG decisions (embedding models, k values, reranking)
-
-## Requirements
-
-- Python 3.12+
-- Databricks workspace with access to:
-  - `databricks-gte-large-en` (embedding)
-  - `databricks-claude-sonnet-4` (generation)
-  - `databricks-claude-opus-4-6` (judge)
+- AST-based chunking produced fully correct answers 70% of the time vs 59% for naive
+- All three strategies achieved 85%+ retrieval sufficiency
+- The advantage concentrated on disambiguation questions where metadata headers provide context
+- Custom LLM judges (like our 3-way `answer_correctness`) gave more actionable signal than built-in scorers
