@@ -11,16 +11,17 @@ This notebook demonstrates a systematic approach to evaluating chunking strategi
 ## What's Here
 
 - `chunking_strategy_comparison.ipynb` - Full evaluation comparing three chunking strategies
-- `pyproject.toml` - Dependencies (install with `uv sync`)
+- `eval_questions_final.csv` - 46 evaluation questions across four categories
 
 ## Quick Start
 
 ```bash
 # Install dependencies
-uv sync
+pip install astchunk langchain-text-splitters mlflow nbformat pandas numpy \
+    databricks-sdk databricks-vectorsearch matplotlib
 
 # Run the notebook
-# Requires Databricks workspace access for embedding model and LLM judge
+# Requires Databricks workspace access for embedding model, LLM, and LLM judge
 ```
 
 ## Strategies Compared
@@ -34,7 +35,7 @@ uv sync
 ## Key Findings
 
 - AST-based chunking improved retrieval sufficiency compared to naive approaches based on strict character limits
-- Built-in Correctness scorer was too strict; custom `sufficient_answer` scorer gave more actionable signal
+- Built-in Correctness scorer was too strict; custom `answer_correctness` judge gave more actionable signal
 - The evaluation methodology generalizes to other RAG decisions (embedding models, k values, reranking)
 
 ## Requirements
@@ -42,5 +43,5 @@ uv sync
 - Python 3.12+
 - Databricks workspace with access to:
   - `databricks-gte-large-en` (embedding)
-  - `databricks-gemini-3-flash` (generation)
-  - `databricks-claude-opus-4-5` (judge)
+  - `databricks-claude-sonnet-4` (generation)
+  - `databricks-claude-opus-4-6` (judge)
