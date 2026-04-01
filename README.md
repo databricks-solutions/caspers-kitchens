@@ -12,6 +12,16 @@ Everything is built to be easy to:
 
 We build only with Databricks — by choice — so Casper’s serves as a shared sandbox for learning, experimentation, and storytelling across the platform.
 
+## Build Your Own
+
+Want a demo for a different business? The **Caspers skill** generates streaming data, GPS routing, and replay engines for any domain:
+
+```bash
+git clone -b skill https://github.com/databricks-solutions/caspers-kitchens.git caspers-skill
+```
+
+See the [`skill` branch](../../tree/skill) for details.
+
 ## Prerequisites
 
 - Databricks CLI installed on your local machine.
