@@ -1,3 +1,5 @@
+<img src="./images/casperslogo.png" alt="Casper's" width="60"/>
+
 # Caspers
 
 Build a Databricks business demo from a description.
