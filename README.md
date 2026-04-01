@@ -1,6 +1,6 @@
 # Casper's Kitchens
 
-A fully Databricks-native ghost kitchen demo — streaming data, Spark Declarative Pipelines, AI agents, and apps, deployed in one command.
+A "demo" consumer brand built by the Developer Relations team to showcase the full Databricks platform. First imagined as a ghost kitchen and delivery service, the evolved concept can flex across multiple verticals. Casper's integrates every layer — Lakeflow, AI/BI, Agent Bricks, Lakebase, and Postgres-backed applications — into a unified live demo.
 
 ## Build Your Own
 
