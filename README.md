@@ -1,16 +1,8 @@
-# 🍔 Casper's Kitchens
+<img src="./images/casperslogo.png" alt="Casper's" width="60"/> 
 
-Casper’s Kitchens is a fully Databricks-native ghost kitchen and food-delivery platform built by the Developer Relations team. It brings together every layer of the Databricks platform — Lakeflow (ingestion, Spark Declarative Pipelines), AI & BI dashboards with Genie, Agent Bricks, and Apps powered by Lakebase (Postgres) — into a single, cohesive live demo.
+# Casper's Kitchens
 
-Casper’s is more than a showcase. It’s a living playground for simulation, demos, and creative misuse — designed to push the Databricks platform past its comfort zone.
-
-Everything is built to be easy to:
-
-1. 🚀 **Deploy** — spin up the entire environment in minutes.
-2. 🎬 **Demo** — run only the stages you need, powered by live streaming data.
-3. 🧑‍💻 **Develop** — extend with new pipelines, agents, or apps effortlessly.
-
-We build only with Databricks — by choice — so Casper’s serves as a shared sandbox for learning, experimentation, and storytelling across the platform.
+A "demo" consumer brand built by the Developer Relations team to showcase the full Databricks platform. First imagined as a ghost kitchen and delivery service, the evolved concept can flex across multiple verticals. Casper's integrates every layer — Lakeflow, AI/BI, Genie, Agent Bricks, Apps, and Lakebase — into a unified live demo.
 
 ## Build Your Own
 
@@ -24,107 +16,42 @@ See the [`skill` branch](../../tree/skill) for details.
 
 ## Prerequisites
 
-- Databricks CLI installed on your local machine.
-- Authenticated to your Databricks workspace. (can do interactively `databricks auth login`)
-- Access to the repository containing Casper's Kitchens.
-- Permissions in the Databricks workspace to create new catalogs.
+- Databricks CLI installed and authenticated (`databricks auth login`)
+- Workspace permissions to create catalogs
 
-## 🚀 Deploy
-
-Casper’s Kitchens uses **Databricks Asset Bundles (DABs)** for one-command deployment.
-Clone this repo, then run from the root directory:
+## Deploy
 
 ```bash
 databricks bundle deploy -t <target>
-```
-
-Each **target** represents a different flavor of Casper’s (for example, full demo, complaints-only, free tier, etc.).
-Use whichever fits your needs:
-
-```bash
-databricks bundle deploy -t default     # full version: Data generation, Lakeflow, Agents, Lakebase & Apps
-databricks bundle deploy -t support     # support agent: Data generation, Lakeflow, Support Agent, Lakebase & Apps
-databricks bundle deploy -t complaints  # complaints agent: Data generation, Lakeflow, Agents, Lakebase
-databricks bundle deploy -t free        # Databricks Free Edition: Data generation, Lakeflow
-databricks bundle deploy -t menus       # document intelligence: Menu & inspection PDFs, DLT pipeline, Genie, Knowledge Assistants, Multi-Agent Supervisor
-```
-
-This creates the main job **Casper’s Initializer**, which orchestrates the full ecosystem, and places all assets in your workspace under
-`/Workspace/Users/<your.email@databricks.com>/caspers-kitchens-demo`.
-
-> 💡 You can also deploy from the Databricks UI by cloning this repo as a [Git-based folder](https://docs.databricks.com/repos/) and clicking [Deploy Bundle](https://docs.databricks.com/aws/en/dev-tools/bundles/workspace-tutorial#deploy-the-bundle).
-
-For more about how bundles and targets work, see [databricks.yml](./databricks.yml) or the [Databricks Bundles docs](https://docs.databricks.com/en/dev-tools/bundles/index.html).
-
-### menus target
-
-The `menus` target deploys a document intelligence pipeline showcasing PDF processing, a bronze/silver/gold DLT pipeline, and a multi-agent supervisor:
-
-| Stage | What it does |
-|-------|-------------|
-| **Menu_Data** | Uploads 16 restaurant menu PDFs and structured metadata to Unity Catalog |
-| **Inspection_Data** | Uploads 12 food safety inspection report PDFs and metadata to Unity Catalog |
-| **Menu_Pipeline** | DLT pipeline (bronze/silver/gold) with data quality expectations over menu and inspection data |
-| **Menu_Genie** | Genie space for natural language SQL queries over 10 silver + gold tables |
-| **Menu_Knowledge_Agent** | Knowledge Assistant for document Q&A over menu PDFs |
-| **Inspection_Knowledge_Agent** | Knowledge Assistant for document Q&A over inspection report PDFs |
-| **Menu_Supervisor** | Multi-Agent Supervisor coordinating Genie, Menu KA, and Inspection KA |
-
-See [demos/multi-agent-supervisor/README.md](./demos/multi-agent-supervisor/README.md) for a guided demo flow with sample questions.
-
-## 🎬 Run the Demo
-
-![](./images/stages.gif)
-
-Once deployed, run **any** target with the same command:
-
-```bash
 databricks bundle run caspers
 ```
 
-Optionally, specify a catalog (default: `caspersdev`):
+Available targets:
+
+| Target | What it deploys |
+|--------|----------------|
+| `default` | Data generation, Lakeflow pipeline, refund agent, Lakebase + app |
+| `support` | Data generation, Lakeflow pipeline, support triage agent, Lakebase + app |
+| `complaints` | Data generation, Lakeflow pipeline, complaint agent, Lakebase |
+| `free` | Data generation, Lakeflow pipeline (Free Edition compatible) |
+| `menus` | Document intelligence, DLT pipeline, Genie, Knowledge Assistants, Multi-Agent Supervisor |
+
+Optionally specify a catalog (default: `caspersdev`):
 
 ```bash
 databricks bundle run caspers --params "CATALOG=mycatalog"
 ```
 
-This spins up all the components—data generator, pipelines, agents, and apps—based on your selected target.
-
-To clean up:
+## Clean Up
 
 ```bash
-databricks bundle run cleanup (--params "CATALOG=mycatalog")
+databricks bundle run cleanup
 databricks bundle destroy
 ```
 
-> 🧩 You can also run individual tasks or stages directly in the Databricks Jobs UI for finer control.
+## Blog
 
-## 📊 Generated Event Types
-
-The data generator produces the following realistic events for each order in the Volume `caspers.simulator.events`:
-
-| Event | Description | Data Included |
-|-------|-------------|---------------|
-| `order_created` | Customer places order | Customer location (lat/lon), delivery address, ordered items with quantities |
-| `gk_started` | Kitchen begins preparing food | Timestamp when prep begins |
-| `gk_finished` | Kitchen completes food preparation | Timestamp when food is ready |
-| `gk_ready` | Order ready for pickup | Timestamp when driver can collect |
-| `driver_arrived` | Driver arrives at kitchen | Timestamp of driver arrival |
-| `driver_picked_up` | Driver collects order | Full GPS route to customer, estimated delivery time |
-| `driver_ping` | Driver location updates during delivery | Current GPS coordinates, delivery progress percentage |
-| `delivered` | Order delivered to customer | Final delivery location coordinates |
-
-Each event includes order ID, sequence number, timestamp, and location context. The system models realistic timing between events based on configurable service times, kitchen capacity, and real road network routing via OpenStreetMap data.
-
-## 🎯 Use Cases
-
-- **📚 Learning Databricks**: Complete end-to-end platform experience
-- **🎓 Teaching**: Consistent narrative across different Databricks features  
-- **🧪 CUJ Testing**: Run critical user journeys in realistic environment
-- **🎨 UX Prototyping**: Fully loaded platform for design iteration
-- **🎬 Demo Creation**: Unified narrative for new feature demonstrations
-
-## Check out the [Casper's Kitchens Blog](https://databricks-solutions.github.io/caspers-kitchens/)!
+Check out the [Casper's Kitchens Blog](https://databricks-solutions.github.io/caspers-kitchens/).
 
 ## License
 
