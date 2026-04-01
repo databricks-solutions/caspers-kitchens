@@ -1,4 +1,4 @@
-# <img src="./images/casperslogo.png" alt="Casper's" width="56" align="top"/> Casper's Kitchens
+# <img src="./images/casperslogo.png" alt="Casper's" width="60"/> Casper's Kitchens
 
 A "demo" consumer brand built by the Developer Relations team to showcase the full Databricks platform. First imagined as a ghost kitchen and delivery service, the evolved concept can flex across multiple verticals. Casper's integrates every layer — Lakeflow, AI/BI, Genie, Agent Bricks, Apps, and Lakebase — into a unified live demo.
 
