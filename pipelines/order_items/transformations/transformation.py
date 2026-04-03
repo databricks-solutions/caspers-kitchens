@@ -16,7 +16,7 @@ all_events_schema = StructType([
     StructField("event_type", StringType()),
     StructField("ts",         TimestampType()),
     StructField("gk_id",      StringType()),
-    StructField("location",   StringType()),
+    StructField("location_id", IntegerType()),
     StructField("order_id",   StringType()),
     StructField("sequence",   IntegerType()),
     StructField("body",       StringType()),
