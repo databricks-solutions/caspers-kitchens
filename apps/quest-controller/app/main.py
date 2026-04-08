@@ -38,12 +38,15 @@ def _ensure_published_dashboard_url(url: str) -> str:
     if not url or "dashboardsv3" not in url:
         return url
     try:
-        from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+        from urllib.parse import urlparse, urlunparse
         parsed = urlparse(url)
-        params = parse_qs(parsed.query, keep_blank_values=True)
-        params["view"] = ["published"]
-        new_query = urlencode(params, doseq=True)
-        return urlunparse((parsed.scheme, parsed.netloc, parsed.path, parsed.params, new_query, parsed.fragment))
+        path = parsed.path.rstrip("/")
+        if not path.endswith("/published"):
+            path = path.split("/published")[0]
+            if "/sql/dashboardsv3/" in path:
+                path = path.replace("/sql/dashboardsv3/", "/dashboardsv3/")
+            path = path + "/published"
+        return urlunparse((parsed.scheme, parsed.netloc, path, "", "", ""))
     except Exception:
         return url
 
