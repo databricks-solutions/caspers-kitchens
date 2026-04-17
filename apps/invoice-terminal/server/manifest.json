@@ -1,0 +1,230 @@
+{
+  "invoices": [
+    {
+      "short_id": "VFP-0089",
+      "invoice_id": "INV-VFP-2024-0089",
+      "supplier_id": "VFP",
+      "supplier_name": "Valley Farms Produce LLC",
+      "invoice_date": "2024-01-15",
+      "due_date": "2024-02-14",
+      "status": "paid",
+      "total_due": 1170.22,
+      "pdf_filename": "invoice_vfp_2024-01-15.pdf"
+    },
+    {
+      "short_id": "VFP-0142",
+      "invoice_id": "INV-VFP-2024-0142",
+      "supplier_id": "VFP",
+      "supplier_name": "Valley Farms Produce LLC",
+      "invoice_date": "2024-02-20",
+      "due_date": "2024-03-21",
+      "status": "outstanding",
+      "total_due": 3466.5,
+      "pdf_filename": "invoice_vfp_2024-02-20.pdf"
+    },
+    {
+      "short_id": "PCM-0034",
+      "invoice_id": "INV-PCM-2024-0034",
+      "supplier_id": "PCM",
+      "supplier_name": "Prime Cut Meats Inc.",
+      "invoice_date": "2024-01-22",
+      "due_date": "2024-02-21",
+      "status": "paid",
+      "total_due": 7631.0,
+      "pdf_filename": "invoice_pcm_2024-01-22.pdf"
+    },
+    {
+      "short_id": "PCM-0061",
+      "invoice_id": "INV-PCM-2024-0061",
+      "supplier_id": "PCM",
+      "supplier_name": "Prime Cut Meats Inc.",
+      "invoice_date": "2024-03-05",
+      "due_date": "2024-04-04",
+      "status": "disputed",
+      "total_due": 9292.5,
+      "pdf_filename": "invoice_pcm_2024-03-05.pdf"
+    },
+    {
+      "short_id": "HPC-0078",
+      "invoice_id": "INV-HPC-2024-0078",
+      "supplier_id": "HPC",
+      "supplier_name": "Heritage Poultry Co.",
+      "invoice_date": "2024-02-10",
+      "due_date": "2024-03-26",
+      "status": "paid",
+      "total_due": 7512.0,
+      "pdf_filename": "invoice_hpc_2024-02-10.pdf"
+    },
+    {
+      "short_id": "HPC-0103",
+      "invoice_id": "INV-HPC-2024-0103",
+      "supplier_id": "HPC",
+      "supplier_name": "Heritage Poultry Co.",
+      "invoice_date": "2024-03-18",
+      "due_date": "2024-05-02",
+      "status": "outstanding",
+      "total_due": 5825.0,
+      "pdf_filename": "invoice_hpc_2024-03-18.pdf"
+    },
+    {
+      "short_id": "EPK-0019",
+      "invoice_id": "INV-EPK-2024-0019",
+      "supplier_id": "EPK",
+      "supplier_name": "EcoPack Solutions",
+      "invoice_date": "2024-01-30",
+      "due_date": "2024-02-29",
+      "status": "past_due",
+      "total_due": 5058.73,
+      "pdf_filename": "invoice_epk_2024-01-30.pdf"
+    },
+    {
+      "short_id": "PCS-0055",
+      "invoice_id": "INV-PCS-2024-0055",
+      "supplier_id": "PCS",
+      "supplier_name": "Pacific Coast Seafood Co.",
+      "invoice_date": "2024-02-05",
+      "due_date": "2024-02-26",
+      "status": "paid",
+      "total_due": 6348.92,
+      "pdf_filename": "invoice_pcs_2024-02-05.pdf"
+    },
+    {
+      "short_id": "GSD-0091",
+      "invoice_id": "INV-GSD-2024-0091",
+      "supplier_id": "GSD",
+      "supplier_name": "Golden State Dairy",
+      "invoice_date": "2024-03-01",
+      "due_date": "2024-03-31",
+      "status": "paid",
+      "total_due": 3982.0,
+      "pdf_filename": "invoice_gsd_2024-03-01.pdf"
+    },
+    {
+      "short_id": "MSB-0047",
+      "invoice_id": "INV-MSB-2024-0047",
+      "supplier_id": "MSB",
+      "supplier_name": "Mountain Spring Beverages",
+      "invoice_date": "2024-01-28",
+      "due_date": "2024-02-27",
+      "status": "paid",
+      "total_due": 4050.0,
+      "pdf_filename": "invoice_msb_2024-01-28.pdf"
+    },
+    {
+      "short_id": "PSS-0033",
+      "invoice_id": "INV-PSS-2024-0033",
+      "supplier_id": "PSS",
+      "supplier_name": "ProSan Supplies Inc.",
+      "invoice_date": "2024-02-15",
+      "due_date": "2024-03-16",
+      "status": "paid",
+      "total_due": 5017.0,
+      "pdf_filename": "invoice_pss_2024-02-15.pdf"
+    },
+    {
+      "short_id": "CTF-0022",
+      "invoice_id": "INV-CTF-2024-0022",
+      "supplier_id": "CTF",
+      "supplier_name": "Continental Foods Distribution",
+      "invoice_date": "2024-01-10",
+      "due_date": "2024-02-09",
+      "status": "paid",
+      "total_due": 4706.0,
+      "pdf_filename": "invoice_ctf_2024-01-10.pdf"
+    },
+    {
+      "short_id": "CTF-0067",
+      "invoice_id": "INV-CTF-2024-0067",
+      "supplier_id": "CTF",
+      "supplier_name": "Continental Foods Distribution",
+      "invoice_date": "2024-03-08",
+      "due_date": "2024-04-07",
+      "status": "disputed",
+      "total_due": 5855.0,
+      "pdf_filename": "invoice_ctf_2024-03-08.pdf"
+    },
+    {
+      "short_id": "SRT-0041",
+      "invoice_id": "INV-SRT-2024-0041",
+      "supplier_id": "SRT",
+      "supplier_name": "Spice Route Trading Co.",
+      "invoice_date": "2024-02-22",
+      "due_date": "2024-03-23",
+      "status": "paid",
+      "total_due": 2212.5,
+      "pdf_filename": "invoice_srt_2024-02-22.pdf"
+    }
+  ],
+  "contracts": [
+    {
+      "contract_id": "CK-VFP-2023-001",
+      "supplier_id": "VFP",
+      "supplier_name": "Valley Farms Produce LLC",
+      "category": "Fresh Produce",
+      "pdf_filename": "ck_vfp_2023_001.pdf"
+    },
+    {
+      "contract_id": "CK-PCM-2023-002",
+      "supplier_id": "PCM",
+      "supplier_name": "Prime Cut Meats Inc.",
+      "category": "Meat & Poultry",
+      "pdf_filename": "ck_pcm_2023_002.pdf"
+    },
+    {
+      "contract_id": "CK-HPC-2023-003",
+      "supplier_id": "HPC",
+      "supplier_name": "Heritage Poultry Co.",
+      "category": "Poultry",
+      "pdf_filename": "ck_hpc_2023_003.pdf"
+    },
+    {
+      "contract_id": "CK-PCS-2023-004",
+      "supplier_id": "PCS",
+      "supplier_name": "Pacific Coast Seafood Co.",
+      "category": "Seafood",
+      "pdf_filename": "ck_pcs_2023_004.pdf"
+    },
+    {
+      "contract_id": "CK-GSD-2023-005",
+      "supplier_id": "GSD",
+      "supplier_name": "Golden State Dairy",
+      "category": "Dairy & Eggs",
+      "pdf_filename": "ck_gsd_2023_005.pdf"
+    },
+    {
+      "contract_id": "CK-EPK-2023-006",
+      "supplier_id": "EPK",
+      "supplier_name": "EcoPack Solutions",
+      "category": "Packaging",
+      "pdf_filename": "ck_epk_2023_006.pdf"
+    },
+    {
+      "contract_id": "CK-MSB-2023-007",
+      "supplier_id": "MSB",
+      "supplier_name": "Mountain Spring Beverages",
+      "category": "Beverages",
+      "pdf_filename": "ck_msb_2023_007.pdf"
+    },
+    {
+      "contract_id": "CK-PSS-2023-008",
+      "supplier_id": "PSS",
+      "supplier_name": "ProSan Supplies Inc.",
+      "category": "Cleaning & Sanitation",
+      "pdf_filename": "ck_pss_2023_008.pdf"
+    },
+    {
+      "contract_id": "CK-CTF-2023-009",
+      "supplier_id": "CTF",
+      "supplier_name": "Continental Foods Distribution",
+      "category": "Dry Goods & Pantry",
+      "pdf_filename": "ck_ctf_2023_009.pdf"
+    },
+    {
+      "contract_id": "CK-SRT-2023-010",
+      "supplier_id": "SRT",
+      "supplier_name": "Spice Route Trading Co.",
+      "category": "Spices & Seasonings",
+      "pdf_filename": "ck_srt_2023_010.pdf"
+    }
+  ]
+}

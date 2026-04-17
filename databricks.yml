@@ -34,6 +34,10 @@ sync:
     - apps/supportconsolek/**/.databricks/**
     - apps/supportconsolek/**/node_modules/**
     - apps/supportconsolek/**/dist/**
+    - apps/invoice-terminal/.databricks/**
+    - apps/invoice-terminal/node_modules/**
+    - apps/invoice-terminal/dist/**
+    - apps/invoice-terminal/client/dist/**
 
 scripts:
   cleanup:
@@ -341,6 +345,81 @@ targets:
                 - task_key: Inspection_Knowledge_Agent
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/menu_supervisor
+
+  invoices:
+    resources:
+      jobs:
+        caspers:
+          name: "Casper's Initializer"
+          queue:
+            enabled: true
+          performance_target: PERFORMANCE_OPTIMIZED
+
+          parameters:
+            - name: CATALOG
+              default: ${var.catalog}
+            - name: INVOICE_KNOWLEDGE_ENDPOINT_NAME
+              default: ${var.catalog}_invoice_knowledge
+            - name: CONTRACT_KNOWLEDGE_ENDPOINT_NAME
+              default: ${var.catalog}_contract_knowledge
+            - name: INVOICE_SUPERVISOR_ENDPOINT_NAME
+              default: ${var.catalog}_invoice_supervisor
+
+          tasks:
+            - task_key: Invoice_Data
+              max_retries: 0
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/invoice_data
+
+            - task_key: Contract_Data
+              max_retries: 0
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/contract_data
+
+            - task_key: Invoice_Pipeline
+              max_retries: 0
+              depends_on:
+                - task_key: Invoice_Data
+                - task_key: Contract_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/invoice_pipeline
+
+            - task_key: Invoice_Genie
+              max_retries: 0
+              depends_on:
+                - task_key: Invoice_Pipeline
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/invoice_genie
+
+            - task_key: Invoice_Knowledge_Agent
+              max_retries: 0
+              depends_on:
+                - task_key: Invoice_Pipeline
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/invoice_knowledge_agent
+
+            - task_key: Contract_Knowledge_Agent
+              max_retries: 0
+              depends_on:
+                - task_key: Contract_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/contract_knowledge_agent
+
+            - task_key: Invoice_Supervisor
+              max_retries: 0
+              depends_on:
+                - task_key: Invoice_Genie
+                - task_key: Invoice_Knowledge_Agent
+                - task_key: Contract_Knowledge_Agent
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/invoice_supervisor
+
+            - task_key: Invoice_Lakebase_And_App
+              max_retries: 0
+              depends_on:
+                - task_key: Invoice_Supervisor
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/invoice_lakebase
 
   support:
     resources:

@@ -1,0 +1,14 @@
+command: ['npm', 'run', 'start']
+env:
+  - name: PGPORT
+    value: '5432'
+  - name: PGDATABASE
+    value: 'databricks_postgres'
+  - name: PGSSLMODE
+    value: 'require'
+  - name: LAKEBASE_ENDPOINT
+    value: 'projects/oleksandra-invoice-supervisor/branches/production/endpoints/primary'
+  - name: INVOICE_SUPERVISOR_ENDPOINT_NAME
+    value: 'mas-7a9cbd58-endpoint'
+  - name: CATALOG
+    value: 'oleksandra'

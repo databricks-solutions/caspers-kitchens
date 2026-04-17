@@ -1,0 +1,122 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+@import "@databricks/appkit-ui/styles.css";
+
+/* ─── Light theme ──────────────────────────────────────────────────────── */
+:root,
+:root.light,
+html.light,
+.theme-light {
+  --radius: 10px;
+  --background: #f4f6f9;
+  --foreground: #111827;
+  --card: #ffffff;
+  --card-foreground: #111827;
+  --primary: #ff3621;
+  --primary-foreground: #ffffff;
+  --secondary: #edf1f7;
+  --secondary-foreground: #374151;
+  --muted: #f0f3f8;
+  --muted-foreground: #6b7280;
+  --border: #dde3ec;
+  --input: #dde3ec;
+  --ring: #ff3621;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --success: #0f9d58;
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.07), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.05);
+  color-scheme: light;
+}
+
+/* ─── Dark theme ───────────────────────────────────────────────────────── */
+:root.dark,
+html.dark,
+.theme-dark {
+  --radius: 10px;
+  --background: #0f1117;
+  --foreground: #e6e9f0;
+  --card: #181c26;
+  --card-foreground: #f0f2f8;
+  --primary: #ff4a35;
+  --primary-foreground: #ffffff;
+  --secondary: #242838;
+  --secondary-foreground: #b8bdd0;
+  --muted: #1a1f2e;
+  --muted-foreground: #6b7494;
+  --border: #272d40;
+  --input: #272d40;
+  --ring: #ff4a35;
+  --destructive: #f04848;
+  --destructive-foreground: #ffffff;
+  --success: #22c55e;
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.35);
+  color-scheme: dark;
+}
+
+/* ─── Base ─────────────────────────────────────────────────────────────── */
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Scrollbar ────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
+
+/* ─── Markdown prose ───────────────────────────────────────────────────── */
+.md { font-size: 0.875rem; line-height: 1.65; }
+.md p { margin: 0 0 0.65em; }
+.md p:last-child { margin-bottom: 0; }
+.md strong { font-weight: 600; color: var(--foreground); }
+.md em { font-style: italic; }
+.md ul { margin: 0.4em 0 0.7em 1.3em; padding: 0; list-style: disc; }
+.md ol { margin: 0.4em 0 0.7em 1.3em; padding: 0; list-style: decimal; }
+.md li { margin-bottom: 0.25em; line-height: 1.55; }
+.md h1, .md h2, .md h3 { font-weight: 600; margin: 1em 0 0.35em; line-height: 1.3; color: var(--foreground); }
+.md h1 { font-size: 1.05em; }
+.md h2 { font-size: 0.95em; letter-spacing: -0.01em; }
+.md h3 { font-size: 0.875em; }
+.md hr { border: none; border-top: 1px solid var(--border); margin: 0.8em 0; }
+.md table { width: 100%; border-collapse: collapse; margin: 0.7em 0; font-size: 0.83em; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+.md th { background: var(--muted); font-weight: 600; text-align: left; padding: 7px 12px; border-bottom: 1px solid var(--border); font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted-foreground); }
+.md td { padding: 6px 12px; border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent); vertical-align: top; }
+.md tr:last-child td { border-bottom: none; }
+.md code { background: var(--muted); padding: 2px 6px; border-radius: 4px; font-family: "JetBrains Mono", "Fira Code", monospace; font-size: 0.85em; color: var(--foreground); }
+.md pre { background: var(--muted); border: 1px solid var(--border); padding: 12px 14px; border-radius: 8px; overflow-x: auto; margin: 0.6em 0; }
+.md pre code { background: none; padding: 0; font-size: 0.875em; }
+.md blockquote { border-left: 3px solid var(--primary); margin: 0.6em 0; padding: 0.3em 1em; color: var(--muted-foreground); background: color-mix(in srgb, var(--primary) 5%, transparent); border-radius: 0 4px 4px 0; }
+.md a { color: var(--primary); text-decoration: none; }
+.md a:hover { text-decoration: underline; }
+
+/* ─── Animations ───────────────────────────────────────────────────────── */
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+.animate-fade-in { animation: fadeIn 0.2s ease forwards; }
+
+.typing-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse 1.2s ease infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }

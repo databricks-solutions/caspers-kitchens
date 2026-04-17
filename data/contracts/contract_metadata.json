@@ -1,0 +1,689 @@
+{
+  "contracts": [
+    {
+      "contract_id": "CK-VFP-2023-001",
+      "supplier_id": "VFP",
+      "supplier_name": "Valley Farms Produce LLC",
+      "supplier_address": "4201 Agricultural Way, Salinas, CA 93901",
+      "supplier_tax_id": "47-3821056",
+      "category": "Fresh Produce",
+      "effective_date": "2023-07-01",
+      "expiration_date": "2025-06-30",
+      "payment_terms": "2/10 Net 30",
+      "payment_terms_detail": "Net payment due within 30 days of invoice date. A 2% early payment discount is available if payment is received within 10 calendar days of the invoice date. The discount applies to the invoice subtotal excluding any applicable taxes. Discount is forfeited if payment is received after the 10-day window.",
+      "late_payment_penalty": "1.5% per month (18% per annum), pro-rated daily, on any overdue balance.",
+      "price_stability_clause": "Unit prices listed in Schedule A are fixed for the contract term. Supplier may not increase prices unilaterally. Price adjustments require 60-day written notice and written acceptance from Casper's Kitchens Procurement.",
+      "sla": null,
+      "volume_discounts": null,
+      "dispute_resolution": "Invoice disputes must be submitted in writing to billing@valleyfarmsproduce.com within 15 business days of invoice receipt. Disputed amounts may be withheld pending resolution. Undisputed amounts remain due per standard payment terms.",
+      "pdf_filename": "ck_vfp_2023_001.pdf",
+      "price_schedule": [
+        {
+          "item": "Roma Tomatoes, Grade A",
+          "unit": "lb",
+          "price": 1.85
+        },
+        {
+          "item": "Baby Spinach, Pre-washed",
+          "unit": "lb",
+          "price": 4.2
+        },
+        {
+          "item": "Yellow Onions, Jumbo",
+          "unit": "lb",
+          "price": 0.75
+        },
+        {
+          "item": "Garlic Cloves, Peeled",
+          "unit": "lb",
+          "price": 3.1
+        },
+        {
+          "item": "Jalape\u00f1o Peppers",
+          "unit": "lb",
+          "price": 1.95
+        },
+        {
+          "item": "Cilantro Bunches",
+          "unit": "bunch",
+          "price": 1.25
+        },
+        {
+          "item": "Avocados, Hass Large",
+          "unit": "each",
+          "price": 0.89
+        },
+        {
+          "item": "Limes, Large",
+          "unit": "each",
+          "price": 0.35
+        },
+        {
+          "item": "Bell Peppers, Mixed Colors",
+          "unit": "lb",
+          "price": 2.4
+        },
+        {
+          "item": "Mushrooms, White Button",
+          "unit": "lb",
+          "price": 2.8
+        },
+        {
+          "item": "Kale, Curly Bunch",
+          "unit": "bunch",
+          "price": 1.6
+        },
+        {
+          "item": "Lemons, Large",
+          "unit": "each",
+          "price": 0.45
+        }
+      ]
+    },
+    {
+      "contract_id": "CK-PCM-2023-002",
+      "supplier_id": "PCM",
+      "supplier_name": "Prime Cut Meats Inc.",
+      "supplier_address": "890 Stockyard Road, Fresno, CA 93725",
+      "supplier_tax_id": "82-4901237",
+      "category": "Meat & Poultry",
+      "effective_date": "2023-07-01",
+      "expiration_date": "2025-06-30",
+      "payment_terms": "Net 30",
+      "payment_terms_detail": "Net payment due within 30 days of invoice date. No early payment discount applies to this agreement.",
+      "late_payment_penalty": "1.5% per month (18% per annum), pro-rated daily, on any overdue balance.",
+      "price_stability_clause": "All unit prices in Schedule A are fixed through 2024-06-30 and are not subject to commodity price escalation, fuel surcharges, or unilateral adjustment during this period. Invoices reflecting prices above Schedule A rates will be considered billing errors and are subject to formal dispute under Section 7.2.",
+      "sla": {
+        "delivery_days": 2,
+        "description": "Delivery within 2 business days of confirmed purchase order.",
+        "penalty": "Orders delivered late are subject to a $150 penalty per business day of delay."
+      },
+      "volume_discounts": null,
+      "dispute_resolution": "Invoice disputes must be submitted in writing to accounts@primecutmeats.com within 10 business days of invoice receipt. Casper's Kitchens may withhold the disputed amount and pay undisputed amounts per standard terms. Prime Cut Meats shall respond within 5 business days with a credit memo or written justification.",
+      "pdf_filename": "ck_pcm_2023_002.pdf",
+      "price_schedule": [
+        {
+          "item": "Beef Brisket, USDA Choice",
+          "unit": "lb",
+          "price": 7.9
+        },
+        {
+          "item": "Ground Beef 80/20",
+          "unit": "lb",
+          "price": 4.85
+        },
+        {
+          "item": "Pork Shoulder, Bone-in",
+          "unit": "lb",
+          "price": 3.2
+        },
+        {
+          "item": "Pork Belly, Skin-on",
+          "unit": "lb",
+          "price": 5.6
+        },
+        {
+          "item": "Beef Short Ribs",
+          "unit": "lb",
+          "price": 9.45
+        },
+        {
+          "item": "Lamb Shoulder, Boneless",
+          "unit": "lb",
+          "price": 11.2
+        },
+        {
+          "item": "Beef Tenderloin, Trimmed",
+          "unit": "lb",
+          "price": 18.9
+        },
+        {
+          "item": "Lamb Rack, Frenched",
+          "unit": "lb",
+          "price": 22.5
+        },
+        {
+          "item": "Pork Ribs, St. Louis Style",
+          "unit": "lb",
+          "price": 4.1
+        }
+      ]
+    },
+    {
+      "contract_id": "CK-HPC-2023-003",
+      "supplier_id": "HPC",
+      "supplier_name": "Heritage Poultry Co.",
+      "supplier_address": "2150 Ranch Boulevard, Petaluma, CA 94953",
+      "supplier_tax_id": "56-7834512",
+      "category": "Poultry",
+      "effective_date": "2023-07-01",
+      "expiration_date": "2025-06-30",
+      "payment_terms": "Net 45",
+      "payment_terms_detail": "Net payment due within 45 days of invoice date. No early payment discount applies to this agreement.",
+      "late_payment_penalty": "1.5% per month (18% per annum), pro-rated daily, on any overdue balance.",
+      "price_stability_clause": "Unit prices in Schedule A are fixed for the contract term. Heritage Poultry Co. shall provide 60 days written notice prior to any proposed price change, which must be accepted in writing by Casper's Kitchens Procurement to take effect.",
+      "sla": {
+        "delivery_days": 2,
+        "description": "Delivery within 2 business days of confirmed purchase order.",
+        "penalty": "Orders delivered late are subject to a $200 penalty per business day of delay."
+      },
+      "volume_discounts": {
+        "description": "Volume discounts apply to cumulative poultry purchases within each calendar quarter. Discounts are applied as a percentage reduction to the invoice subtotal on the invoice that causes the threshold to be crossed, and all subsequent invoices in that quarter.",
+        "tiers": [
+          {
+            "threshold_lbs": 5000,
+            "discount_pct": 8.0,
+            "note": "8% discount on invoice subtotal once 5,000 lbs cumulative quarterly volume is reached"
+          },
+          {
+            "threshold_lbs": 10000,
+            "discount_pct": 12.0,
+            "note": "12% discount on invoice subtotal once 10,000 lbs cumulative quarterly volume is reached"
+          }
+        ]
+      },
+      "dispute_resolution": "Volume discount disputes must reference this Section 4.2 and provide YTD volume documentation. Supplier is responsible for tracking cumulative quarterly volumes and applying discounts proactively. Failure to apply an earned discount entitles Casper's Kitchens to a credit memo equal to the unapplied discount amount.",
+      "pdf_filename": "ck_hpc_2023_003.pdf",
+      "price_schedule": [
+        {
+          "item": "Chicken Breast, Boneless Skinless",
+          "unit": "lb",
+          "price": 3.45
+        },
+        {
+          "item": "Chicken Thighs, Bone-in",
+          "unit": "lb",
+          "price": 2.1
+        },
+        {
+          "item": "Whole Chickens, 3-4 lb avg",
+          "unit": "lb",
+          "price": 2.8
+        },
+        {
+          "item": "Chicken Wings, Party Cut",
+          "unit": "lb",
+          "price": 2.95
+        },
+        {
+          "item": "Ground Turkey, 93/7",
+          "unit": "lb",
+          "price": 3.8
+        },
+        {
+          "item": "Duck Breast, Boneless",
+          "unit": "lb",
+          "price": 8.9
+        },
+        {
+          "item": "Chicken Tenders, Fresh",
+          "unit": "lb",
+          "price": 5.2
+        }
+      ]
+    },
+    {
+      "contract_id": "CK-PCS-2023-004",
+      "supplier_id": "PCS",
+      "supplier_name": "Pacific Coast Seafood Co.",
+      "supplier_address": "500 Fisherman's Wharf, Suite 12, San Francisco, CA 94133",
+      "supplier_tax_id": "39-2154789",
+      "category": "Seafood",
+      "effective_date": "2023-07-01",
+      "expiration_date": "2025-06-30",
+      "payment_terms": "Net 21",
+      "payment_terms_detail": "Net payment due within 21 days of invoice date. Given the perishable nature of seafood products, this shortened payment term is agreed to by both parties. No early payment discount applies.",
+      "late_payment_penalty": "2.0% per month (24% per annum), pro-rated daily, on any overdue balance.",
+      "price_stability_clause": "Unit prices in Schedule A are fixed for the contract term and are not subject to seasonal or market price adjustments without written amendment. Pacific Coast Seafood Co. shall notify Casper's Kitchens of any anticipated price changes at least 30 days in advance.",
+      "sla": {
+        "delivery_days": 3,
+        "description": "All seafood orders must be delivered within 3 business days of confirmed purchase order, measured from order confirmation to delivery at Casper's Kitchens receiving dock. Delivery must occur between 6:00 AM and 2:00 PM Monday through Friday.",
+        "penalty": "For each business day of delivery delay beyond the 3-day SLA, Pacific Coast Seafood Co. shall be liable for a penalty of 2% of the invoice subtotal per excess day. This penalty is deducted from the invoice total prior to payment. Maximum penalty is capped at 20% of the invoice subtotal."
+      },
+      "volume_discounts": null,
+      "dispute_resolution": "SLA penalties must be documented with purchase order confirmation timestamp and delivery receipt. Supplier may contest penalties within 5 business days with delivery documentation. Undisputed SLA penalties are automatically applied as invoice deductions.",
+      "pdf_filename": "ck_pcs_2023_004.pdf",
+      "price_schedule": [
+        {
+          "item": "Wild Salmon Fillet, Fresh",
+          "unit": "lb",
+          "price": 18.5
+        },
+        {
+          "item": "Jumbo Shrimp 16/20, Raw",
+          "unit": "lb",
+          "price": 14.2
+        },
+        {
+          "item": "Dungeness Crab, Whole Cooked",
+          "unit": "lb",
+          "price": 22.8
+        },
+        {
+          "item": "Tuna Loin, Sashimi Grade",
+          "unit": "lb",
+          "price": 28.5
+        },
+        {
+          "item": "Sardines, Fresh Whole",
+          "unit": "lb",
+          "price": 4.9
+        },
+        {
+          "item": "Scallops, U10 Dry-Packed",
+          "unit": "lb",
+          "price": 26.4
+        },
+        {
+          "item": "Halibut Fillet, Fresh",
+          "unit": "lb",
+          "price": 24.8
+        },
+        {
+          "item": "Oysters, Pacific Half Shell, dozen",
+          "unit": "dozen",
+          "price": 18.0
+        }
+      ]
+    },
+    {
+      "contract_id": "CK-GSD-2023-005",
+      "supplier_id": "GSD",
+      "supplier_name": "Golden State Dairy",
+      "supplier_address": "780 Creamery Lane, Modesto, CA 95354",
+      "supplier_tax_id": "71-0293845",
+      "category": "Dairy & Eggs",
+      "effective_date": "2023-07-01",
+      "expiration_date": "2025-06-30",
+      "payment_terms": "Net 30",
+      "payment_terms_detail": "Net payment due within 30 days of invoice date. No early payment discount applies.",
+      "late_payment_penalty": "1.5% per month (18% per annum), pro-rated daily, on any overdue balance.",
+      "price_stability_clause": "Unit prices in Schedule A are fixed for the contract term. An annual price adjustment of up to 3% CPI is permitted with 45-day written notice and mutual agreement.",
+      "sla": {
+        "delivery_days": 2,
+        "description": "Delivery within 2 business days. All dairy products must maintain cold chain (<=38F) through delivery.",
+        "penalty": "Cold chain violations: 100% rejection right with replacement within 24 hours at supplier's cost."
+      },
+      "volume_discounts": null,
+      "dispute_resolution": "Quality disputes (temperature, freshness) must be reported within 4 hours of delivery with photo documentation. Invoice payment disputes must be submitted within 15 business days of invoice receipt.",
+      "pdf_filename": "ck_gsd_2023_005.pdf",
+      "price_schedule": [
+        {
+          "item": "Heavy Cream, 40% fat",
+          "unit": "gallon",
+          "price": 8.4
+        },
+        {
+          "item": "Whole Milk",
+          "unit": "gallon",
+          "price": 4.2
+        },
+        {
+          "item": "Butter, Unsalted, 1 lb blocks",
+          "unit": "lb",
+          "price": 4.8
+        },
+        {
+          "item": "Parmesan, Aged 24mo, Block",
+          "unit": "lb",
+          "price": 14.5
+        },
+        {
+          "item": "Mozzarella, Fresh Ball",
+          "unit": "lb",
+          "price": 6.9
+        },
+        {
+          "item": "Greek Yogurt, Plain",
+          "unit": "lb",
+          "price": 3.2
+        },
+        {
+          "item": "Eggs, Large Grade A, Dozen",
+          "unit": "dozen",
+          "price": 3.85
+        },
+        {
+          "item": "Ricotta, Whole Milk",
+          "unit": "lb",
+          "price": 5.4
+        }
+      ]
+    },
+    {
+      "contract_id": "CK-EPK-2023-006",
+      "supplier_id": "EPK",
+      "supplier_name": "EcoPack Solutions",
+      "supplier_address": "3300 Commerce Drive, City of Industry, CA 91746",
+      "supplier_tax_id": "23-8745601",
+      "category": "Packaging",
+      "effective_date": "2023-07-01",
+      "expiration_date": "2025-06-30",
+      "payment_terms": "Net 30",
+      "payment_terms_detail": "Net payment due within 30 days of invoice date. No early payment discount applies.",
+      "late_payment_penalty": "1.5% per month (18% per annum), pro-rated daily, on any overdue balance. Late fees begin accruing on the first day following the payment due date and are added to the next invoice or charged separately. Accounts more than 60 days overdue may be placed on credit hold pending payment.",
+      "price_stability_clause": "Unit prices in Schedule A are fixed for the contract term. EcoPack Solutions shall provide 90-day written notice of any proposed price increases, which require written acceptance from Casper's Kitchens to take effect.",
+      "sla": {
+        "delivery_days": 5,
+        "description": "Delivery within 5 business days for standard orders. Rush orders (48-hour notice) available at 15% surcharge.",
+        "penalty": "$50 per business day for late delivery on standard orders."
+      },
+      "volume_discounts": null,
+      "dispute_resolution": "Invoice disputes must be submitted in writing within 15 business days. Late fees are suspended on disputed amounts during the resolution period.",
+      "pdf_filename": "ck_epk_2023_006.pdf",
+      "price_schedule": [
+        {
+          "item": "Compostable Food Containers, 32oz",
+          "unit": "unit",
+          "price": 0.38
+        },
+        {
+          "item": "Kraft Paper Bags, Medium",
+          "unit": "unit",
+          "price": 0.22
+        },
+        {
+          "item": "Eco-Print Napkins, 2-ply",
+          "unit": "unit",
+          "price": 0.04
+        },
+        {
+          "item": "Compostable Cutlery Sets",
+          "unit": "unit",
+          "price": 0.18
+        },
+        {
+          "item": "Tamper-Evident Lids, 32oz",
+          "unit": "unit",
+          "price": 0.12
+        },
+        {
+          "item": "Delivery Bags, Insulated",
+          "unit": "unit",
+          "price": 1.45
+        },
+        {
+          "item": "Paper Straws, Wrapped",
+          "unit": "unit",
+          "price": 0.06
+        },
+        {
+          "item": "Compostable Food Containers, 16oz",
+          "unit": "unit",
+          "price": 0.28
+        }
+      ]
+    },
+    {
+      "contract_id": "CK-MSB-2023-007",
+      "supplier_id": "MSB",
+      "supplier_name": "Mountain Spring Beverages",
+      "supplier_address": "1200 Spring Valley Road, Riverside, CA 92501",
+      "supplier_tax_id": "64-5129307",
+      "category": "Beverages",
+      "effective_date": "2023-07-01",
+      "expiration_date": "2025-06-30",
+      "payment_terms": "Net 30",
+      "payment_terms_detail": "Net payment due within 30 days of invoice date. No early payment discount applies.",
+      "late_payment_penalty": "1.5% per month (18% per annum), pro-rated daily, on any overdue balance.",
+      "price_stability_clause": "Unit prices in Schedule A are fixed for the contract term. Annual CPI adjustment of up to 2.5% permitted with 60-day written notice.",
+      "sla": {
+        "delivery_days": 3,
+        "description": "Delivery within 3 business days. All beverages must be delivered at ambient temperature unless otherwise specified.",
+        "penalty": "$75 per business day for late delivery."
+      },
+      "volume_discounts": null,
+      "dispute_resolution": "Invoice disputes must be submitted within 15 business days of receipt.",
+      "pdf_filename": "ck_msb_2023_007.pdf",
+      "price_schedule": [
+        {
+          "item": "Sparkling Water, 750ml",
+          "unit": "bottle",
+          "price": 1.2
+        },
+        {
+          "item": "Still Water, 500ml",
+          "unit": "bottle",
+          "price": 0.65
+        },
+        {
+          "item": "Cold Brew Coffee, 12oz cans",
+          "unit": "can",
+          "price": 2.4
+        },
+        {
+          "item": "Horchata, 1L Cartons",
+          "unit": "carton",
+          "price": 3.8
+        },
+        {
+          "item": "Lemonade, Fresh-Press, 1L",
+          "unit": "carton",
+          "price": 2.9
+        },
+        {
+          "item": "Coconut Water, Unsweetened, 12oz",
+          "unit": "can",
+          "price": 1.85
+        },
+        {
+          "item": "Matcha Latte, Ready-to-Drink, 12oz",
+          "unit": "bottle",
+          "price": 3.2
+        }
+      ]
+    },
+    {
+      "contract_id": "CK-PSS-2023-008",
+      "supplier_id": "PSS",
+      "supplier_name": "ProSan Supplies Inc.",
+      "supplier_address": "670 Industrial Parkway, Oakland, CA 94621",
+      "supplier_tax_id": "88-3047162",
+      "category": "Cleaning & Sanitation",
+      "effective_date": "2023-07-01",
+      "expiration_date": "2025-06-30",
+      "payment_terms": "Net 30",
+      "payment_terms_detail": "Net payment due within 30 days of invoice date. No early payment discount applies.",
+      "late_payment_penalty": "1.5% per month (18% per annum), pro-rated daily, on any overdue balance.",
+      "price_stability_clause": "Unit prices in Schedule A are fixed for the contract term. ProSan Supplies shall not apply fuel surcharges or handling fees beyond the listed unit prices without written amendment to this agreement.",
+      "sla": {
+        "delivery_days": 4,
+        "description": "Delivery within 4 business days. Emergency/critical supply orders fulfilled within 24 hours at standard pricing.",
+        "penalty": "$100 per business day for late delivery on standard orders."
+      },
+      "volume_discounts": null,
+      "dispute_resolution": "Invoice disputes must be submitted within 15 business days of receipt.",
+      "pdf_filename": "ck_pss_2023_008.pdf",
+      "price_schedule": [
+        {
+          "item": "Food-Grade Sanitizer, 5-gal",
+          "unit": "pail",
+          "price": 38.5
+        },
+        {
+          "item": "Degreaser Concentrate, 1-gal",
+          "unit": "jug",
+          "price": 22.8
+        },
+        {
+          "item": "Nitrile Gloves, Medium, 100ct",
+          "unit": "box",
+          "price": 12.4
+        },
+        {
+          "item": "Nitrile Gloves, Large, 100ct",
+          "unit": "box",
+          "price": 12.4
+        },
+        {
+          "item": "Paper Towel Rolls, 6-pack",
+          "unit": "pack",
+          "price": 8.2
+        },
+        {
+          "item": "Hand Soap, Commercial 1-gal",
+          "unit": "jug",
+          "price": 9.6
+        },
+        {
+          "item": "Trash Bags, 55-gal, 50ct",
+          "unit": "case",
+          "price": 24.5
+        },
+        {
+          "item": "Test Strips, Chlorine, 100ct",
+          "unit": "vial",
+          "price": 6.8
+        }
+      ]
+    },
+    {
+      "contract_id": "CK-CTF-2023-009",
+      "supplier_id": "CTF",
+      "supplier_name": "Continental Foods Distribution",
+      "supplier_address": "5500 Distribution Center Blvd, Stockton, CA 95215",
+      "supplier_tax_id": "15-6084930",
+      "category": "Dry Goods & Pantry",
+      "effective_date": "2023-07-01",
+      "expiration_date": "2025-06-30",
+      "payment_terms": "Net 30",
+      "payment_terms_detail": "Net payment due within 30 days of invoice date. No early payment discount applies.",
+      "late_payment_penalty": "1.5% per month (18% per annum), pro-rated daily, on any overdue balance.",
+      "price_stability_clause": "All prices listed in Schedule B are fixed through 2024-06-30 and are NOT subject to commodity market fluctuations, global supply chain disruptions, or force majeure events affecting raw material costs. This agreement explicitly excludes commodity price escalation clauses for the initial term. Invoices reflecting prices above Schedule B rates will be treated as billing errors under Section 7.2 of this agreement, and Casper's Kitchens reserves the right to withhold the disputed amount pending issuance of a corrected invoice or credit memo.",
+      "sla": {
+        "delivery_days": 3,
+        "description": "Delivery within 3 business days for standard orders.",
+        "penalty": "$75 per business day for late delivery."
+      },
+      "volume_discounts": null,
+      "dispute_resolution": "Section 7.2 - Billing Disputes: Either party may dispute an invoice in writing within 15 business days of receipt. The dispute notice must specify the invoice number, line items in question, the contracted price per Schedule B, and the amount in dispute. Continental Foods Distribution shall respond within 5 business days with either a corrected invoice, a credit memo, or a written explanation. Casper's Kitchens may withhold the disputed portion and pay undisputed amounts on standard terms. Disputes not resolved within 30 days escalate to binding arbitration under AAA rules.",
+      "pdf_filename": "ck_ctf_2023_009.pdf",
+      "price_schedule": [
+        {
+          "item": "Olive Oil, Extra Virgin, 5L tin",
+          "unit": "tin",
+          "price": 32.5
+        },
+        {
+          "item": "Soy Sauce, Dark, 1-gal",
+          "unit": "jug",
+          "price": 14.8
+        },
+        {
+          "item": "Basmati Rice, Long Grain, 25lb",
+          "unit": "bag",
+          "price": 28.4
+        },
+        {
+          "item": "Bread Flour, 50lb",
+          "unit": "bag",
+          "price": 24.6
+        },
+        {
+          "item": "Panko Breadcrumbs, 25lb",
+          "unit": "bag",
+          "price": 22.8
+        },
+        {
+          "item": "Canned Tomatoes, San Marzano, #10",
+          "unit": "can",
+          "price": 8.4
+        },
+        {
+          "item": "Coconut Milk, 400ml, case/24",
+          "unit": "case",
+          "price": 31.2
+        },
+        {
+          "item": "Fish Sauce, 1-gal",
+          "unit": "jug",
+          "price": 18.6
+        },
+        {
+          "item": "Tahini, 5lb jar",
+          "unit": "jar",
+          "price": 16.4
+        },
+        {
+          "item": "Rice Vinegar, 1-gal",
+          "unit": "jug",
+          "price": 12.8
+        }
+      ]
+    },
+    {
+      "contract_id": "CK-SRT-2023-010",
+      "supplier_id": "SRT",
+      "supplier_name": "Spice Route Trading Co.",
+      "supplier_address": "280 Harbor Street, Unit 4B, Los Angeles, CA 90021",
+      "supplier_tax_id": "43-9012874",
+      "category": "Spices & Seasonings",
+      "effective_date": "2023-07-01",
+      "expiration_date": "2025-06-30",
+      "payment_terms": "Net 30",
+      "payment_terms_detail": "Net payment due within 30 days of invoice date. No early payment discount applies.",
+      "late_payment_penalty": "1.5% per month (18% per annum), pro-rated daily, on any overdue balance.",
+      "price_stability_clause": "Unit prices in Schedule A are fixed for the contract term. Spice Route Trading Co. shall provide 60-day written notice of any proposed price changes.",
+      "sla": {
+        "delivery_days": 5,
+        "description": "Delivery within 5 business days for standard orders. All spices must be delivered in original sealed packaging with batch/lot numbers visible.",
+        "penalty": "$50 per business day for late delivery."
+      },
+      "volume_discounts": null,
+      "dispute_resolution": "Invoice disputes must be submitted within 15 business days of receipt.",
+      "pdf_filename": "ck_srt_2023_010.pdf",
+      "price_schedule": [
+        {
+          "item": "Gochujang Paste, 1kg tub",
+          "unit": "tub",
+          "price": 12.8
+        },
+        {
+          "item": "Sichuan Peppercorns, Whole, 1lb",
+          "unit": "bag",
+          "price": 18.4
+        },
+        {
+          "item": "Turmeric Powder, 5lb",
+          "unit": "bag",
+          "price": 14.2
+        },
+        {
+          "item": "Cumin Seeds, Whole, 5lb",
+          "unit": "bag",
+          "price": 11.8
+        },
+        {
+          "item": "Lemongrass Paste, 1kg tub",
+          "unit": "tub",
+          "price": 9.6
+        },
+        {
+          "item": "Dried Chipotle, Ground, 3lb",
+          "unit": "bag",
+          "price": 16.5
+        },
+        {
+          "item": "Five Spice Powder, 2lb",
+          "unit": "bag",
+          "price": 13.2
+        },
+        {
+          "item": "Tamarind Concentrate, 1kg",
+          "unit": "jar",
+          "price": 8.9
+        },
+        {
+          "item": "Sumac, Ground, 2lb",
+          "unit": "bag",
+          "price": 15.6
+        },
+        {
+          "item": "Za'atar Blend, 2lb",
+          "unit": "bag",
+          "price": 17.8
+        }
+      ]
+    }
+  ]
+}

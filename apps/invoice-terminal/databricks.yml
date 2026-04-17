@@ -1,0 +1,13 @@
+bundle:
+  name: invoice-terminal
+
+resources:
+  apps:
+    app:
+      name: "casperskitchens-invoice-terminal"
+      description: "Procurement assistant chat over the invoice multi-agent supervisor"
+      source_code_path: ./
+
+targets:
+  default:
+    default: true
