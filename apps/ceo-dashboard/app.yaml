@@ -1,0 +1,32 @@
+command:
+  - uvicorn
+  - app.main:app
+env:
+  - name: LAKEBASE_ENDPOINT_PATH
+    value: ''
+  - name: LAKEBASE_DATABASE_NAME
+    value: 'databricks_postgres'
+  - name: DATABRICKS_CATALOG
+    value: 'devconnect_demo'
+  - name: CEO_SUPERVISOR_ENDPOINT
+    value: 'mas-1ee63583-endpoint'
+  - name: CEO_SUPERVISOR_TILE_ID
+    value: '1ee63583-5a39-40e8-a10c-d2166fe176c3'
+  - name: CEO_SUPERVISOR_MLFLOW_EXPERIMENT_ID
+    value: '1948893870821049'
+  - name: GENIE_ID_REVENUE
+    value: ''
+  - name: GENIE_ID_OPS
+    value: ''
+  - name: KA_ID_INSPECTION
+    value: ''
+  - name: KA_ID_LEGAL
+    value: ''
+  - name: KA_ID_REGULATORY
+    value: ''
+  - name: KA_ID_AUDITS
+    value: ''
+  - name: KA_ID_CONSULTANCY
+    value: ''
+  - name: DATABRICKS_WAREHOUSE_ID
+    value: ''

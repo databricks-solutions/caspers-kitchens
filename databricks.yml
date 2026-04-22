@@ -29,11 +29,14 @@ sync:
     - images/**
     - docs/**
     - apps/caspersai-terminal/node_modules/**
+    - apps/ceo-dashboard/app.yaml
     - apps/caspersai-terminal/logs/**
     - apps/caspersai-terminal/test/**
     - apps/supportconsolek/**/.databricks/**
     - apps/supportconsolek/**/node_modules/**
     - apps/supportconsolek/**/dist/**
+    - apps/ceo-dashboard/**/__pycache__/**
+    - apps/ceo-dashboard/**/*.pyc
 
 scripts:
   cleanup:
@@ -551,3 +554,129 @@ targets:
                 - task_key: Inspection_Knowledge_Agent
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/menu_supervisor
+
+  ceo:
+    variables:
+      catalog:
+        default: devconnect_demo
+    resources:
+      jobs:
+        caspers:
+          name: "Casper's Initializer"
+          queue:
+            enabled: true
+          performance_target: PERFORMANCE_OPTIMIZED
+
+          parameters:
+            - name: CATALOG
+              default: ${var.catalog}
+            - name: EVENTS_VOLUME
+              default: events
+            - name: LLM_MODEL
+              default: databricks-meta-llama-3-3-70b-instruct
+            - name: SIMULATOR_SCHEMA
+              default: simulator
+            - name: START_DAY
+              default: "70"
+            - name: SPEED_MULTIPLIER
+              default: "60.0"
+            - name: SCHEDULE_MINUTES
+              default: "3"
+            - name: PIPELINE_SCHEDULE_MINUTES
+              default: "0"
+            # CEO-specific KA endpoints
+            - name: INSPECTION_KNOWLEDGE_ENDPOINT_NAME
+              default: ${var.catalog}_inspection_knowledge
+            - name: CEO_LEGAL_KA_ENDPOINT
+              default: ${var.catalog}_ceo_legal_knowledge
+            - name: CEO_REGULATORY_KA_ENDPOINT
+              default: ${var.catalog}_ceo_regulatory_knowledge
+            - name: CEO_AUDIT_KA_ENDPOINT
+              default: ${var.catalog}_ceo_audit_knowledge
+            - name: CEO_CONSULTANCY_KA_ENDPOINT
+              default: ${var.catalog}_ceo_consultancy_knowledge
+            - name: CEO_SUPERVISOR_ENDPOINT_NAME
+              default: ${var.catalog}_ceo_supervisor
+
+          tasks:
+            - task_key: Canonical_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/canonical_data
+
+            - task_key: Spark_Declarative_Pipeline
+              depends_on:
+                - task_key: Canonical_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/lakeflow
+
+            - task_key: Inspection_Data
+              max_retries: 0
+              depends_on:
+                - task_key: Canonical_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/inspection_data
+
+            - task_key: CEO_Document_Data
+              max_retries: 0
+              depends_on:
+                - task_key: Canonical_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/ceo_document_data
+
+            - task_key: CEO_Revenue_Genie
+              max_retries: 0
+              depends_on:
+                - task_key: Spark_Declarative_Pipeline
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/ceo_genie_spaces
+
+            - task_key: Inspection_Knowledge_Agent
+              max_retries: 0
+              depends_on:
+                - task_key: Inspection_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/inspection_knowledge_agent
+
+            - task_key: CEO_Knowledge_Agents
+              max_retries: 0
+              depends_on:
+                - task_key: CEO_Document_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/ceo_knowledge_agents
+
+            - task_key: CEO_Supervisor
+              max_retries: 0
+              depends_on:
+                - task_key: CEO_Revenue_Genie
+                - task_key: Inspection_Knowledge_Agent
+                - task_key: CEO_Knowledge_Agents
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/ceo_supervisor
+
+            - task_key: CEO_Evaluation
+              max_retries: 0
+              depends_on:
+                - task_key: CEO_Supervisor
+              notebook_task:
+                notebook_path: ${workspace.root_path}/demos/ceo-demo/ceo_evaluation
+
+            - task_key: CEO_Lakebase
+              max_retries: 0
+              depends_on:
+                - task_key: CEO_Supervisor
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/ceo_lakebase
+
+            - task_key: CEO_App
+              max_retries: 0
+              depends_on:
+                - task_key: CEO_Lakebase
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/ceo_app
+
+            - task_key: CEO_Readiness_Check
+              max_retries: 0
+              depends_on:
+                - task_key: CEO_App
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/ceo_readiness_check

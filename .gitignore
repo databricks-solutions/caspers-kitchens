@@ -9,6 +9,7 @@ __pycache__
 .env
 .databricks
 .claude
+.cursor
 .bundle
 /.vscode/
 node_modules/

@@ -1,0 +1,586 @@
+{
+  "audits": [
+    {
+      "audit_id": "AUD-01-3001",
+      "location_id": 1,
+      "location_name": "San Francisco",
+      "address": "1847 Market Street, San Francisco, CA 94103",
+      "audit_type": "Financial Statement Audit",
+      "audit_firm": "Deloitte & Touche LLP",
+      "period": "Q1 2024",
+      "period_start": "2024-01-01",
+      "period_end": "2024-03-30",
+      "report_date": "2024-04-26",
+      "scope": "Revenue recognition, accounts payable, payroll, inventory valuation, and internal controls over financial reporting.",
+      "standards": "GAAS (AICPA AU-C Section 700); PCAOB AS 2201",
+      "opinion": "Qualified Opinion \u2014 Scope Limitation",
+      "findings": [
+        {
+          "title": "Internal Controls \u2014 Segregation of Duties",
+          "severity": "Significant",
+          "detail": "Single approver for both purchase orders and payments. Recommend adding a secondary approval for transactions over $5,000."
+        },
+        {
+          "title": "Inventory Valuation",
+          "severity": "Significant",
+          "detail": "Food inventory not written down for spoilage within the 90-day period. Requires a $28,700 reserve adjustment."
+        }
+      ],
+      "finding_count": 2,
+      "critical_findings": 0,
+      "significant_findings": 2
+    },
+    {
+      "audit_id": "AUD-01-3002",
+      "location_id": 1,
+      "location_name": "San Francisco",
+      "address": "1847 Market Street, San Francisco, CA 94103",
+      "audit_type": "Operational Compliance Audit",
+      "audit_firm": "BDO USA LLP",
+      "period": "Q3 2023",
+      "period_start": "2023-07-01",
+      "period_end": "2023-09-30",
+      "report_date": "2023-10-19",
+      "scope": "HR practices, vendor contract compliance, operating procedures, health & safety protocols, and regulatory adherence.",
+      "standards": "ISO 9001:2015 Quality Management Systems; OSHA 29 CFR Part 1910",
+      "opinion": "Unqualified (Clean) Opinion",
+      "findings": [
+        {
+          "title": "Incident Reporting",
+          "severity": "Informational",
+          "detail": "2 minor kitchen burns not formally logged in safety system within required 24-hour window."
+        },
+        {
+          "title": "Standard Operating Procedures",
+          "severity": "Minor",
+          "detail": "4 SOPs out of 18 not updated to reflect Q3 2023 process changes. Recommend quarterly SOP review cycle."
+        }
+      ],
+      "finding_count": 2,
+      "critical_findings": 0,
+      "significant_findings": 0
+    },
+    {
+      "audit_id": "AUD-01-3003",
+      "location_id": 1,
+      "location_name": "San Francisco",
+      "address": "1847 Market Street, San Francisco, CA 94103",
+      "audit_type": "Food Safety Management System Audit",
+      "audit_firm": "Ernst & Young LLP",
+      "period": "Q1 2023",
+      "period_start": "2023-01-01",
+      "period_end": "2023-03-31",
+      "report_date": "2023-05-15",
+      "scope": "HACCP plan validation, temperature monitoring, supplier qualification, allergen management, and traceability.",
+      "standards": "FSMA 21 CFR Part 117; ISO 22000:2018; GFSI Benchmark",
+      "opinion": "Unqualified Opinion with Emphasis of Matter",
+      "findings": [
+        {
+          "title": "Traceability Records",
+          "severity": "Informational",
+          "detail": "Forward traceability test completed in 4.2 hours vs. 4-hour target. Minor process adjustment recommended."
+        },
+        {
+          "title": "Allergen Management",
+          "severity": "Significant",
+          "detail": "Cross-contamination risk identified for tree nut allergens; shared equipment cleaning protocol insufficient. Requires dedicated utensils for allergen-free items."
+        },
+        {
+          "title": "Corrective Action Records",
+          "severity": "Significant",
+          "detail": "Corrective action forms for 3 prior findings not closed out within the required 30-day period."
+        },
+        {
+          "title": "HACCP Temperature Log Gaps",
+          "severity": "Critical",
+          "detail": "Temperature logs show 4 instances of missing readings during evening shifts at this location. Corrective action: automated monitoring system recommended."
+        }
+      ],
+      "finding_count": 4,
+      "critical_findings": 1,
+      "significant_findings": 2
+    },
+    {
+      "audit_id": "AUD-01-3004",
+      "location_id": 1,
+      "location_name": "San Francisco",
+      "address": "1847 Market Street, San Francisco, CA 94103",
+      "audit_type": "Supply Chain & Procurement Audit",
+      "audit_firm": "BDO USA LLP",
+      "period": "Q1 2024",
+      "period_start": "2024-01-01",
+      "period_end": "2024-03-30",
+      "report_date": "2024-05-11",
+      "scope": "Vendor performance, contract compliance, purchasing controls, and supplier risk management.",
+      "standards": "ISO 28000:2022 Supply Chain Security; COSO Internal Control Framework",
+      "opinion": "Qualified Opinion \u2014 Scope Limitation",
+      "findings": [
+        {
+          "title": "Contract Renewal Management",
+          "severity": "Minor",
+          "detail": "2 vendor contracts expired 30\u201345 days before renewal. Automated renewal alerts not configured in procurement system."
+        },
+        {
+          "title": "Purchasing Approvals",
+          "severity": "Minor",
+          "detail": "6 purchases between $3,000\u2013$5,000 approved without required dual-sign-off per policy. Purchasing card policy refresh required."
+        },
+        {
+          "title": "Minority & Sustainable Supplier Targets",
+          "severity": "Informational",
+          "detail": "Diverse supplier spend at 11% vs. 15% corporate target. Progress noted; trajectory suggests target achievable by Q3 2024."
+        },
+        {
+          "title": "Vendor Concentration Risk",
+          "severity": "Significant",
+          "detail": "62% of fresh produce sourced from single vendor. Continuity risk in case of supplier disruption. Recommend dual-sourcing strategy."
+        }
+      ],
+      "finding_count": 4,
+      "critical_findings": 0,
+      "significant_findings": 1
+    },
+    {
+      "audit_id": "AUD-02-3005",
+      "location_id": 2,
+      "location_name": "Silicon Valley",
+      "address": "2350 El Camino Real, Santa Clara, CA 95051",
+      "audit_type": "Financial Statement Audit",
+      "audit_firm": "KPMG LLP",
+      "period": "Q4 2023",
+      "period_start": "2023-10-01",
+      "period_end": "2023-12-31",
+      "report_date": "2024-01-17",
+      "scope": "Revenue recognition, accounts payable, payroll, inventory valuation, and internal controls over financial reporting.",
+      "standards": "GAAS (AICPA AU-C Section 700); PCAOB AS 2201",
+      "opinion": "Qualified Opinion \u2014 Scope Limitation",
+      "findings": [
+        {
+          "title": "Internal Controls \u2014 Segregation of Duties",
+          "severity": "Significant",
+          "detail": "Single approver for both purchase orders and payments. Recommend adding a secondary approval for transactions over $5,000."
+        },
+        {
+          "title": "Revenue Recognition Timing",
+          "severity": "Minor",
+          "detail": "Delivery fee revenue recorded at order placement vs. delivery completion. Immaterial adjustment of $12,400 required."
+        },
+        {
+          "title": "Inventory Valuation",
+          "severity": "Significant",
+          "detail": "Food inventory not written down for spoilage within the 90-day period. Requires a $28,700 reserve adjustment."
+        },
+        {
+          "title": "Payroll Accrual",
+          "severity": "Informational",
+          "detail": "Payroll cut-off difference of $4,200 noted; immaterial and corrected in subsequent period."
+        }
+      ],
+      "finding_count": 4,
+      "critical_findings": 0,
+      "significant_findings": 2
+    },
+    {
+      "audit_id": "AUD-02-3006",
+      "location_id": 2,
+      "location_name": "Silicon Valley",
+      "address": "2350 El Camino Real, Santa Clara, CA 95051",
+      "audit_type": "Operational Compliance Audit",
+      "audit_firm": "BDO USA LLP",
+      "period": "Q1 2023",
+      "period_start": "2023-01-01",
+      "period_end": "2023-03-31",
+      "report_date": "2023-04-23",
+      "scope": "HR practices, vendor contract compliance, operating procedures, health & safety protocols, and regulatory adherence.",
+      "standards": "ISO 9001:2015 Quality Management Systems; OSHA 29 CFR Part 1910",
+      "opinion": "Qualified Opinion \u2014 Scope Limitation",
+      "findings": [
+        {
+          "title": "Employee Training Records",
+          "severity": "Minor",
+          "detail": "Training completion rate at 87% vs. 95% target. 6 employees missing mandatory food handler certification renewal."
+        },
+        {
+          "title": "Standard Operating Procedures",
+          "severity": "Minor",
+          "detail": "4 SOPs out of 18 not updated to reflect Q3 2023 process changes. Recommend quarterly SOP review cycle."
+        },
+        {
+          "title": "Waste Disposal Compliance",
+          "severity": "Significant",
+          "detail": "Grease trap disposal records incomplete for August and September 2023. Environmental compliance risk."
+        },
+        {
+          "title": "Vendor SLA Compliance",
+          "severity": "Significant",
+          "detail": "Primary produce vendor delivered out-of-spec temperature goods on 3 occasions. Formal corrective action plan required."
+        }
+      ],
+      "finding_count": 4,
+      "critical_findings": 0,
+      "significant_findings": 2
+    },
+    {
+      "audit_id": "AUD-02-3007",
+      "location_id": 2,
+      "location_name": "Silicon Valley",
+      "address": "2350 El Camino Real, Santa Clara, CA 95051",
+      "audit_type": "Food Safety Management System Audit",
+      "audit_firm": "Deloitte & Touche LLP",
+      "period": "Q1 2023",
+      "period_start": "2023-01-01",
+      "period_end": "2023-03-31",
+      "report_date": "2023-04-29",
+      "scope": "HACCP plan validation, temperature monitoring, supplier qualification, allergen management, and traceability.",
+      "standards": "FSMA 21 CFR Part 117; ISO 22000:2018; GFSI Benchmark",
+      "opinion": "Unqualified Opinion with Emphasis of Matter",
+      "findings": [
+        {
+          "title": "Allergen Management",
+          "severity": "Significant",
+          "detail": "Cross-contamination risk identified for tree nut allergens; shared equipment cleaning protocol insufficient. Requires dedicated utensils for allergen-free items."
+        },
+        {
+          "title": "Traceability Records",
+          "severity": "Informational",
+          "detail": "Forward traceability test completed in 4.2 hours vs. 4-hour target. Minor process adjustment recommended."
+        },
+        {
+          "title": "HACCP Temperature Log Gaps",
+          "severity": "Critical",
+          "detail": "Temperature logs show 4 instances of missing readings during evening shifts at this location. Corrective action: automated monitoring system recommended."
+        },
+        {
+          "title": "Corrective Action Records",
+          "severity": "Significant",
+          "detail": "Corrective action forms for 3 prior findings not closed out within the required 30-day period."
+        }
+      ],
+      "finding_count": 4,
+      "critical_findings": 1,
+      "significant_findings": 2
+    },
+    {
+      "audit_id": "AUD-02-3008",
+      "location_id": 2,
+      "location_name": "Silicon Valley",
+      "address": "2350 El Camino Real, Santa Clara, CA 95051",
+      "audit_type": "Supply Chain & Procurement Audit",
+      "audit_firm": "BDO USA LLP",
+      "period": "Q3 2023",
+      "period_start": "2023-07-01",
+      "period_end": "2023-09-30",
+      "report_date": "2023-11-14",
+      "scope": "Vendor performance, contract compliance, purchasing controls, and supplier risk management.",
+      "standards": "ISO 28000:2022 Supply Chain Security; COSO Internal Control Framework",
+      "opinion": "Qualified Opinion \u2014 Scope Limitation",
+      "findings": [
+        {
+          "title": "Contract Renewal Management",
+          "severity": "Minor",
+          "detail": "2 vendor contracts expired 30\u201345 days before renewal. Automated renewal alerts not configured in procurement system."
+        },
+        {
+          "title": "Minority & Sustainable Supplier Targets",
+          "severity": "Informational",
+          "detail": "Diverse supplier spend at 11% vs. 15% corporate target. Progress noted; trajectory suggests target achievable by Q3 2024."
+        },
+        {
+          "title": "Pricing Compliance",
+          "severity": "Informational",
+          "detail": "3 invoices priced above contracted rates by $140\u2013$280. Vendors corrected upon notification. No material impact."
+        },
+        {
+          "title": "Vendor Concentration Risk",
+          "severity": "Significant",
+          "detail": "62% of fresh produce sourced from single vendor. Continuity risk in case of supplier disruption. Recommend dual-sourcing strategy."
+        }
+      ],
+      "finding_count": 4,
+      "critical_findings": 0,
+      "significant_findings": 1
+    },
+    {
+      "audit_id": "AUD-03-3009",
+      "location_id": 3,
+      "location_name": "Bellevue",
+      "address": "10456 NE 8th Street, Bellevue, WA 98004",
+      "audit_type": "Financial Statement Audit",
+      "audit_firm": "KPMG LLP",
+      "period": "Q3 2023",
+      "period_start": "2023-07-01",
+      "period_end": "2023-09-30",
+      "report_date": "2023-10-16",
+      "scope": "Revenue recognition, accounts payable, payroll, inventory valuation, and internal controls over financial reporting.",
+      "standards": "GAAS (AICPA AU-C Section 700); PCAOB AS 2201",
+      "opinion": "Qualified Opinion \u2014 Scope Limitation",
+      "findings": [
+        {
+          "title": "Revenue Recognition Timing",
+          "severity": "Minor",
+          "detail": "Delivery fee revenue recorded at order placement vs. delivery completion. Immaterial adjustment of $12,400 required."
+        },
+        {
+          "title": "Inventory Valuation",
+          "severity": "Significant",
+          "detail": "Food inventory not written down for spoilage within the 90-day period. Requires a $28,700 reserve adjustment."
+        }
+      ],
+      "finding_count": 2,
+      "critical_findings": 0,
+      "significant_findings": 1
+    },
+    {
+      "audit_id": "AUD-03-3010",
+      "location_id": 3,
+      "location_name": "Bellevue",
+      "address": "10456 NE 8th Street, Bellevue, WA 98004",
+      "audit_type": "Operational Compliance Audit",
+      "audit_firm": "BDO USA LLP",
+      "period": "Q1 2024",
+      "period_start": "2024-01-01",
+      "period_end": "2024-03-30",
+      "report_date": "2024-04-16",
+      "scope": "HR practices, vendor contract compliance, operating procedures, health & safety protocols, and regulatory adherence.",
+      "standards": "ISO 9001:2015 Quality Management Systems; OSHA 29 CFR Part 1910",
+      "opinion": "Qualified Opinion \u2014 Scope Limitation",
+      "findings": [
+        {
+          "title": "Employee Training Records",
+          "severity": "Minor",
+          "detail": "Training completion rate at 87% vs. 95% target. 6 employees missing mandatory food handler certification renewal."
+        },
+        {
+          "title": "Vendor SLA Compliance",
+          "severity": "Significant",
+          "detail": "Primary produce vendor delivered out-of-spec temperature goods on 3 occasions. Formal corrective action plan required."
+        },
+        {
+          "title": "Standard Operating Procedures",
+          "severity": "Minor",
+          "detail": "4 SOPs out of 18 not updated to reflect Q3 2023 process changes. Recommend quarterly SOP review cycle."
+        }
+      ],
+      "finding_count": 3,
+      "critical_findings": 0,
+      "significant_findings": 1
+    },
+    {
+      "audit_id": "AUD-03-3011",
+      "location_id": 3,
+      "location_name": "Bellevue",
+      "address": "10456 NE 8th Street, Bellevue, WA 98004",
+      "audit_type": "Food Safety Management System Audit",
+      "audit_firm": "PricewaterhouseCoopers LLP",
+      "period": "Q1 2023",
+      "period_start": "2023-01-01",
+      "period_end": "2023-03-31",
+      "report_date": "2023-04-27",
+      "scope": "HACCP plan validation, temperature monitoring, supplier qualification, allergen management, and traceability.",
+      "standards": "FSMA 21 CFR Part 117; ISO 22000:2018; GFSI Benchmark",
+      "opinion": "Unqualified Opinion with Emphasis of Matter",
+      "findings": [
+        {
+          "title": "Allergen Management",
+          "severity": "Significant",
+          "detail": "Cross-contamination risk identified for tree nut allergens; shared equipment cleaning protocol insufficient. Requires dedicated utensils for allergen-free items."
+        },
+        {
+          "title": "Traceability Records",
+          "severity": "Informational",
+          "detail": "Forward traceability test completed in 4.2 hours vs. 4-hour target. Minor process adjustment recommended."
+        },
+        {
+          "title": "HACCP Temperature Log Gaps",
+          "severity": "Critical",
+          "detail": "Temperature logs show 4 instances of missing readings during evening shifts at this location. Corrective action: automated monitoring system recommended."
+        }
+      ],
+      "finding_count": 3,
+      "critical_findings": 1,
+      "significant_findings": 1
+    },
+    {
+      "audit_id": "AUD-03-3012",
+      "location_id": 3,
+      "location_name": "Bellevue",
+      "address": "10456 NE 8th Street, Bellevue, WA 98004",
+      "audit_type": "Supply Chain & Procurement Audit",
+      "audit_firm": "Ernst & Young LLP",
+      "period": "Q3 2023",
+      "period_start": "2023-07-01",
+      "period_end": "2023-09-30",
+      "report_date": "2023-10-29",
+      "scope": "Vendor performance, contract compliance, purchasing controls, and supplier risk management.",
+      "standards": "ISO 28000:2022 Supply Chain Security; COSO Internal Control Framework",
+      "opinion": "Qualified Opinion \u2014 Scope Limitation",
+      "findings": [
+        {
+          "title": "Purchasing Approvals",
+          "severity": "Minor",
+          "detail": "6 purchases between $3,000\u2013$5,000 approved without required dual-sign-off per policy. Purchasing card policy refresh required."
+        },
+        {
+          "title": "Minority & Sustainable Supplier Targets",
+          "severity": "Informational",
+          "detail": "Diverse supplier spend at 11% vs. 15% corporate target. Progress noted; trajectory suggests target achievable by Q3 2024."
+        },
+        {
+          "title": "Vendor Concentration Risk",
+          "severity": "Significant",
+          "detail": "62% of fresh produce sourced from single vendor. Continuity risk in case of supplier disruption. Recommend dual-sourcing strategy."
+        }
+      ],
+      "finding_count": 3,
+      "critical_findings": 0,
+      "significant_findings": 1
+    },
+    {
+      "audit_id": "AUD-04-3013",
+      "location_id": 4,
+      "location_name": "Chicago",
+      "address": "872 N. Milwaukee Avenue, Chicago, IL 60642",
+      "audit_type": "Financial Statement Audit",
+      "audit_firm": "BDO USA LLP",
+      "period": "Q1 2024",
+      "period_start": "2024-01-01",
+      "period_end": "2024-03-30",
+      "report_date": "2024-05-13",
+      "scope": "Revenue recognition, accounts payable, payroll, inventory valuation, and internal controls over financial reporting.",
+      "standards": "GAAS (AICPA AU-C Section 700); PCAOB AS 2201",
+      "opinion": "Qualified Opinion \u2014 Scope Limitation",
+      "findings": [
+        {
+          "title": "Inventory Valuation",
+          "severity": "Significant",
+          "detail": "Food inventory not written down for spoilage within the 90-day period. Requires a $28,700 reserve adjustment."
+        },
+        {
+          "title": "Internal Controls \u2014 Segregation of Duties",
+          "severity": "Significant",
+          "detail": "Single approver for both purchase orders and payments. Recommend adding a secondary approval for transactions over $5,000."
+        }
+      ],
+      "finding_count": 2,
+      "critical_findings": 0,
+      "significant_findings": 2
+    },
+    {
+      "audit_id": "AUD-04-3014",
+      "location_id": 4,
+      "location_name": "Chicago",
+      "address": "872 N. Milwaukee Avenue, Chicago, IL 60642",
+      "audit_type": "Operational Compliance Audit",
+      "audit_firm": "Ernst & Young LLP",
+      "period": "Q1 2024",
+      "period_start": "2024-01-01",
+      "period_end": "2024-03-30",
+      "report_date": "2024-04-17",
+      "scope": "HR practices, vendor contract compliance, operating procedures, health & safety protocols, and regulatory adherence.",
+      "standards": "ISO 9001:2015 Quality Management Systems; OSHA 29 CFR Part 1910",
+      "opinion": "Qualified Opinion \u2014 Scope Limitation",
+      "findings": [
+        {
+          "title": "Employee Training Records",
+          "severity": "Minor",
+          "detail": "Training completion rate at 87% vs. 95% target. 6 employees missing mandatory food handler certification renewal."
+        },
+        {
+          "title": "Vendor SLA Compliance",
+          "severity": "Significant",
+          "detail": "Primary produce vendor delivered out-of-spec temperature goods on 3 occasions. Formal corrective action plan required."
+        }
+      ],
+      "finding_count": 2,
+      "critical_findings": 0,
+      "significant_findings": 1
+    },
+    {
+      "audit_id": "AUD-04-3015",
+      "location_id": 4,
+      "location_name": "Chicago",
+      "address": "872 N. Milwaukee Avenue, Chicago, IL 60642",
+      "audit_type": "Food Safety Management System Audit",
+      "audit_firm": "Ernst & Young LLP",
+      "period": "Q3 2023",
+      "period_start": "2023-07-01",
+      "period_end": "2023-09-30",
+      "report_date": "2023-10-20",
+      "scope": "HACCP plan validation, temperature monitoring, supplier qualification, allergen management, and traceability.",
+      "standards": "FSMA 21 CFR Part 117; ISO 22000:2018; GFSI Benchmark",
+      "opinion": "Qualified Opinion \u2014 Scope Limitation",
+      "findings": [
+        {
+          "title": "Allergen Management",
+          "severity": "Significant",
+          "detail": "Cross-contamination risk identified for tree nut allergens; shared equipment cleaning protocol insufficient. Requires dedicated utensils for allergen-free items."
+        },
+        {
+          "title": "Corrective Action Records",
+          "severity": "Significant",
+          "detail": "Corrective action forms for 3 prior findings not closed out within the required 30-day period."
+        },
+        {
+          "title": "Supplier Qualification",
+          "severity": "Minor",
+          "detail": "2 of 8 active suppliers lack current third-party food safety audit on file. Supplier portal update required within 30 days."
+        }
+      ],
+      "finding_count": 3,
+      "critical_findings": 0,
+      "significant_findings": 2
+    },
+    {
+      "audit_id": "AUD-04-3016",
+      "location_id": 4,
+      "location_name": "Chicago",
+      "address": "872 N. Milwaukee Avenue, Chicago, IL 60642",
+      "audit_type": "Supply Chain & Procurement Audit",
+      "audit_firm": "Ernst & Young LLP",
+      "period": "Q1 2024",
+      "period_start": "2024-01-01",
+      "period_end": "2024-03-30",
+      "report_date": "2024-05-09",
+      "scope": "Vendor performance, contract compliance, purchasing controls, and supplier risk management.",
+      "standards": "ISO 28000:2022 Supply Chain Security; COSO Internal Control Framework",
+      "opinion": "Qualified Opinion \u2014 Scope Limitation",
+      "findings": [
+        {
+          "title": "Pricing Compliance",
+          "severity": "Informational",
+          "detail": "3 invoices priced above contracted rates by $140\u2013$280. Vendors corrected upon notification. No material impact."
+        },
+        {
+          "title": "Vendor Concentration Risk",
+          "severity": "Significant",
+          "detail": "62% of fresh produce sourced from single vendor. Continuity risk in case of supplier disruption. Recommend dual-sourcing strategy."
+        }
+      ],
+      "finding_count": 2,
+      "critical_findings": 0,
+      "significant_findings": 1
+    }
+  ],
+  "locations": [
+    {
+      "location_id": 1,
+      "name": "San Francisco",
+      "address": "1847 Market Street, San Francisco, CA 94103"
+    },
+    {
+      "location_id": 2,
+      "name": "Silicon Valley",
+      "address": "2350 El Camino Real, Santa Clara, CA 95051"
+    },
+    {
+      "location_id": 3,
+      "name": "Bellevue",
+      "address": "10456 NE 8th Street, Bellevue, WA 98004"
+    },
+    {
+      "location_id": 4,
+      "name": "Chicago",
+      "address": "872 N. Milwaukee Avenue, Chicago, IL 60642"
+    }
+  ]
+}

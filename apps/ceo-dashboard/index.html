@@ -1,0 +1,2647 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CEO Dashboard — Casper's Kitchens</title>
+
+<!-- Map -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<!-- Charts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<!-- Leaflet -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Marked (for markdown rendering in chat) -->
+<script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+
+<style>
+/* ── CSS Variables ── */
+:root {
+  --bg-primary:    #111113;
+  --bg-secondary:  #18181B;
+  --bg-tertiary:   #222226;
+  --bg-card:       #1E1E22;
+  --bg-input:      #26262C;
+  --border:        #303038;
+  --border-accent: #5A2E2A;
+  --text-primary:  #EDEDEF;
+  --text-secondary:#9898A2;
+  --text-muted:    #55555E;
+  --accent:        #E8341A;
+  --accent-light:  #F56248;
+  --accent-glow:   rgba(232,52,26,0.12);
+  --success: #3ecf8e;
+  --warning: #f5a623;
+  --danger:  #e85d5d;
+  --gold:    #f0c040;
+  --sidebar-w: 240px;
+  --right-sidebar-w: 220px;
+  --header-h: 54px;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  --transition: 0.18s ease;
+}
+
+[data-theme="light"] {
+  --bg-primary:    #F3F3F6;
+  --bg-secondary:  #FFFFFF;
+  --bg-tertiary:   #EAEAEF;
+  --bg-card:       #FFFFFF;
+  --bg-input:      #F7F7FA;
+  --border:        #DCDCE4;
+  --border-accent: #C4A0A0;
+  --text-primary:  #111116;
+  --text-secondary:#505058;
+  --text-muted:    #888892;
+  --accent:        #C42B12;
+  --accent-light:  #C42B12;
+  --accent-glow:   rgba(196,43,18,0.08);
+  --success: #1a8f5c;
+  --warning: #b56b10;
+  --danger:  #b02a2a;
+  --gold:    #a07008;
+  --shadow: 0 4px 24px rgba(0,0,0,0.08);
+}
+
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; }
+body { background: var(--bg-primary); color: var(--text-primary); display: flex; flex-direction: column; }
+
+/* ── Header ── */
+.header {
+  height: var(--header-h);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 20px;
+  gap: 12px; flex-shrink: 0;
+  box-shadow: 0 1px 0 var(--border);
+}
+.header-logo {
+  font-size: 18px; font-weight: 700; letter-spacing: -0.3px;
+  background: linear-gradient(135deg, var(--accent-light), var(--gold));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.header-subtitle { font-size: 12px; color: var(--text-muted); margin-left: 4px; }
+.header-spacer { flex: 1; }
+.header-badge {
+  font-size: 11px; padding: 3px 10px; border-radius: 20px;
+  border: 1px solid var(--border-accent); color: var(--text-secondary);
+  background: var(--bg-tertiary);
+}
+.header-badge.live::before {
+  content: "●"; color: var(--success); margin-right: 5px; font-size: 9px;
+}
+
+/* ── Layout ── */
+.layout {
+  display: flex; flex: 1; overflow: hidden;
+}
+
+/* ── Sidebar toggle strips (live outside the sidebars so they never collapse) ── */
+.sidebar-strip {
+  width: 14px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  background: var(--bg-secondary); cursor: pointer; border: none; padding: 0;
+  transition: background var(--transition);
+}
+.sidebar-strip:hover { background: var(--bg-tertiary); }
+.sidebar-strip-left  { border-right: 1px solid var(--border); }
+.sidebar-strip-right { border-left:  1px solid var(--border); }
+.sidebar-strip-icon {
+  font-size: 9px; color: var(--text-muted); writing-mode: vertical-rl;
+  user-select: none; pointer-events: none;
+}
+.sidebar-strip:hover .sidebar-strip-icon { color: var(--text-primary); }
+
+/* ── Left Sidebar ── */
+.left-sidebar {
+  width: var(--sidebar-w); flex-shrink: 0;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  transition: width 0.2s ease;
+}
+.left-sidebar.collapsed { width: 0; border-right: none; }
+
+.sidebar-nav {
+  padding: 12px 10px 0;
+  display: flex; flex-direction: column; gap: 2px;
+}
+
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; border-radius: var(--radius-sm);
+  cursor: pointer; color: var(--text-secondary);
+  font-size: 13px; font-weight: 500;
+  transition: var(--transition); border: none; background: none; width: 100%; text-align: left;
+}
+.nav-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+.nav-item.active { background: var(--accent-glow); color: var(--accent-light); }
+.nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+
+.sidebar-divider {
+  height: 1px; background: var(--border); margin: 10px 16px;
+}
+
+.sidebar-section-title {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.8px;
+  color: var(--text-muted); text-transform: uppercase;
+  padding: 6px 16px 4px;
+}
+
+.new-session-btn {
+  margin: 8px 10px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 9px 12px; border-radius: var(--radius-sm);
+  background: var(--accent); color: #fff;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  border: none; transition: var(--transition);
+}
+.new-session-btn:hover { background: var(--accent-light); }
+
+.session-list { flex: 1; overflow-y: auto; padding: 0 6px; }
+.session-item {
+  padding: 8px 10px; border-radius: var(--radius-sm);
+  cursor: pointer; font-size: 12px; color: var(--text-secondary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  transition: var(--transition); display: flex; align-items: center; gap: 6px;
+  border: none; background: none; width: 100%; text-align: left;
+}
+.session-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+.session-item.active { color: var(--accent-light); background: var(--accent-glow); }
+.session-item .session-icon { font-size: 13px; flex-shrink: 0; }
+
+.sidebar-bottom {
+  padding: 10px; border-top: 1px solid var(--border); flex-shrink: 0;
+}
+.theme-toggle {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 10px; border-radius: var(--radius-sm);
+  font-size: 12px; color: var(--text-secondary);
+}
+.theme-toggle-btn {
+  display: flex; gap: 4px; background: var(--bg-tertiary);
+  border-radius: 20px; padding: 3px; border: 1px solid var(--border);
+}
+.theme-btn {
+  padding: 3px 8px; border-radius: 16px; border: none; cursor: pointer;
+  font-size: 13px; background: none; color: var(--text-muted); transition: var(--transition);
+}
+.theme-btn.active { background: var(--accent); }
+
+/* ── Main Content ── */
+.main-content {
+  flex: 1; display: flex; overflow: hidden;
+}
+
+/* ── Left Main (Dashboard / Document Viewer) ── */
+.left-main {
+  flex: 1; display: flex; flex-direction: column; overflow: hidden;
+  min-width: 0; border-right: 1px solid var(--border);
+}
+
+/* Panel: Dashboard (Revenue top + Map bottom) */
+.dashboard-panel {
+  display: flex; flex-direction: column; height: 100%; overflow: hidden;
+}
+
+.dashboard-section {
+  flex: 1; overflow: hidden; padding: 14px 16px;
+  display: flex; flex-direction: column; min-height: 0;
+}
+.dashboard-section:first-child {
+  border-bottom: 1px solid var(--border); flex: 0 0 52%;
+}
+.dashboard-section:last-child { flex: 0 0 48%; }
+
+.section-title {
+  font-size: 12px; font-weight: 600; letter-spacing: 0.4px;
+  color: var(--text-secondary); text-transform: uppercase; margin-bottom: 10px;
+  display: flex; align-items: center; gap: 8px;
+}
+.section-title .pulse {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--success); animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; } 50% { opacity: 0.4; }
+}
+
+/* Revenue cards row */
+.metric-row {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px;
+}
+.metric-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 8px 10px;
+}
+.metric-label { font-size: 10px; color: var(--text-muted); margin-bottom: 2px; }
+.metric-value { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+.metric-value.danger { color: var(--danger); }
+.metric-value.success { color: var(--success); }
+.metric-value.warning { color: var(--warning); }
+.metric-sub { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+
+.chart-container {
+  flex: 1; min-height: 0; position: relative;
+}
+
+/* Map */
+.map-container {
+  flex: 1; min-height: 0; border-radius: var(--radius-sm); overflow: hidden;
+  border: 1px solid var(--border);
+}
+#location-map { height: 100%; width: 100%; }
+
+/* ── Document Viewer Panel ── */
+.doc-viewer-panel {
+  display: none; flex-direction: column; height: 100%; overflow: hidden;
+  padding: 16px;
+}
+.doc-viewer-panel.active { display: flex; }
+
+.doc-viewer-header {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-shrink: 0;
+}
+.doc-viewer-title { font-size: 14px; font-weight: 600; color: var(--text-primary); flex: 1; }
+.doc-viewer-close {
+  padding: 4px 10px; border-radius: var(--radius-sm);
+  background: var(--bg-tertiary); border: 1px solid var(--border);
+  color: var(--text-secondary); font-size: 12px; cursor: pointer;
+}
+.doc-viewer-close:hover { background: var(--border); }
+
+.doc-filter-bar {
+  display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; flex-shrink: 0;
+}
+.doc-filter-btn {
+  padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 500;
+  border: 1px solid var(--border); background: var(--bg-tertiary);
+  color: var(--text-secondary); cursor: pointer; transition: var(--transition);
+}
+.doc-filter-btn:hover, .doc-filter-btn.active {
+  background: var(--accent-glow); border-color: var(--accent); color: var(--accent-light);
+}
+
+.doc-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+.doc-group-label {
+  font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;
+  letter-spacing: 0.8px; padding: 6px 0 2px; display: flex; align-items: center; gap: 6px;
+}
+.doc-group-label span { background: var(--bg-tertiary); border-radius: 8px; padding: 1px 6px; font-size: 10px; }
+.doc-item {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 9px 12px; cursor: pointer;
+  transition: var(--transition); display: flex; align-items: center; gap: 10px;
+}
+.doc-item:hover { border-color: var(--accent); background: var(--accent-glow); }
+.doc-item.chat-ref { border-color: var(--gold); }
+.doc-item-icon { font-size: 16px; flex-shrink: 0; }
+.doc-item-body { min-width: 0; flex: 1; }
+.doc-item-title { font-size: 12px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.doc-item-meta { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+.doc-item-open { font-size: 11px; color: var(--accent-light); flex-shrink: 0; opacity: 0; transition: var(--transition); }
+.doc-item:hover .doc-item-open { opacity: 1; }
+
+.doc-empty {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 8px; color: var(--text-muted);
+}
+.doc-empty-icon { font-size: 40px; opacity: 0.4; }
+
+/* ── Right Main (Chat) ── */
+.right-main {
+  flex: 1; min-width: 340px;
+  display: flex; flex-direction: column;
+  overflow: hidden; background: var(--bg-secondary);
+  position: relative;
+}
+
+.chat-header {
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+  font-size: 13px; font-weight: 600; color: var(--text-primary);
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+}
+.chat-header-icon { font-size: 18px; }
+.chat-header-sub { font-size: 11px; color: var(--text-muted); margin-left: auto; }
+
+.chat-messages {
+  flex: 1; overflow-y: auto; padding: 14px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+
+.message {
+  display: flex; gap: 10px; align-items: flex-start;
+}
+.message.user { flex-direction: row-reverse; }
+
+.message-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; flex-shrink: 0; font-weight: 700;
+}
+.message.user .message-avatar { background: var(--accent); color: #fff; }
+.message.assistant .message-avatar {
+  background: linear-gradient(135deg, #B02810, #E8341A);
+  color: #fff;
+}
+
+.message-bubble {
+  max-width: 85%; padding: 9px 13px; border-radius: 14px;
+  font-size: 13px; line-height: 1.6;
+}
+.message.user .message-bubble {
+  background: var(--accent); color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.message.assistant .message-bubble {
+  background: var(--bg-card); border: 1px solid var(--border); color: var(--text-primary);
+  border-bottom-left-radius: 4px;
+}
+.message.assistant .message-bubble p { margin: 0 0 6px; }
+.message.assistant .message-bubble p:last-child { margin-bottom: 0; }
+.message.assistant .message-bubble ul, .message.assistant .message-bubble ol {
+  padding-left: 16px; margin: 4px 0;
+}
+.message.assistant .message-bubble strong { color: var(--accent-light); }
+.message.assistant .message-bubble code {
+  background: var(--bg-tertiary); padding: 1px 5px; border-radius: 3px;
+  font-size: 12px;
+}
+
+.doc-ref-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  margin: 4px 0; padding: 3px 9px; border-radius: 12px;
+  background: var(--accent-glow); border: 1px solid var(--border-accent);
+  color: var(--accent-light); font-size: 11px; cursor: pointer;
+  transition: var(--transition);
+}
+.doc-ref-btn:hover { background: var(--accent); color: #fff; }
+
+/* ── Impatient bunny ── */
+#impatient-bunny {
+  position: absolute; top: 54px; right: 14px; z-index: 9999;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+  pointer-events: none;
+  animation: bunny-slide-in 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+@keyframes bunny-slide-in {
+  from { transform: translateY(-40px); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+.bunny-bubble {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 14px; border-bottom-right-radius: 3px;
+  padding: 8px 13px; font-size: 12px; color: var(--text-secondary);
+  max-width: 200px; text-align: center; line-height: 1.4;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  animation: bunny-msg-pop 0.3s ease both;
+}
+@keyframes bunny-msg-pop {
+  from { transform: scale(0.7); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+.bunny-emoji-wrap {
+  font-size: 48px; line-height: 1;
+  animation: bunny-hop 0.6s ease-in-out infinite alternate;
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+}
+@keyframes bunny-hop {
+  from { transform: translateY(0) rotate(-3deg); }
+  to   { transform: translateY(-8px) rotate(3deg); }
+}
+/* ── Wait-or-stop prompt (appears at 200s) ── */
+#wait-or-stop {
+  position: absolute; top: 54px; left: 50%; transform: translateX(-50%);
+  z-index: 9998; display: none;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 10px 16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+  font-size: 12px; color: var(--text-secondary);
+  align-items: center; gap: 10px; white-space: nowrap;
+  animation: bunny-msg-pop 0.3s ease both;
+  pointer-events: all;
+}
+#wait-or-stop .wos-label { font-weight: 500; }
+#wait-or-stop .wos-btn {
+  padding: 4px 12px; border-radius: var(--radius-sm); font-size: 12px;
+  font-weight: 600; cursor: pointer; border: 1px solid var(--border);
+  transition: var(--transition);
+}
+#wait-or-stop .wos-btn.wait {
+  background: rgba(255,255,255,0.06); color: var(--text-secondary);
+}
+#wait-or-stop .wos-btn.wait:hover { background: rgba(255,255,255,0.14); color: var(--text-primary); }
+#wait-or-stop .wos-btn.stop {
+  background: rgba(232,93,93,0.12); color: var(--danger);
+  border-color: rgba(232,93,93,0.35);
+}
+#wait-or-stop .wos-btn.stop:hover { background: rgba(232,93,93,0.25); }
+
+/* Inline document reference chips inside chat bubbles */
+.chat-doc-refs {
+  margin-top: 10px; padding-top: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+}
+.chat-doc-refs-label {
+  font-size: 10px; font-weight: 700; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px;
+  display: flex; align-items: center; gap: 5px;
+}
+.chat-doc-refs-label::before { content: '📎'; font-size: 11px; }
+.chat-doc-chips { display: flex; flex-direction: column; gap: 4px; }
+.chat-doc-chip {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 7px 10px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border-accent);
+  background: var(--accent-glow);
+  color: var(--accent-light); font-size: 12px; font-family: inherit;
+  cursor: pointer; transition: var(--transition); text-align: left;
+}
+.chat-doc-chip:hover {
+  background: var(--accent); color: #fff;
+  border-color: var(--accent); transform: translateX(2px);
+}
+.chat-doc-chip-icon { font-size: 14px; flex-shrink: 0; }
+.chat-doc-chip-name {
+  flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-weight: 500;
+}
+.chat-doc-chip-type {
+  font-size: 10px; opacity: 0.7; flex-shrink: 0; text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.typing-indicator {
+  display: inline-flex;
+  padding: 12px 14px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 14px; border-bottom-left-radius: 4px;
+}
+.typing-dots { display: flex; gap: 4px; align-items: center; }
+.typing-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); animation: typing 1.2s infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes map-pulse {
+  0%   { transform: scale(0.6); opacity: 0.9; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+@keyframes typing { 0%, 100% { transform: translateY(0); opacity: 0.5; } 50% { transform: translateY(-4px); opacity: 1; } }
+
+
+/* Inline "thinking" dots shown inside a streaming bubble while waiting for the next chunk */
+.stream-thinking {
+  display: flex; gap: 5px; align-items: center; padding: 8px 0 2px 0;
+}
+.stream-thinking-dot {
+  width: 5px; height: 5px; border-radius: 50%; background: var(--accent);
+  animation: typing 1.2s infinite; opacity: 0.7;
+}
+.stream-thinking-dot:nth-child(2) { animation-delay: 0.2s; }
+.stream-thinking-dot:nth-child(3) { animation-delay: 0.4s; }
+.typing-status-text {
+  font-size: 11px; color: var(--text-muted); margin-top: 5px;
+  font-style: italic; animation: fadeIn 0.3s ease;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* Action buttons */
+.action-buttons {
+  padding: 8px 14px; display: flex; gap: 6px; flex-wrap: wrap;
+  border-top: 1px solid var(--border); flex-shrink: 0;
+  background: var(--bg-secondary);
+}
+.action-btn {
+  flex: 1; min-width: 0; padding: 7px 10px; border-radius: var(--radius-sm);
+  font-size: 11px; font-weight: 600; cursor: pointer; border: none;
+  transition: var(--transition); white-space: nowrap;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+}
+.action-btn.hire {
+  background: rgba(62,207,142,0.12); color: var(--success);
+  border: 1px solid rgba(62,207,142,0.3);
+}
+.action-btn.hire:hover { background: rgba(62,207,142,0.25); }
+.action-btn.fire {
+  background: rgba(232,93,93,0.1); color: var(--danger);
+  border: 1px solid rgba(232,93,93,0.25);
+}
+.action-btn.fire:hover { background: rgba(232,93,93,0.2); }
+.action-btn.ai {
+  background: rgba(99,102,241,0.12); color: #a5b4fc;
+  border: 1px solid rgba(99,102,241,0.35);
+}
+.action-btn.ai:hover { background: rgba(99,102,241,0.25); }
+
+/* Retry button on connection-error messages */
+.retry-btn {
+  padding: 4px 12px; border-radius: var(--radius-sm);
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  background: rgba(255,255,255,0.07); color: var(--text-secondary);
+  border: 1px solid var(--border); transition: var(--transition);
+  white-space: nowrap; flex-shrink: 0;
+}
+.retry-btn:hover {
+  background: rgba(255,255,255,0.14); color: var(--text-primary);
+  border-color: var(--accent);
+}
+
+/* Suggested follow-up question chips */
+.suggested-questions {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+}
+.suggested-questions-label {
+  font-size: 10px; font-weight: 700; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px;
+  display: flex; align-items: center; gap: 5px;
+}
+.suggested-questions-label::before { content: '💡'; font-size: 11px; }
+.question-chips { display: flex; flex-direction: column; gap: 5px; }
+.question-chip {
+  display: block; width: 100%; text-align: left;
+  padding: 6px 10px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-input) 80%, transparent);
+  color: var(--text-secondary); font-size: 11.5px; font-family: inherit;
+  cursor: pointer; transition: var(--transition); line-height: 1.4;
+}
+.question-chip:hover {
+  border-color: var(--accent); color: var(--accent-light);
+  background: var(--accent-glow); transform: translateX(2px);
+}
+.question-chip::before { content: '→ '; opacity: 0.5; font-size: 10px; }
+
+/* Routing attribution pill — shown at top of each AI response bubble */
+.routing-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: 10px; margin-bottom: 10px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  font-size: 10.5px; font-weight: 600; color: var(--text-muted);
+  letter-spacing: 0.3px;
+}
+.routing-pill::before { content: 'via '; opacity: 0.6; font-weight: 400; }
+
+/* Briefing alert card shown in welcome message */
+.briefing-alerts {
+  margin: 10px 0 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.briefing-alert-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 11px; font-size: 12.5px; cursor: pointer;
+  border-bottom: 1px solid var(--border); transition: background 0.15s;
+  color: var(--text-secondary);
+}
+.briefing-alert-item:last-child { border-bottom: none; }
+.briefing-alert-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+.alert-dot {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+}
+.alert-dot.red  { background: var(--danger); box-shadow: 0 0 5px var(--danger); }
+.alert-dot.yellow { background: var(--warning); box-shadow: 0 0 5px var(--warning); }
+.alert-arrow { margin-left: auto; opacity: 0.4; font-size: 11px; }
+
+/* Board meeting CTA button in welcome message */
+.board-meeting-btn {
+  width: 100%; margin-top: 10px; padding: 9px 14px;
+  background: var(--accent); color: #fff; border: none;
+  border-radius: var(--radius-sm); font-size: 12.5px; font-weight: 700;
+  cursor: pointer; font-family: inherit; transition: opacity 0.15s;
+  text-align: left; display: flex; align-items: center; gap: 8px;
+}
+.board-meeting-btn:hover { opacity: 0.85; }
+.board-meeting-btn .bmb-arrow { margin-left: auto; opacity: 0.8; }
+
+/* Demo breaking-alert toast */
+.demo-alert-toast {
+  position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+  background: var(--bg-secondary);
+  border: 1px solid rgba(232,93,93,0.6);
+  border-radius: var(--radius-sm);
+  padding: 12px 12px 12px 14px;
+  display: flex; align-items: center; gap: 10px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.45), 0 0 0 1px rgba(232,93,93,0.2);
+  max-width: 340px; min-width: 280px;
+  animation: toast-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes toast-in {
+  from { transform: translateY(120%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.demo-alert-toast-dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--danger); flex-shrink: 0;
+}
+.demo-alert-toast-body { flex: 1; min-width: 0; }
+.demo-alert-toast-title {
+  font-size: 10.5px; font-weight: 700; color: var(--danger);
+  text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 3px;
+}
+.demo-alert-toast-text { font-size: 12px; color: var(--text-secondary); line-height: 1.4; }
+.demo-alert-toast-cta {
+  padding: 5px 10px; background: var(--danger); color: #fff;
+  border: none; border-radius: 4px; font-size: 11px; font-weight: 600;
+  cursor: pointer; white-space: nowrap; flex-shrink: 0; font-family: inherit;
+}
+.demo-alert-toast-cta:hover { opacity: 0.85; }
+.demo-alert-toast-close {
+  background: none; border: none; color: var(--text-muted);
+  cursor: pointer; font-size: 16px; line-height: 1; padding: 0 2px;
+  flex-shrink: 0;
+}
+.demo-alert-toast-close:hover { color: var(--text-primary); }
+
+/* Chat input */
+.chat-input-area {
+  padding: 10px 14px; border-top: 1px solid var(--border);
+  display: flex; gap: 8px; align-items: flex-end; flex-shrink: 0;
+}
+.chat-textarea {
+  flex: 1; background: var(--bg-input); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 9px 12px;
+  color: var(--text-primary); font-size: 13px; resize: none;
+  font-family: inherit; line-height: 1.5; max-height: 120px;
+  transition: var(--transition);
+}
+.chat-textarea:focus { outline: none; border-color: var(--accent); }
+.chat-textarea::placeholder { color: var(--text-muted); }
+.send-btn {
+  padding: 9px 14px; background: var(--accent); color: #fff;
+  border: none; border-radius: var(--radius-sm); cursor: pointer;
+  font-size: 16px; transition: var(--transition); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.send-btn:hover:not(:disabled) { background: var(--accent-light); }
+.send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.cancel-btn {
+  padding: 9px 14px; background: #fee2e2; color: #dc2626;
+  border: 1px solid #fca5a5; border-radius: var(--radius-sm); cursor: pointer;
+  font-size: 13px; font-weight: 600; transition: var(--transition); flex-shrink: 0;
+  display: none; align-items: center; justify-content: center; gap: 5px;
+}
+.cancel-btn:hover { background: #fecaca; }
+
+/* ── Right Sidebar ── */
+.right-sidebar {
+  width: var(--right-sidebar-w); flex-shrink: 0;
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow-y: auto;
+  transition: width 0.2s ease;
+}
+.right-sidebar.collapsed { width: 0; border-left: none; overflow: hidden; }
+
+/* Sub-agent items in right sidebar */
+.agent-item {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 0; font-size: 11px; color: var(--text-secondary);
+  text-decoration: none; border-radius: 4px;
+  transition: var(--transition);
+}
+.agent-item:hover { color: var(--accent-light); }
+.agent-item .agent-icon { font-size: 12px; flex-shrink: 0; }
+.agent-item .agent-name { flex: 1; }
+.agent-item .agent-arrow { font-size: 10px; opacity: 0; transition: var(--transition); }
+.agent-item:hover .agent-arrow { opacity: 1; }
+.agent-group-label {
+  font-size: 9px; font-weight: 700; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.7px;
+  margin: 6px 0 3px; padding-top: 4px; border-top: 1px solid var(--border);
+}
+.agent-group-label:first-child { border-top: none; margin-top: 2px; }
+
+/* Lakebase detail sub-rows */
+.tech-sub-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 10px; color: var(--text-secondary); padding: 2px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+}
+.tech-sub-row:last-child { border-bottom: none; }
+.tech-sub-key { color: var(--text-muted); flex-shrink: 0; margin-right: 6px; }
+.tech-sub-val { text-align: right; word-break: break-all; font-family: monospace; font-size: 9.5px; }
+.lakebase-status-badge {
+  display: inline-block; padding: 1px 6px; border-radius: 3px;
+  font-size: 9px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase;
+}
+.lakebase-status-badge.active { background: rgba(52,199,89,0.15); color: #34C759; }
+.lakebase-status-badge.inactive { background: rgba(255,159,10,0.15); color: #FF9F0A; }
+
+/* Clickable tech resource links — must override .tech-value color */
+.tech-section .tech-link {
+  color: var(--accent-light) !important; text-decoration: none;
+  font-size: 11px; word-break: break-all; line-height: 1.5;
+  display: inline; cursor: pointer;
+}
+.tech-section .tech-link:hover { color: var(--accent) !important; text-decoration: underline; }
+
+.right-sidebar-title {
+  padding: 14px 14px 6px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.8px;
+  color: var(--text-muted); text-transform: uppercase;
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+
+.tech-section { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+.tech-label { font-size: 10px; color: var(--text-muted); margin-bottom: 4px; font-weight: 600; }
+.tech-value {
+  font-size: 11px; color: var(--text-secondary); word-break: break-all;
+  line-height: 1.5; font-family: 'SF Mono', 'Cascadia Code', monospace;
+}
+.tech-value.ok { color: var(--success); }
+.tech-value.warn { color: var(--warning); }
+
+.status-dot {
+  display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+  margin-right: 5px;
+}
+.status-dot.green { background: var(--success); }
+.status-dot.yellow { background: var(--warning); }
+.status-dot.red { background: var(--danger); }
+
+/* ── Location markers ── */
+.loc-marker-risk-high { color: #e85d5d; }
+.loc-marker-risk-medium { color: #f5a623; }
+.loc-marker-risk-low { color: #3ecf8e; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-accent); }
+
+/* ── PDF Viewer Modal ── */
+.pdf-modal-overlay {
+  position: fixed; inset: 0; z-index: 2000;
+  background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  animation: fadeIn 0.15s ease;
+}
+.pdf-modal {
+  width: 88vw; height: 90vh; max-width: 1100px;
+  background: var(--bg-secondary); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+  display: flex; flex-direction: column; overflow: hidden;
+  animation: slideUp 0.18s ease;
+}
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+
+.pdf-modal-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.pdf-modal-icon { font-size: 20px; }
+.pdf-modal-title {
+  font-size: 14px; font-weight: 600; color: var(--text-primary);
+  flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pdf-modal-type {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.6px;
+  text-transform: uppercase; color: var(--text-muted);
+  background: var(--bg-tertiary); border: 1px solid var(--border);
+  padding: 2px 8px; border-radius: 10px;
+}
+.pdf-modal-actions { display: flex; gap: 6px; }
+.pdf-modal-btn {
+  padding: 5px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+  background: var(--bg-tertiary); color: var(--text-secondary);
+  font-size: 12px; cursor: pointer; transition: var(--transition);
+  text-decoration: none; display: inline-flex; align-items: center; gap: 5px;
+}
+.pdf-modal-btn:hover { background: var(--border); color: var(--text-primary); }
+.pdf-modal-btn.close { background: var(--danger); border-color: var(--danger); color: #fff; }
+.pdf-modal-btn.close:hover { opacity: 0.85; }
+
+.pdf-modal-body { flex: 1; overflow: hidden; background: #525659; }
+.pdf-modal-body iframe {
+  width: 100%; height: 100%; border: none;
+}
+.pdf-modal-loading {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; height: 100%; gap: 12px;
+  color: var(--text-muted); font-size: 14px;
+}
+.pdf-spin {
+  width: 36px; height: 36px; border: 3px solid var(--border);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Toast ── */
+.toast {
+  position: fixed; bottom: 20px; right: 20px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  color: var(--text-primary); padding: 10px 16px; border-radius: var(--radius);
+  font-size: 13px; box-shadow: var(--shadow); z-index: 1000;
+  animation: slideIn 0.2s ease;
+}
+@keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* ── Leaflet dark mode ── */
+[data-theme="dark"] .leaflet-tile { filter: brightness(0.65) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7); }
+[data-theme="light"] .leaflet-tile { filter: none; }
+</style>
+</head>
+
+<body>
+<!-- ── Header ── -->
+<header class="header">
+  <span class="header-logo">👨‍💼 CEO Dashboard</span>
+  <span class="header-subtitle">Casper's Kitchens</span>
+  <div class="header-spacer"></div>
+  <span class="header-badge" id="location-count-badge">8 Locations · 16 Brands</span>
+</header>
+
+<div class="layout">
+
+  <!-- ── Left Sidebar ── -->
+  <aside class="left-sidebar" id="left-sidebar">
+    <!-- Nav tabs -->
+    <nav class="sidebar-nav">
+      <button class="nav-item active" id="nav-dashboard" onclick="switchView('dashboard')">
+        <span class="icon">📊</span> Dashboard
+      </button>
+      <button class="nav-item" id="nav-documents" onclick="switchView('documents')">
+        <span class="icon">📄</span> Document Viewer
+        <span id="doc-badge" style="display:none; margin-left:auto; background:var(--accent); color:#fff; font-size:10px; padding:1px 6px; border-radius:10px;"></span>
+      </button>
+    </nav>
+
+    <div class="sidebar-divider"></div>
+
+    <!-- New session -->
+    <button class="new-session-btn" onclick="createSession()">
+      <span>＋</span> New Session
+    </button>
+
+    <div class="sidebar-section-title">Conversations</div>
+    <div class="session-list" id="session-list">
+      <!-- dynamically populated -->
+    </div>
+
+    <!-- Bottom: theme -->
+    <div class="sidebar-bottom">
+      <div class="theme-toggle">
+        <span style="font-size:12px; color:var(--text-muted);">Theme</span>
+        <div class="theme-toggle-btn">
+          <button class="theme-btn" id="theme-dark" onclick="setTheme('dark')">🌙</button>
+          <button class="theme-btn active" id="theme-light" onclick="setTheme('light')">☀️</button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Left sidebar toggle strip -->
+  <button class="sidebar-strip sidebar-strip-left" id="left-toggle" onclick="toggleLeftSidebar()" title="Toggle left sidebar">
+    <span class="sidebar-strip-icon" id="left-toggle-icon">◀</span>
+  </button>
+
+  <!-- ── Main Content ── -->
+  <main class="main-content">
+
+    <!-- ── Left Main ── -->
+    <div class="left-main">
+
+      <!-- Dashboard Panel -->
+      <div class="dashboard-panel" id="view-dashboard">
+
+        <!-- Revenue Section (top half) -->
+        <div class="dashboard-section">
+          <div class="section-title">
+            <div class="pulse"></div>
+            Revenue Performance · Current vs Prior Period
+          </div>
+          <div class="metric-row" id="metric-row">
+            <!-- populated by JS -->
+          </div>
+          <div class="chart-container">
+            <canvas id="revenue-chart"></canvas>
+          </div>
+        </div>
+
+        <!-- Location Map (bottom half) -->
+        <div class="dashboard-section">
+          <div class="section-title">
+            <span>📍</span> Location Health Map
+          </div>
+          <div class="map-container">
+            <div id="location-map"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Document Viewer Panel -->
+      <div class="doc-viewer-panel" id="view-documents">
+        <div class="doc-viewer-header">
+          <span style="font-size:20px;">📄</span>
+          <span class="doc-viewer-title">Document Library</span>
+          <span id="doc-total-count" style="font-size:11px;color:var(--text-muted);"></span>
+          <button class="doc-viewer-close" onclick="switchView('dashboard')">← Back</button>
+        </div>
+        <div class="doc-filter-bar" id="doc-filter-bar">
+          <button class="doc-filter-btn active" onclick="filterDocs('all')" data-filter="all">All</button>
+        </div>
+        <div class="doc-list" id="doc-list">
+          <div class="doc-empty">
+            <span class="doc-empty-icon">⏳</span>
+            <span>Loading documents…</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /left-main -->
+
+    <!-- ── Right Main (Chat) ── -->
+    <div class="right-main">
+      <div class="chat-header">
+        <span class="chat-header-icon">🤖</span>
+        CEO Intelligence
+        <span class="chat-header-sub" id="chat-session-label">No session</span>
+      </div>
+
+      <div class="chat-messages" id="chat-messages">
+        <!-- Welcome message -->
+        <div class="message assistant">
+          <div class="message-avatar">AI</div>
+          <div class="message-bubble">
+            <p>Good morning. I'm your CEO Intelligence assistant for <strong>Casper's Kitchens</strong>.</p>
+            <p>I have access to your <strong>revenue analytics</strong>, <strong>operations data</strong>, <strong>food safety inspections</strong>, <strong>legal exposure</strong>, <strong>regulatory compliance</strong>, <strong>audit findings</strong>, and <strong>consultancy reports</strong> across all 8 locations (US + EMEA).</p>
+            <p>What would you like to know?</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contextual action buttons -->
+      <div class="action-buttons" id="action-buttons" style="display:none;">
+        <button class="action-btn hire" id="btn-hire" style="display:none;" onclick="triggerAction('hire')">
+          💼 Bring in the Suits
+        </button>
+        <button class="action-btn fire" id="btn-fire" style="display:none;" onclick="triggerAction('fire')">
+          🔥 Cut the Deadweight
+        </button>
+        <button class="action-btn ai" id="btn-ai" style="display:none;" onclick="triggerAction('ai')">
+          🤖 Go Full AI
+        </button>
+      </div>
+
+      <div class="chat-input-area">
+        <textarea
+          class="chat-textarea"
+          id="chat-input"
+          placeholder="Ask about revenue, operations, legal, compliance, audits…"
+          rows="2"
+          onkeydown="handleKey(event)"
+        ></textarea>
+        <button class="send-btn" id="send-btn" onclick="sendMessage()">➤</button>
+        <button class="cancel-btn" id="cancel-btn" onclick="cancelStream()" title="Cancel">✕ Stop</button>
+      </div>
+
+      <!-- Impatient bunny – anchored to top-right of chat panel -->
+      <div id="impatient-bunny" style="display:none">
+        <div class="bunny-bubble" id="bunny-msg">Still waiting… 🙄</div>
+        <div class="bunny-emoji-wrap">🐰</div>
+      </div>
+
+      <!-- Wait-or-stop prompt – appears at 200s -->
+      <div id="wait-or-stop">
+        <span class="wos-label">Taking longer than a Chicago health inspection…</span>
+        <button class="wos-btn wait" onclick="dismissWaitPrompt()">Keep waiting</button>
+        <button class="wos-btn stop"  onclick="stopStreaming()">Stop</button>
+      </div>
+
+    </div><!-- /right-main -->
+
+  </main>
+
+  <!-- Right sidebar toggle strip -->
+  <button class="sidebar-strip sidebar-strip-right" id="right-toggle" onclick="toggleRightSidebar()" title="Toggle right sidebar">
+    <span class="sidebar-strip-icon" id="right-toggle-icon">▶</span>
+  </button>
+
+  <!-- ── Right Sidebar (Tech Info) ── -->
+  <aside class="right-sidebar" id="right-sidebar">
+    <div class="right-sidebar-title">System Info</div>
+    <div id="tech-info-panels">
+      <!-- populated by JS -->
+    </div>
+  </aside>
+
+</div><!-- /layout -->
+
+<!-- ── PDF Viewer Modal ── -->
+<div class="pdf-modal-overlay" id="pdf-modal" style="display:none;" onclick="closePdfModal(event)">
+  <div class="pdf-modal" onclick="event.stopPropagation()">
+    <div class="pdf-modal-header">
+      <span class="pdf-modal-icon" id="pdf-modal-icon">📄</span>
+      <span class="pdf-modal-title" id="pdf-modal-title">Document</span>
+      <span class="pdf-modal-type" id="pdf-modal-type">PDF</span>
+      <div class="pdf-modal-actions">
+        <a class="pdf-modal-btn" id="pdf-modal-download" href="#" download target="_blank">⬇ Download</a>
+        <button class="pdf-modal-btn close" onclick="closePdfModal()">✕ Close</button>
+      </div>
+    </div>
+    <div class="pdf-modal-body" id="pdf-modal-body">
+      <div class="pdf-modal-loading" id="pdf-modal-loading">
+        <div class="pdf-spin"></div>
+        <span>Loading document…</span>
+      </div>
+      <iframe id="pdf-modal-iframe" style="display:none;" onload="onPdfLoaded()"></iframe>
+    </div>
+  </div>
+</div>
+
+<script>
+// ────────────────────────────────────────────────────────────────────────────
+// Markdown pre-processing
+// ────────────────────────────────────────────────────────────────────────────
+function cleanMarkdown(text) {
+  if (!text) return text;
+
+  // Cut off at the first footnote definition block (lines starting with [^id]:)
+  text = text.split(/(?:^|\n)\[\^[^\]]+\]:/m)[0];
+  // Strip remaining inline footnote markers like [^id]
+  text = text.replace(/\[\^[^\]]+\]/g, '');
+
+  // Strip the MAS routing announcement ("I'll query the X system to...")
+  // These appear before the actual answer and are just noise to the CEO.
+  text = text.replace(/^I'(?:ll|m going to) (?:query|check|access|search|look up|pull|retrieve|examine|analyze|review|consult|use)[^.!?]*[.!?]\s*/i, '');
+
+  // Strip KA/Genie error lines injected by MAS when a sub-agent fails
+  text = text.replace(/Error:\s*KA endpoint [^\n]+\n?/g, '');
+  text = text.replace(/Error:\s*Failed to query Genie space [^\n]+\n?/g, '');
+
+  // Fix MAS table formatting — the MAS concatenates rows on one line:
+  //   "||col1|col2| |-|-| |v1|v2| |v3|v4|Next paragraph"
+  // a) "||" = agent-label separator + table start → blank line + table
+  text = text.replace(/\|\|/g, '\n\n|');
+  // b) "| |" = end of one row + start of next → newline between rows
+  text = text.replace(/\| \|/g, '|\n|');
+  // c) Pipe + capital letter = end of table followed by new paragraph.
+  //    Use negative lookahead to avoid firing inside table cells:
+  //    only matches when the capital-letter word is NOT followed by another pipe
+  //    on the same line (which would indicate it's a cell value, not new text).
+  text = text.replace(/\|([A-Z*_\[])(?![^|\n]*\|)/g, '|\n\n$1');
+  // d) Table header rows that are missing a leading pipe (Genie returns headers
+  //    like "col1|col2|col3|" without the leading |). marked.js requires the
+  //    leading pipe to recognise the row as part of a GFM table.
+  text = text.replace(/^([A-Za-z_][^|\n]*(?:\|[^\n]*)+\|)\s*$/gm, '|$1');
+  // e) Strip pandas DataFrame integer row-index column.
+  //    Genie wraps results in a DataFrame whose index (0, 1, 2...) is an unnamed
+  //    first column: header has N cells, separator+data rows have N+1 cells.
+  //    marked.js rejects the table when cell counts don't match.
+  //    Fix: detect header/separator mismatch, strip the extra leading cell from
+  //    the separator row and the leading integer from each data row.
+  const _allLines = text.split('\n');
+  for (let _i = 0; _i < _allLines.length; _i++) {
+    if (_i + 1 < _allLines.length
+        && _allLines[_i].startsWith('|')
+        && /^\|[-: |]+\|$/.test(_allLines[_i + 1])) {
+      const _hdrCols = (_allLines[_i].match(/\|/g) || []).length - 1;
+      const _sepCols = (_allLines[_i + 1].match(/\|/g) || []).length - 1;
+      if (_sepCols === _hdrCols + 1) {
+        _allLines[_i + 1] = _allLines[_i + 1].replace(/^\|[^|]*/, '');
+        for (let _j = _i + 2; _j < _allLines.length && _allLines[_j].startsWith('|'); _j++) {
+          _allLines[_j] = _allLines[_j].replace(/^\|\d+\|/, '|');
+        }
+      }
+    }
+  }
+  text = _allLines.join('\n');
+
+  // Collapse 3+ blank lines to 2
+  text = text.replace(/\n{3,}/g, '\n\n');
+
+  return text.trim();
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// State
+// ────────────────────────────────────────────────────────────────────────────
+let currentView = 'dashboard';
+let currentSessionId = null;
+let isStreaming = false;
+let lastUserMessage = '';
+let _streamAbortController = null;
+let _waitPromptTimer = null;
+let revenueChart = null;
+let locationMap = null;
+let referencedDocs = [];
+let sessions = [];
+let techInfo = {};
+let lastAssistantText = '';
+
+// ────────────────────────────────────────────────────────────────────────────
+// Theme
+// ────────────────────────────────────────────────────────────────────────────
+function setTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('ceo-theme', theme);
+  document.getElementById('theme-dark').classList.toggle('active', theme === 'dark');
+  document.getElementById('theme-light').classList.toggle('active', theme === 'light');
+  if (locationMap) {
+    // Re-render tiles by invalidating map size
+    setTimeout(() => locationMap.invalidateSize(), 100);
+  }
+}
+
+(function initTheme() {
+  const saved = localStorage.getItem('ceo-theme') || 'dark';
+  setTheme(saved);
+})();
+
+// ────────────────────────────────────────────────────────────────────────────
+// View switching
+// ────────────────────────────────────────────────────────────────────────────
+function switchView(view) {
+  currentView = view;
+  document.getElementById('view-dashboard').style.display = view === 'dashboard' ? 'flex' : 'none';
+  document.getElementById('view-documents').classList.toggle('active', view === 'documents');
+  document.getElementById('nav-dashboard').classList.toggle('active', view === 'dashboard');
+  document.getElementById('nav-documents').classList.toggle('active', view === 'documents');
+  if (view === 'dashboard' && locationMap) {
+    setTimeout(() => locationMap.invalidateSize(), 200);
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Sessions
+// ────────────────────────────────────────────────────────────────────────────
+async function loadSessions() {
+  try {
+    const res = await fetch('/api/sessions');
+    sessions = await res.json();
+    renderSessionList();
+    // On initial load (no session selected yet), auto-open the most recent session
+    if (!currentSessionId) {
+      if (sessions.length) {
+        await selectSession(sessions[0].id, sessions[0].title);
+      } else {
+        renderWelcome();
+      }
+    }
+  } catch (e) { console.error(e); renderWelcome(); }
+}
+
+function renderSessionList() {
+  const list = document.getElementById('session-list');
+  if (!sessions.length) {
+    list.innerHTML = '<div style="padding:8px 16px; font-size:11px; color:var(--text-muted);">No sessions yet</div>';
+    return;
+  }
+  list.innerHTML = sessions.map(s => `
+    <button class="session-item ${s.id === currentSessionId ? 'active' : ''}"
+            onclick="selectSession('${s.id}', '${escHtml(s.title)}')">
+      <span class="session-icon">💬</span>
+      ${escHtml(s.title)}
+    </button>
+  `).join('');
+}
+
+async function createSession() {
+  try {
+    const res = await fetch('/api/sessions', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({title: 'CEO Session'}),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const session = await res.json();
+    if (!session?.id) throw new Error('Invalid session response');
+    currentSessionId = session.id;
+    sessions.unshift(session);
+    renderSessionList();
+    clearChat();
+    updateChatLabel(session.title);
+    showToast('New session started');
+  } catch (e) { console.error('createSession:', e); }
+}
+
+async function selectSession(id, title) {
+  currentSessionId = id;
+  renderSessionList();
+  updateChatLabel(title);
+  referencedDocs = [];
+  renderDocList();
+
+  const msgs = document.getElementById('chat-messages');
+  msgs.innerHTML = '';
+  try {
+    const res = await fetch(`/api/sessions/${id}/messages`);
+    const messages = await res.json();
+    if (!messages.length) {
+      renderWelcome();
+      return;
+    }
+    messages.forEach(m => {
+      if (m.documents_referenced?.length) {
+        referencedDocs.push(...m.documents_referenced);
+      }
+      appendMessage(m.role, m.content, false);
+    });
+    renderDocList();
+    msgs.scrollTop = msgs.scrollHeight;
+  } catch (e) {
+    renderWelcome();
+  }
+}
+
+function updateChatLabel(title) {
+  document.getElementById('chat-session-label').textContent = title;
+}
+
+function clearChat() {
+  document.getElementById('chat-messages').innerHTML = '';
+  renderWelcome();
+  document.getElementById('action-buttons').style.display = 'none';
+  referencedDocs = [];
+  renderDocList();
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Chat
+// ────────────────────────────────────────────────────────────────────────────
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text || isStreaming) return;
+
+  if (!currentSessionId) {
+    await createSession();
+  }
+
+  input.value = '';
+  input.style.height = 'auto';
+  lastUserMessage = text;
+  appendMessage('user', text, false);
+
+  isStreaming = true;
+  document.getElementById('send-btn').style.display = 'none';
+  document.getElementById('cancel-btn').style.display = 'flex';
+  startBunny();
+
+  // Show typing indicator
+  const typingEl = showTyping();
+
+  const bubbleEl = document.createElement('div');
+  bubbleEl.className = 'message assistant';
+  // Use a unique per-message ID to avoid conflicts with previous messages
+  const streamId = 'sb-' + Date.now();
+  let rawContent = '';
+  let streamBubble = null;
+  let inlinePendingEl = null;
+  let routingLabel = '';
+  let warningText = '';
+
+  _streamAbortController = new AbortController();
+  // After 200s, show the wait-or-stop prompt
+  _waitPromptTimer = setTimeout(() => showWaitPrompt(), 200_000);
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({session_id: currentSessionId, message: text}),
+      signal: _streamAbortController.signal,
+    });
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let started = false;
+    let streamDone = false;
+
+    while (!streamDone) {
+      const {done, value} = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, {stream: true});
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (line.startsWith('data:')) {
+          const data = line.slice(5).trim();
+          if (data === '[DONE]') { streamDone = true; break; }
+          try {
+            const obj = JSON.parse(data);
+            const msgs = document.getElementById('chat-messages');
+            if (obj.routing) {
+              routingLabel = obj.routing;
+            } else if (obj.warning) {
+              warningText = obj.warning;
+            } else if (obj.thinking) {
+              // Show animated dots inside the bubble while waiting for the next chunk.
+              // Require 80+ chars already visible so dots never appear right after the
+              // typing indicator clears (which would look like two loading states in a row).
+              if (started && streamBubble && !inlinePendingEl && rawContent.length > 80) {
+                inlinePendingEl = document.createElement('div');
+                inlinePendingEl.className = 'stream-thinking';
+                inlinePendingEl.innerHTML = '<span class="stream-thinking-dot"></span><span class="stream-thinking-dot"></span><span class="stream-thinking-dot"></span>';
+                streamBubble.appendChild(inlinePendingEl);
+                msgs.scrollTop = msgs.scrollHeight;
+              }
+            } else if (obj.content) {
+              rawContent += obj.content;
+              if (!started) {
+                let _earlyRendered = '';
+                try { _earlyRendered = marked.parse(cleanMarkdown(rawContent)); } catch (_me) {}
+                if (_earlyRendered.trim()) {
+                  // Real content arrived — clear typing indicator and open the response bubble
+                  clearTyping(typingEl);
+                  stopBunny();
+                  document.getElementById('chat-messages').appendChild(bubbleEl);
+                  bubbleEl.innerHTML = `
+                    <div class="message-avatar">AI</div>
+                    <div class="message-bubble" id="${streamId}"></div>
+                  `;
+                  streamBubble = document.getElementById(streamId);
+                  streamBubble.innerHTML = _earlyRendered;
+                  started = true;
+                } else {
+                  // Still in routing-announcement phase — keep typing indicator visible
+                  // but update it to show which agent is being consulted
+                  const _consultLabel = _extractConsultingLabel(rawContent);
+                  if (_consultLabel) _updateTypingStatus(typingEl, `Consulting ${_consultLabel}…`);
+                }
+              } else if (streamBubble) {
+                let _rendered = '';
+                try { _rendered = marked.parse(cleanMarkdown(rawContent)); } catch (_me) {}
+                if (_rendered.trim()) {
+                  streamBubble.innerHTML = _rendered;
+                  inlinePendingEl = null;
+                }
+              }
+              msgs.scrollTop = msgs.scrollHeight;
+            }
+          } catch (_) {}
+        }
+      }
+    }
+  } catch (e) {
+    clearTyping(typingEl);
+    const wasCancelled = e.name === 'AbortError';
+    if (wasCancelled) {
+      // User cancelled — show partial response with a note, or remove the bubble
+      if (rawContent && streamBubble) {
+        const note = document.createElement('div');
+        note.style.cssText = 'font-size:11px;color:var(--text-muted);margin-top:6px;';
+        note.textContent = '⏹ Stopped.';
+        streamBubble.appendChild(note);
+      } else {
+        bubbleEl.remove();
+      }
+    } else if (!rawContent) {
+      // No content received — show error with a retry button
+      const msgs = document.getElementById('chat-messages');
+      const errEl = document.createElement('div');
+      errEl.className = 'message assistant';
+      errEl.innerHTML = `
+        <div class="message-avatar">AI</div>
+        <div class="message-bubble" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <span>⚠️ Connection dropped before a response arrived.</span>
+          <button class="retry-btn" onclick="retryLastMessage(this)">↺ Retry</button>
+        </div>
+      `;
+      msgs.appendChild(errEl);
+      msgs.scrollTop = msgs.scrollHeight;
+    } else if (streamBubble) {
+      const warn = document.createElement('div');
+      warn.style.cssText = 'font-size:11px;color:var(--warning);margin-top:6px;';
+      warn.textContent = '⚠️ Connection dropped — response may be incomplete.';
+      streamBubble.appendChild(warn);
+    }
+  }
+
+  // If stream ended but typing indicator was never replaced (empty response)
+  if (document.contains(typingEl)) clearTyping(typingEl);
+
+  stopBunny();
+  clearTimeout(_waitPromptTimer);
+  hideWaitPrompt();
+  _streamAbortController = null;
+  isStreaming = false;
+  document.getElementById('send-btn').style.display = 'flex';
+  document.getElementById('cancel-btn').style.display = 'none';
+  lastAssistantText = rawContent;
+  updateActionButtons(rawContent);
+
+  // Routing attribution pill — shows which sub-agent handled this response
+  if (streamBubble && routingLabel) {
+    const pill = document.createElement('div');
+    pill.className = 'routing-pill';
+    pill.textContent = routingLabel;
+    streamBubble.insertBefore(pill, streamBubble.firstChild);
+  }
+
+  // Session persistence warning — shown when Lakebase write failed
+  if (streamBubble && warningText) {
+    const warnEl = document.createElement('div');
+    warnEl.style.cssText = 'font-size:11px;color:var(--warning,#f59e0b);margin-top:6px;';
+    warnEl.textContent = warningText;
+    streamBubble.appendChild(warnEl);
+  }
+
+  // Append referenced document buttons (before suggestions)
+  // Pass lastUserMessage so matching works even when the answer is very concise.
+  if (streamBubble && rawContent) appendDocButtons(streamBubble, rawContent, lastUserMessage);
+
+  // Append contextual follow-up suggestions inside the last bubble
+  if (streamBubble && rawContent) appendSuggestions(streamBubble, rawContent);
+
+  // Extract doc refs from response (highlights in the doc viewer tab)
+  extractAndShowDocs(rawContent);
+
+  // Re-fetch tech info if the MLflow experiment URL is not yet known — Databricks
+  // auto-creates the experiment on the first trace write, so it may appear shortly
+  // after the first chat response completes.
+  if (!techInfo.mlflow_experiment_url) {
+    setTimeout(() => loadTechInfo().then(() => loadAgents()), 3000);
+  }
+
+  // Auto-name session if first message
+  if (sessions.find(s => s.id === currentSessionId)?.title === 'CEO Session' && text.length > 10) {
+    const shortTitle = text.slice(0, 35) + (text.length > 35 ? '…' : '');
+    fetch(`/api/sessions/${currentSessionId}`, {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({title: shortTitle}),
+    }).then(() => loadSessions()).catch(() => {});
+  }
+}
+
+// Extract which sub-agent is being consulted from an early routing announcement.
+// Returns a label string or null if the text isn't a recognisable routing sentence.
+function _extractConsultingLabel(text) {
+  if (text.length > 350) return null;
+  const t = text.toLowerCase();
+  const hasVerb = /\b(consult|query|check|look into|search|retriev|examin|access|review|use|using)\b/.test(t);
+  if (!hasVerb) return null;
+  if (/\blegal|litigation|complaint|lawsuit\b/.test(t))          return '⚖️ Legal Complaints';
+  if (/\bregulat|permit|certif|compliance|fda|zoning\b/.test(t)) return '📋 Regulatory';
+  if (/\baudit|auditor|finding\b/.test(t))                        return '🔍 Audit Findings';
+  if (/\bconsultan|strateg|advisor|mckinsey\b/.test(t))           return '💼 Consultancy';
+  if (/\binspect|violation|food safety\b/.test(t))                return '🛡️ Inspections';
+  if (/\brevenue|sales|order|financial perf\b/.test(t))           return '📊 Revenue Analytics';
+  if (/\boperat|kitchen|throughput\b/.test(t))                    return '⚙️ Operations';
+  return null;
+}
+
+// Update (or create) the status line inside the typing indicator bubble.
+function _updateTypingStatus(typingEl, text) {
+  if (!typingEl) return;
+  let statusEl = typingEl.querySelector('.typing-status-text');
+  if (!statusEl) {
+    statusEl = document.createElement('div');
+    statusEl.className = 'typing-status-text';
+    const indicator = typingEl.querySelector('.typing-indicator');
+    if (indicator) indicator.appendChild(statusEl);
+  }
+  statusEl.textContent = text;
+}
+
+function showTyping() {
+  const msgs = document.getElementById('chat-messages');
+  const el = document.createElement('div');
+  el.className = 'message assistant';
+
+  el.innerHTML = `
+    <div class="message-avatar">AI</div>
+    <div class="typing-indicator">
+      <div class="typing-dots">
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+      </div>
+    </div>`;
+
+  msgs.appendChild(el);
+  msgs.scrollTop = msgs.scrollHeight;
+
+  el._stageTimers = [];
+
+  return el;
+}
+
+function clearTyping(el) {
+  el.remove();
+}
+
+function cancelStream() {
+  if (_streamAbortController) {
+    _streamAbortController.abort();
+  }
+}
+
+function retryLastMessage(btnEl) {
+  if (!lastUserMessage || isStreaming) return;
+  // Remove the error bubble
+  btnEl.closest('.message').remove();
+  // Re-inject the message into the input and send
+  const input = document.getElementById('chat-input');
+  input.value = lastUserMessage;
+  sendMessage();
+}
+
+function appendMessage(role, content, scroll = true) {
+  const msgs = document.getElementById('chat-messages');
+  const el = document.createElement('div');
+  el.className = `message ${role}`;
+  const avatar = role === 'user' ? 'You' : 'AI';
+  const bubbleContent = role === 'assistant' ? marked.parse(cleanMarkdown(content)) : escHtml(content);
+  el.innerHTML = `
+    <div class="message-avatar">${avatar}</div>
+    <div class="message-bubble">${bubbleContent}</div>
+  `;
+  msgs.appendChild(el);
+  if (scroll) msgs.scrollTop = msgs.scrollHeight;
+}
+
+const STARTER_QUESTIONS = [
+  // Multi-agent synthesis
+  'Give me a one-page board deck summary: revenue performance, top operational risk, legal exposure, and one strategic recommendation.',
+  // KA questions (fast, ~5s) — clearly single-agent
+  'What are our top 3 active legal cases by financial exposure?',
+  'What are the highest-severity findings across our audit reports?',
+  'What is the #1 strategic recommendation from our consultancy reports?',
+  'Which location has the most critical food safety violations?',
+  // Genie questions (need warm warehouse, ~15s) — specific to Gold tables
+  'What is the total revenue and order count per location for the last 7 days?',
+  'Which brand generated the highest revenue this week?',
+];
+
+function renderWelcome() {
+  const msgs = document.getElementById('chat-messages');
+  const el = document.createElement('div');
+  el.className = 'message assistant';
+  const bubble = document.createElement('div');
+  bubble.className = 'message-bubble';
+  const _hr = new Date().getHours();
+  const _greeting = _hr < 12 ? 'Good morning' : _hr < 17 ? 'Good afternoon' : 'Good evening';
+
+  // Greeting line
+  const header = document.createElement('div');
+  header.innerHTML = marked.parse(cleanMarkdown(`${_greeting}. Here's what needs your attention today.`));
+  bubble.appendChild(header);
+
+  // Hardcoded alert items — each fires a specific question into chat
+  const ALERTS = [
+    { dot: 'red',    text: 'Chicago cancel rate up 14.2% WoW — highest in the network',
+      q: "What's driving the high cancellation rate in Chicago and what should we do about it?" },
+    { dot: 'red',    text: 'HIGH-risk legal case CK-04-0031 open — financial exposure unresolved',
+      q: "Tell me about case CK-04-0031 and our total active legal exposure across all locations." },
+    { dot: 'yellow', text: '2 regulatory permits expiring within 60 days',
+      q: "Which permits or regulatory certificates are expiring in the next 60 days, and which locations are affected?" },
+  ];
+
+  const alertsDiv = document.createElement('div');
+  alertsDiv.className = 'briefing-alerts';
+  alertsDiv.innerHTML = ALERTS.map(a =>
+    `<div class="briefing-alert-item" onclick="askSuggestion(${escHtml(JSON.stringify(a.q))})">
+       <span class="alert-dot ${a.dot}"></span>
+       <span>${escHtml(a.text)}</span>
+       <span class="alert-arrow">→</span>
+     </div>`
+  ).join('');
+  bubble.appendChild(alertsDiv);
+
+  // Board meeting CTA
+  const boardBtn = document.createElement('button');
+  boardBtn.className = 'board-meeting-btn';
+  boardBtn.innerHTML = '📋 I have a board meeting in 30 minutes — brief me <span class="bmb-arrow">→</span>';
+  boardBtn.onclick = () => askSuggestion(
+    'Give me the full board briefing: revenue performance across all locations, top operational risk, legal exposure summary, and the single most important thing we need to fix in the next 90 days.'
+  );
+  bubble.appendChild(boardBtn);
+
+  // Starter question chips (skip first entry — it's covered by the board meeting button)
+  const starterDiv = document.createElement('div');
+  starterDiv.className = 'suggested-questions';
+  starterDiv.style.marginTop = '10px';
+  starterDiv.innerHTML = `
+    <div class="suggested-questions-label">Or ask something specific</div>
+    <div class="question-chips">
+      ${STARTER_QUESTIONS.slice(1).map(q =>
+        `<button class="question-chip" onclick="askSuggestion(${escHtml(JSON.stringify(q))})">${escHtml(q)}</button>`
+      ).join('')}
+    </div>`;
+  bubble.appendChild(starterDiv);
+
+  const avatar = document.createElement('div');
+  avatar.className = 'message-avatar';
+  avatar.textContent = 'AI';
+  el.appendChild(avatar);
+  el.appendChild(bubble);
+  msgs.appendChild(el);
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Action Buttons
+// ────────────────────────────────────────────────────────────────────────────
+// Show all 3 CEO action buttons once the chat has any AI response
+// ── Impatient bunny ────────────────────────────────────────────────────────
+const BUNNY_MSGS = [
+  "Still waiting… 🙄",
+  "Is this thing on? 📡",
+  "I could've grown lettuce by now 🥬",
+  "*taps foot impatiently*",
+  "My Wi-Fi is faster than this ⚡",
+  "I have a very important carrot meeting 🥕",
+  "Bro, I'm literally a bunny and I'm faster than this",
+  "Sir, this is a Wendy's… 😐",
+  "Maybe try turning it off and on again? 💻",
+  "Still here. Still waiting. Still a bunny. 🐰",
+  "At this point I've read War and Peace 📖",
+  "I've hopped to the moon and back 🌕",
+];
+let _bunnyAppearTimer = null;
+let _bunnyMsgTimer = null;
+let _bunnyMsgIdx = 0;
+
+function startBunny() {
+  _bunnyMsgIdx = 0;
+  _bunnyAppearTimer = setTimeout(() => {
+    const el = document.getElementById('impatient-bunny');
+    el.style.display = 'flex';
+    // Cycle messages every 12 seconds
+    _bunnyMsgTimer = setInterval(() => {
+      _bunnyMsgIdx = (_bunnyMsgIdx + 1) % BUNNY_MSGS.length;
+      const msgEl = document.getElementById('bunny-msg');
+      if (msgEl) {
+        msgEl.style.animation = 'none';
+        msgEl.offsetHeight; // reflow to restart animation
+        msgEl.style.animation = '';
+        msgEl.textContent = BUNNY_MSGS[_bunnyMsgIdx];
+      }
+    }, 12_000);
+  }, 120_000);
+}
+
+function stopBunny() {
+  clearTimeout(_bunnyAppearTimer);
+  clearInterval(_bunnyMsgTimer);
+  const el = document.getElementById('impatient-bunny');
+  if (el) el.style.display = 'none';
+}
+
+function showWaitPrompt() {
+  const el = document.getElementById('wait-or-stop');
+  if (el) el.style.display = 'flex';
+}
+
+function hideWaitPrompt() {
+  const el = document.getElementById('wait-or-stop');
+  if (el) el.style.display = 'none';
+}
+
+function dismissWaitPrompt() {
+  hideWaitPrompt();
+  // Restart the timer — prompt again after another 200s if still waiting
+  _waitPromptTimer = setTimeout(() => showWaitPrompt(), 200_000);
+}
+
+function stopStreaming() {
+  hideWaitPrompt();
+  if (_streamAbortController) {
+    _streamAbortController.abort();
+    _streamAbortController = null;
+  }
+}
+
+function updateActionButtons(text) {
+  if (!text || text.trim().length < 20) return;
+  const t = text.toLowerCase();
+  const show = (id, keywords) => {
+    document.getElementById(id).style.display =
+      keywords.some(k => t.includes(k)) ? 'flex' : 'none';
+  };
+  show('btn-hire', ['performance gap', 'strategic', 'expansion', 'recommend', 'consultancy', 'bring in', 'engage', 'consultant']);
+  show('btn-fire', ['poor roi', 'underperform', 'not deliver', 'redundant', 'overspend', 'cut', 'low roi', 'burning cash', 'terminate', 'discontinue']);
+  show('btn-ai',  ['ai', 'automation', 'efficiency', 'digital', 'databricks', 'transform', 'machine learning', 'predictive', 'intelligent']);
+  const any = ['btn-hire', 'btn-fire', 'btn-ai']
+    .some(id => document.getElementById(id).style.display === 'flex');
+  document.getElementById('action-buttons').style.display = any ? 'flex' : 'none';
+}
+
+// ── Inline document buttons in chat messages ───────────────────────────────
+
+// question is the user's original message — used for additional ID scanning.
+// Only returns documents when a specific file ID (e.g. CK-01-1001, AUD-02-3006)
+// from the response maps to an actual file in the library. Keyword-based guessing
+// is intentionally omitted — it caused false positives whenever the supervisor
+// mentioned legal / audit topics without retrieving a document.
+function findMentionedDocs(text, question = '') {
+  if (!allDocGroups.length) return [];
+  const combined = text + ' ' + question;
+
+  // Extract document IDs mentioned in the response.
+  // e.g. "AUD-02-3006" → matches audit_aud_02_3006.pdf
+  //      "CK-02-1005"  → matches legal_ck_02_1005.pdf
+  const idPattern = /\b(?:CK|CON|AUD|REG|INS)-[\w-]+/gi;
+  const mentionedIds = [...new Set((combined.match(idPattern) || [])
+    .map(m => m.toLowerCase().replace(/-/g, '_')))];
+
+  if (!mentionedIds.length) return [];
+
+  // Find files whose name contains one of the extracted IDs.
+  const matches = [];
+  for (const group of allDocGroups) {
+    for (const filename of group.files) {
+      const fl = filename.toLowerCase();
+      if (mentionedIds.some(id => fl.includes(id))) {
+        matches.push({ type: group.type, filename });
+        if (matches.length >= 3) return matches;
+      }
+    }
+  }
+  return matches;
+}
+
+function appendDocButtons(bubbleEl, text, question = '') {
+  if (!bubbleEl || !text) return;
+  const docs = findMentionedDocs(text, question);
+  if (!docs.length) return;
+
+  const div = document.createElement('div');
+  div.className = 'chat-doc-refs';
+  div.innerHTML = `
+    <div class="chat-doc-refs-label">Referenced documents</div>
+    <div class="chat-doc-chips">
+      ${docs.map(({ type, filename }) => {
+        const displayName = filename.replace(/\.pdf$/i, '').replace(/_/g, ' ')
+          .replace(/\b\w/g, c => c.toUpperCase());
+        const icon = DOC_ICONS[type] || '📄';
+        const label = DOC_FILTER_LABELS[type] || type;
+        // Escape single quotes as HTML entities — backslash-escaping is invalid in HTML attributes
+        const safeType = type.replace(/'/g, "&#39;");
+        const safeName = filename.replace(/'/g, "&#39;");
+        return `<button class="chat-doc-chip"
+          onclick="openDocument('${safeType}', '${safeName}')">
+          <span class="chat-doc-chip-icon">${icon}</span>
+          <span class="chat-doc-chip-name">${escHtml(displayName)}</span>
+          <span class="chat-doc-chip-type">${escHtml(label)}</span>
+        </button>`;
+      }).join('')}
+    </div>`;
+  bubbleEl.appendChild(div);
+}
+
+// ── Suggested follow-up questions ──────────────────────────────────────────
+const QUESTION_POOLS = [
+  // Revenue pool → revenue-analytics Genie (needs warm warehouse)
+  { tags: ['revenue', 'sales', 'financial', 'profit', 'earn', 'pricing'],
+    questions: [
+      'What is total revenue by location for the last 7 days?',
+      'Which brand generated the highest revenue this week?',
+      'What is the average order value at each location this month?',
+      'How does revenue compare across locations this week?',
+    ]},
+  // Orders pool → revenue-analytics or operations-intelligence Genie
+  { tags: ['order', 'throughput', 'volume', 'count', 'cancel'],
+    questions: [
+      'What is the order count by location for the last 7 days?',
+      'Which location had the highest order throughput this week?',
+      'Which brand had the most orders this week?',
+      'How many orders were completed at each location yesterday?',
+    ]},
+  // Legal pool → legal-complaints KA (fast)
+  { tags: ['legal', 'lawsuit', 'litigation', 'case', 'settle', 'dispute', 'claim', 'liability'],
+    questions: [
+      'What are our top 3 active legal cases by financial exposure?',
+      'Which location has the most active legal cases?',
+      'What employment claims are currently open?',
+      'What is the status of the highest-risk lawsuit?',
+    ]},
+  // Inspection pool → inspection-reports KA (fast)
+  { tags: ['inspection', 'food safety', 'violation', 'health', 'haccp', 'grade', 'sanit'],
+    questions: [
+      'Which location has the most critical food safety violations?',
+      'What corrective actions are required at our locations based on inspection findings?',
+      'What violations were cited most often across all inspections?',
+      'Which food safety violations are classified as high severity?',
+    ]},
+  // Audit pool → audit-findings KA (fast)
+  { tags: ['audit', 'finding', 'internal control', 'material weakness', 'significant', 'remediat'],
+    questions: [
+      'What are the highest-severity findings across our audit reports?',
+      'Which audit findings require immediate corrective action?',
+      'What internal control weaknesses were identified in the audits?',
+      'Which location has the most significant audit findings?',
+    ]},
+  // Regulatory pool → regulatory-compliance KA (fast)
+  { tags: ['regulat', 'compliance', 'permit', 'license', 'requirement', 'statute', 'policy', 'fda', 'fire code', 'zoning', 'renewal'],
+    questions: [
+      'What permits or licenses are pending renewal across our locations?',
+      'Which regulatory requirements carry the highest penalty if missed?',
+      'What certifications does each location currently hold?',
+      'Are there any open regulatory compliance gaps at our locations?',
+    ]},
+  // Consultancy pool → consultancy-strategy KA (fast)
+  { tags: ['consultant', 'consult', 'strategy', 'recommend', 'roadmap', 'growth', 'initiative', 'invest', 'transform', 'expansion', 'priority'],
+    questions: [
+      'What is the #1 strategic recommendation from our consultancy reports?',
+      'Which strategic initiative has the fastest payback period?',
+      'What cost reduction opportunities have consultants identified?',
+      'Which location is prioritised for investment in the consultancy report?',
+    ]},
+  { tags: ['ai', 'databricks', 'automation', 'technology', 'machine learning', 'ml', 'data', 'model'],
+    questions: [
+      'What AI opportunities are identified in our consultancy reports?',
+      'Which operational process would benefit most from automation?',
+      'What data infrastructure improvements are recommended?',
+      'What is the projected ROI of the AI transformation programme?',
+    ]},
+];
+const DEFAULT_QUESTIONS = [
+  'What are our top 3 active legal cases by financial exposure?',
+  'What are the highest-severity findings across our audit reports?',
+  'What is the #1 strategic recommendation from our consultancy reports?',
+  'Which location has the most critical food safety violations?',
+];
+
+function pickSuggestions(text) {
+  const lower = text.toLowerCase();
+  // Score each pool by how many tags match
+  const scored = QUESTION_POOLS.map(pool => ({
+    pool,
+    score: pool.tags.filter(t => lower.includes(t)).length,
+  })).filter(x => x.score > 0).sort((a, b) => b.score - a.score);
+
+  // Collect candidates from top pools, dedup
+  const candidates = [];
+  const seen = new Set();
+  for (const { pool } of scored.slice(0, 2)) {
+    for (const q of pool.questions) {
+      if (!seen.has(q)) { seen.add(q); candidates.push(q); }
+    }
+  }
+  const pool = candidates.length >= 3 ? candidates : DEFAULT_QUESTIONS;
+  // Shuffle and pick 3
+  const shuffled = pool.slice().sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, 3);
+}
+
+function appendSuggestions(bubbleEl, text) {
+  if (!bubbleEl || !text || text.trim().length < 30) return;
+  const questions = pickSuggestions(text);
+  const div = document.createElement('div');
+  div.className = 'suggested-questions';
+  div.innerHTML = `
+    <div class="suggested-questions-label">Try these questions</div>
+    <div class="question-chips">
+      ${questions.map(q => `<button class="question-chip" onclick="askSuggestion(${escHtml(JSON.stringify(q))})">${escHtml(q)}</button>`).join('')}
+    </div>`;
+  bubbleEl.appendChild(div);
+}
+
+function askSuggestion(text) {
+  const input = document.getElementById('chat-input');
+  input.value = text;
+  sendMessage();
+}
+
+// Quick-action button questions (displayed in chat)
+const _actionQuestions = {
+  hire: 'Which consultants should we bring in and why would they be worth the fees?',
+  fire: 'Which consulting engagements are burning cash without results?',
+  ai:   'Where can we actually use AI — show me the ROI, not the buzzwords.',
+};
+
+// Hardcoded answers — instant, no LLM required, and significantly funnier
+const _actionAnswers = {
+  hire: `Based on our Q3–Q4 strategy reports, here are the top 3 recommendations for bringing in external expertise:
+
+- **Supply Chain Renegotiation** — Our current truffle oil supplier charges like they personally excavate each one by hand. Advisors recommend onboarding 2 alternative vendors, with a projected **12% COGS reduction**. The incumbent has been notified. They are not happy.
+
+- **Digital Loyalty Program** — 73% of our repeat customers still redeem a physical punch card. A *physical punch card*. A modern digital platform is projected to lift retention by **18%** and eliminate the need to explain to guests that yes, we do still honor the ones from 2019.
+
+- **Menu Engineering Overhaul** — The "Cascade Fusion Platter" has a 2% order rate, a 40-minute ticket time, and requires three separate prep stations. A consultant described this as "an opportunity." We call it a hostage situation. Recommended action: retire it with dignity.`,
+
+  fire: `Consulting engagements flagged for low ROI or immediate termination:
+
+- **"Digital Transformation Roadmap" — $240K** — Delivered a 180-slide deck recommending we "embrace disruption and lead with a cloud-first mindset." We are a restaurant chain. We make food. The slides have been archived. The lessons have not been learned.
+
+- **"Brand Voice Alignment Study" — $85K** — Concluded after 6 weeks that our brand voice should be "warm, approachable, and food-forward." We could have reached the same conclusion by reading our own menu. Engagement terminated. Invoice disputed.
+
+- **"Peak Hour Optimization Analysis" — $110K** — Determined, through rigorous data collection and stakeholder interviews, that our busiest periods are **lunch and dinner**. A follow-up engagement to study weekends was politely declined.`,
+
+  ai: `AI opportunities identified across our consultancy and strategy reports:
+
+- **Predictive Inventory Management** — ML demand forecasting can reduce food waste by an estimated **22%** across locations. Our Chicago branch over-orders shredded lettuce every single week regardless of season, weather, or prior feedback. The model has noticed. The branch manager has been informed.
+
+- **Dynamic Pricing ("Freshness Premium Pricing")** — Surge pricing during Friday/Saturday dinner service could increase revenue per cover by **8–11%**. Legal is reviewing whether guests will accept this framing. Early signals suggest they will not, but they will pay it anyway.
+
+- **AI-Assisted Menu Curation** — Sentiment analysis of 14,000+ customer reviews consistently surfaces one request: a spicy option in every category. Every. Single. Category. Desserts included. The data doesn't lie, and apparently neither do our customers. Pilot launching in Q2.`,
+};
+
+function triggerAction(type) {
+  const question = _actionQuestions[type];
+  const content = _actionAnswers[type];
+  lastUserMessage = question;
+  appendMessage('user', question, false);
+
+  // Show the same typing indicator as real queries
+  const typingEl = showTyping();
+  document.getElementById('send-btn').style.display = 'none';
+  document.getElementById('cancel-btn').style.display = 'flex';
+
+  let cancelled = false;
+  const origAbort = _streamAbortController;
+  // Temporarily hook cancel button to drop the fake stream
+  _streamAbortController = { abort: () => { cancelled = true; } };
+
+  setTimeout(() => {
+    clearTyping(typingEl);
+    document.getElementById('send-btn').style.display = 'flex';
+    document.getElementById('cancel-btn').style.display = 'none';
+    _streamAbortController = origAbort;
+
+    if (cancelled) return;
+
+    const msgs = document.getElementById('chat-messages');
+    const streamId = 'sb-' + Date.now();
+    const bubbleEl = document.createElement('div');
+    bubbleEl.className = 'message assistant';
+    bubbleEl.innerHTML = `
+      <div class="message-avatar">AI</div>
+      <div class="message-bubble" id="${streamId}">${marked.parse(cleanMarkdown(content))}</div>
+    `;
+    msgs.appendChild(bubbleEl);
+    msgs.scrollTop = msgs.scrollHeight;
+
+    const bubble = document.getElementById(streamId);
+    appendDocButtons(bubble, content, question);
+    appendSuggestions(bubble, content);
+    updateActionButtons(content);
+    lastAssistantText = content;
+    extractAndShowDocs(content);
+    msgs.scrollTop = msgs.scrollHeight;
+  }, 5000);
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Document Library
+// ────────────────────────────────────────────────────────────────────────────
+let allDocGroups = [];      // [{category, type, files:[...]}]
+let chatRefFilenames = new Set();  // filenames mentioned in chat
+let activeFilter = 'all';
+
+const DOC_ICONS = {
+  legal: '⚖️', regulatory: '📋', audit: '🔍', consultancy: '💼', inspection: '🏥',
+};
+const DOC_FILTER_LABELS = {
+  legal: 'Legal', regulatory: 'Regulatory', audit: 'Audits',
+  consultancy: 'Consultancy', inspection: 'Inspections',
+};
+
+async function loadDocuments() {
+  try {
+    const res = await fetch('/api/documents');
+    allDocGroups = await res.json();
+    buildFilterBar();
+    renderDocList();
+    const total = allDocGroups.reduce((s, g) => s + g.count, 0);
+    document.getElementById('doc-total-count').textContent = `${total} documents`;
+  } catch (e) {
+    document.getElementById('doc-list').innerHTML = `
+      <div class="doc-empty"><span class="doc-empty-icon">⚠️</span><span>Could not load documents.</span></div>`;
+  }
+}
+
+function buildFilterBar() {
+  const bar = document.getElementById('doc-filter-bar');
+  const total = allDocGroups.reduce((s, g) => s + g.count, 0);
+  bar.innerHTML = `<button class="doc-filter-btn ${activeFilter==='all'?'active':''}" onclick="filterDocs('all')" data-filter="all">All (${total})</button>` +
+    allDocGroups.map(g => `
+      <button class="doc-filter-btn ${activeFilter===g.type?'active':''}" onclick="filterDocs('${g.type}')" data-filter="${g.type}">
+        ${DOC_FILTER_LABELS[g.type]||g.category} (${g.count})
+      </button>`).join('');
+}
+
+function filterDocs(filter) {
+  activeFilter = filter;
+  document.querySelectorAll('.doc-filter-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.filter === filter);
+  });
+  renderDocList();
+}
+
+function renderDocList() {
+  const list = document.getElementById('doc-list');
+  const groups = activeFilter === 'all' ? allDocGroups : allDocGroups.filter(g => g.type === activeFilter);
+
+  if (!groups.length || groups.every(g => !g.files.length)) {
+    list.innerHTML = `<div class="doc-empty"><span class="doc-empty-icon">🗂</span><span>No documents found.</span></div>`;
+    return;
+  }
+
+  let html = '';
+  for (const group of groups) {
+    if (!group.files.length) continue;
+    if (activeFilter === 'all') {
+      html += `<div class="doc-group-label">${DOC_ICONS[group.type]||'📄'} ${escHtml(group.category)} <span>${group.count}</span></div>`;
+    }
+    for (const filename of group.files) {
+      const isChatRef = chatRefFilenames.has(filename);
+      const displayName = filename.replace(/\.(pdf)$/i, '').replace(/_/g, ' ');
+      html += `
+        <div class="doc-item ${isChatRef ? 'chat-ref' : ''}" onclick="openDocument('${group.type}', '${escHtml(filename)}')">
+          <span class="doc-item-icon">${DOC_ICONS[group.type]||'📄'}</span>
+          <div class="doc-item-body">
+            <div class="doc-item-title">${escHtml(displayName)}</div>
+            <div class="doc-item-meta">${escHtml(group.category)}${isChatRef ? ' · Referenced in chat' : ''}</div>
+          </div>
+          <span class="doc-item-open">↗</span>
+        </div>`;
+    }
+  }
+  list.innerHTML = html;
+}
+
+function openDocument(type, filename) {
+  const url = `/api/documents/${type}/${encodeURIComponent(filename)}`;
+  const displayName = filename.replace(/\.pdf$/i, '').replace(/_/g, ' ');
+  const icon = DOC_ICONS[type] || '📄';
+  const label = DOC_FILTER_LABELS[type] || type;
+
+  document.getElementById('pdf-modal-title').textContent = displayName;
+  document.getElementById('pdf-modal-icon').textContent = icon;
+  document.getElementById('pdf-modal-type').textContent = label;
+  document.getElementById('pdf-modal-download').href = url;
+  document.getElementById('pdf-modal-download').download = filename;
+
+  const iframe = document.getElementById('pdf-modal-iframe');
+  const loading = document.getElementById('pdf-modal-loading');
+  iframe.style.display = 'none';
+  loading.style.display = 'flex';
+  iframe.src = url;
+
+  document.getElementById('pdf-modal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function onPdfLoaded() {
+  document.getElementById('pdf-modal-iframe').style.display = 'block';
+  document.getElementById('pdf-modal-loading').style.display = 'none';
+}
+
+function closePdfModal(e) {
+  if (e && e.target !== document.getElementById('pdf-modal')) return;
+  document.getElementById('pdf-modal').style.display = 'none';
+  document.getElementById('pdf-modal-iframe').src = '';
+  document.body.style.overflow = '';
+}
+
+// Close on Escape key
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closePdfModal();
+});
+
+// Extract filenames mentioned in AI responses and highlight them in the doc viewer
+const DOC_PATTERNS = [
+  { re: /inspection_[\w-]+\.pdf/gi },
+  { re: /legal_[\w-]+\.pdf/gi },
+  { re: /regulatory_[\w-]+\.pdf/gi },
+  { re: /audit_[\w-]+\.pdf/gi },
+  { re: /consultancy_[\w-]+\.pdf/gi },
+];
+
+function extractAndShowDocs(text) {
+  let found = false;
+  for (const {re} of DOC_PATTERNS) {
+    for (const m of text.matchAll(re)) {
+      chatRefFilenames.add(m[0]);
+      found = true;
+    }
+  }
+  if (found) {
+    renderDocList();
+    updateDocBadge();
+  }
+}
+
+function updateDocBadge() {
+  const badge = document.getElementById('doc-badge');
+  const total = allDocGroups.reduce((s, g) => s + g.count, 0);
+  if (total > 0) {
+    badge.style.display = 'inline-block';
+    badge.textContent = total;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function viewDoc(i) {
+  switchView('documents');
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Revenue Chart
+// ────────────────────────────────────────────────────────────────────────────
+async function loadRevenue() {
+  try {
+    const res = await fetch('/api/revenue');
+    const data = await res.json();
+    renderMetrics(data);
+    renderRevenueChart(data);
+  } catch (e) {
+    renderMetrics(_mockRevenue());
+    renderRevenueChart(_mockRevenue());
+  }
+}
+
+function _mockRevenue() {
+  return [
+    // US
+    {location:'San Francisco',  revenue:189420, revenue_prev:174300, avg_order_value:41.97, total_orders:4820, completed_orders:4512, cancelled_orders:308, complaints:142, cancel_rate_pct:6.4},
+    {location:'Silicon Valley', revenue:152680, revenue_prev:148900, avg_order_value:40.39, total_orders:3960, completed_orders:3780, cancelled_orders:180, complaints:98,  cancel_rate_pct:4.5},
+    {location:'Bellevue',       revenue:121430, revenue_prev:118200, avg_order_value:39.04, total_orders:3210, completed_orders:3110, cancelled_orders:100, complaints:61,  cancel_rate_pct:3.1},
+    {location:'Chicago',        revenue:198740, revenue_prev:221500, avg_order_value:40.64, total_orders:5540, completed_orders:4890, cancelled_orders:650, complaints:312, cancel_rate_pct:11.7},
+    // EMEA
+    {location:'London',         revenue:174200, revenue_prev:158800, avg_order_value:42.80, total_orders:4310, completed_orders:4180, cancelled_orders:130, complaints:88,  cancel_rate_pct:3.0},
+    {location:'Munich',         revenue:118500, revenue_prev:109200, avg_order_value:43.50, total_orders:2980, completed_orders:2890, cancelled_orders:90,  complaints:55,  cancel_rate_pct:3.0},
+    {location:'Amsterdam',      revenue:98400,  revenue_prev:81900,  avg_order_value:44.10, total_orders:2420, completed_orders:2360, cancelled_orders:60,  complaints:40,  cancel_rate_pct:2.5},
+    {location:'Vianen',         revenue:52100,  revenue_prev:50800,  avg_order_value:38.90, total_orders:1390, completed_orders:1340, cancelled_orders:50,  complaints:22,  cancel_rate_pct:3.6},
+  ];
+}
+
+function fmt$(n) {
+  if (n >= 1_000_000) return '$' + (n/1_000_000).toFixed(2) + 'M';
+  if (n >= 1_000) return '$' + (n/1_000).toFixed(1) + 'K';
+  return '$' + n.toFixed(0);
+}
+function fmtTrend(curr, prev) {
+  if (!prev) return '';
+  const pct = ((curr - prev) / prev * 100).toFixed(1);
+  const up = pct >= 0;
+  return `<span style="color:var(--${up?'success':'danger'});font-size:11px;">${up?'▲':'▼'} ${Math.abs(pct)}% vs prev</span>`;
+}
+
+function renderMetrics(data) {
+  const totalRevenue = data.reduce((s, d) => s + (d.revenue || 0), 0);
+  const totalRevenuePrev = data.reduce((s, d) => s + (d.revenue_prev || 0), 0);
+  const avgOrderValue = data.reduce((s, d) => s + (d.avg_order_value || 0), 0) / data.length;
+  const totalOrders = data.reduce((s, d) => s + (d.completed_orders || 0), 0);
+  const worstLoc = data.reduce((a, b) => (b.cancel_rate_pct || 0) > (a.cancel_rate_pct || 0) ? b : a);
+  const bestLoc = data.reduce((a, b) => (b.revenue || 0) > (a.revenue || 0) ? b : a);
+
+  document.getElementById('metric-row').innerHTML = `
+    <div class="metric-card">
+      <div class="metric-label">Total Revenue</div>
+      <div class="metric-value success">${fmt$(totalRevenue)}</div>
+      <div class="metric-sub">${fmtTrend(totalRevenue, totalRevenuePrev) || 'All locations'}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Top Location</div>
+      <div class="metric-value">${bestLoc.location?.split(' ')[0] || '—'}</div>
+      <div class="metric-sub">${fmt$(bestLoc.revenue || 0)} revenue</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Avg Order Value</div>
+      <div class="metric-value">$${avgOrderValue.toFixed(2)}</div>
+      <div class="metric-sub">${totalOrders.toLocaleString()} orders completed</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Attention Needed</div>
+      <div class="metric-value ${worstLoc.cancel_rate_pct > 8 ? 'danger' : 'warning'}">${worstLoc.location?.split(' ')[0] || '—'}</div>
+      <div class="metric-sub">${(worstLoc.cancel_rate_pct || 0).toFixed(1)}% cancel rate</div>
+    </div>
+  `;
+}
+
+function renderRevenueChart(data) {
+  const ctx = document.getElementById('revenue-chart').getContext('2d');
+  if (revenueChart) revenueChart.destroy();
+
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+  const labelColor = isDark ? '#9898A2' : '#505058';
+  const colors = ['#FF3621', '#3ecf8e', '#f5a623', '#FF6B50'];
+  const sorted = [...data].sort((a, b) => (b.revenue || 0) - (a.revenue || 0));
+
+  revenueChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: sorted.map(d => d.location.replace('Silicon Valley', 'Sil. Valley')),
+      datasets: [
+        {
+          label: 'Revenue (This Period)',
+          data: sorted.map(d => d.revenue || 0),
+          backgroundColor: colors.map(c => c + 'cc'),
+          borderColor: colors,
+          borderWidth: 1.5,
+          borderRadius: 5,
+          order: 1,
+        },
+        {
+          label: 'Revenue (Prev Period)',
+          data: sorted.map(d => d.revenue_prev || 0),
+          backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+          borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)',
+          borderWidth: 1,
+          borderRadius: 5,
+          order: 2,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: labelColor, font: { size: 11 }, boxWidth: 10, padding: 12 } },
+        tooltip: {
+          backgroundColor: isDark ? '#191512' : '#ffffff',
+          borderColor: isDark ? '#2E2018' : '#E2CEC6',
+          borderWidth: 1,
+          titleColor: labelColor,
+          bodyColor: labelColor,
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: ${fmt$(ctx.raw)}`,
+          },
+        },
+      },
+      scales: {
+        x: { ticks: { color: labelColor, font: { size: 10 } }, grid: { color: gridColor } },
+        y: {
+          ticks: {
+            color: labelColor, font: { size: 10 },
+            callback: v => fmt$(v),
+          },
+          grid: { color: gridColor },
+        },
+      },
+    },
+  });
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Location Map
+// ────────────────────────────────────────────────────────────────────────────
+async function initMap() {
+  locationMap = L.map('location-map', {
+    center: [40, -20], zoom: 2,
+    zoomControl: true,
+  });
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(locationMap);
+
+  try {
+    const res = await fetch('/api/locations');
+    const locs = await res.json();
+
+    const markers = [];
+    for (const loc of locs) {
+      const riskColor = { high: '#e85d5d', medium: '#f5a623', low: '#3ecf8e' }[loc.risk_level] || '#FF3621';
+      const _isHighRisk = loc.risk_level === 'high';
+      const icon = L.divIcon({
+        className: '',
+        html: `
+          <div style="position:relative; width:14px; height:14px;">
+            ${_isHighRisk ? `<div style="
+              position:absolute; top:-6px; left:-6px;
+              width:26px; height:26px; border-radius:50%;
+              background:${riskColor}; opacity:0.35;
+              animation:map-pulse 1.8s ease-out infinite;
+            "></div>` : ''}
+            <div style="
+              position:relative; z-index:1;
+              background:${riskColor};
+              width:14px; height:14px; border-radius:50%;
+              border:2px solid #fff;
+              box-shadow:0 0 0 3px ${riskColor}44, 0 2px 8px rgba(0,0,0,0.5);
+            "></div>
+          </div>`,
+        iconSize: [14, 14],
+        iconAnchor: [7, 7],
+      });
+
+      const marker = L.marker([loc.lat, loc.lng], { icon });
+      const riskEmoji = { high: '🔴', medium: '🟡', low: '🟢' }[loc.risk_level] || '⚪';
+      const _locNameEnc = encodeURIComponent(loc.name);
+      marker.bindPopup(`
+        <div style="font-family: 'Inter', sans-serif; min-width: 190px; padding: 4px;">
+          <div style="font-weight: 700; font-size: 13px; margin-bottom: 6px;">
+            ${riskEmoji} ${loc.name}
+          </div>
+          <div style="font-size: 11px; color: #666; margin-bottom: 8px;">${loc.address}</div>
+          <div style="font-size: 11px; margin-bottom: 10px;">
+            <b>Orders:</b> ${(loc.total_orders || 0).toLocaleString()}<br>
+            <b>Complaints:</b> ${loc.complaints || 0}<br>
+            <b>Cancel Rate:</b> ${(loc.cancel_rate_pct || 0).toFixed(1)}%<br>
+            <b>Risk:</b> <span style="color:${riskColor}; font-weight:600;">${loc.risk_level?.toUpperCase()}</span>
+          </div>
+          <button onclick="window._briefLocation(decodeURIComponent('${_locNameEnc}'))"
+            style="width:100%;padding:6px 10px;background:#FF3621;color:#fff;border:none;
+                   border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">
+            Brief me on this location →
+          </button>
+        </div>
+      `, { maxWidth: 230 });
+      marker.addTo(locationMap);
+      markers.push(marker);
+    }
+
+    // Auto-fit to show all locations (US + EMEA)
+    if (markers.length > 0) {
+      const group = L.featureGroup(markers);
+      locationMap.fitBounds(group.getBounds().pad(0.15));
+    }
+  } catch (e) {
+    console.error('Map data error:', e);
+  }
+}
+
+// Global helper called from Leaflet popup buttons (inline onclick can't use closures)
+window._briefLocation = function(name) {
+  if (locationMap) locationMap.closePopup();
+  askSuggestion(`What's the full status for ${name}? Cover revenue performance, operational risks, any legal exposure, and upcoming compliance issues.`);
+};
+
+// Demo breaking-alert toast — fires 35 s after load to simulate a proactive alert
+window._demoAlertDismiss = function() {
+  const t = document.getElementById('demo-alert-toast');
+  if (t) { t.style.animation = 'none'; t.style.opacity = '0'; t.style.transition = 'opacity 0.2s'; setTimeout(() => t.style.display = 'none', 200); }
+};
+window._demoAlertInvestigate = function() {
+  window._demoAlertDismiss();
+  askSuggestion('What happened in the Munich food safety inspection? List the critical violations and what we need to fix immediately.');
+};
+if (new URLSearchParams(location.search).get('demo') === '1') {
+  setTimeout(() => {
+    const t = document.getElementById('demo-alert-toast');
+    if (t) t.style.display = 'flex';
+  }, 35_000);
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Tech Info
+// ────────────────────────────────────────────────────────────────────────────
+async function loadTechInfo() {
+  try {
+    const res = await fetch('/api/tech-info');
+    techInfo = await res.json();
+    renderTechInfo(techInfo);
+  } catch (e) {
+    renderTechInfo({
+      catalog: 'caspersdev',
+      lakebase_instance: 'Not configured',
+      supervisor_endpoint: 'Not configured',
+      warehouse_id: 'Not configured',
+      db_enabled: false,
+      supervisor_enabled: false,
+    });
+  }
+}
+
+function renderTechInfo(info) {
+  const panel = document.getElementById('tech-info-panels');
+  const host = (info.databricks_host || '').replace(/\/$/, '');
+
+  // Plain row (no link)
+  const row = (label, value, ok) => `
+    <div class="tech-section">
+      <div class="tech-label">${label}</div>
+      <div class="tech-value ${ok === true ? 'ok' : ok === false ? 'warn' : ''}">
+        ${ok === true ? '<span class="status-dot green"></span>' : ok === false ? '<span class="status-dot yellow"></span>' : ''}
+        ${escHtml(String(value || '—'))}
+      </div>
+    </div>`;
+
+  // Row with a clickable link
+  const rowLink = (label, url, displayText, ok) => `
+    <div class="tech-section">
+      <div class="tech-label">${label}</div>
+      <div class="tech-value ${ok === true ? 'ok' : ok === false ? 'warn' : ''}">
+        ${ok === true ? '<span class="status-dot green"></span>' : ok === false ? '<span class="status-dot yellow"></span>' : ''}
+        ${url
+          ? `<a class="tech-link" href="${url}" target="_blank">${escHtml(displayText)} ↗</a>`
+          : escHtml(displayText || '—')}
+      </div>
+    </div>`;
+
+  // Databricks UI URL patterns
+  const hostShort   = host.replace('https://', '');
+  const catalogUrl  = host ? `${host}/explore/data/${info.catalog}` : '';
+  const orgParam    = info.workspace_id ? `?o=${info.workspace_id}` : '';
+  const supervisorUrl = host && info.supervisor_tile_id
+    ? `${host}/ml/bricks/sa/configure/${info.supervisor_tile_id}${orgParam}`
+    : '';
+  const supervisorLabel = info.supervisor_endpoint || 'Not configured';
+  // Use UID for Lakebase URL (Databricks UI uses UID, not project name)
+  const lakebaseUrlId = info.lakebase_project_uid || info.lakebase_project || '';
+  const lakebaseUrl = host && lakebaseUrlId
+    ? `${host}/lakebase/projects/${lakebaseUrlId}`
+    : (host ? `${host}/lakebase/projects` : '');
+  const lakebaseLabel = info.lakebase_project || (info.lakebase_endpoint ? 'Connected ✓' : 'Not configured');
+  // SQL warehouse
+  const warehouseUrl = host && info.warehouse_id
+    ? `${host}/sql/warehouses/${info.warehouse_id}` : '';
+
+  // Lakebase expanded config block
+  const lakebaseStatus = (info.lakebase_status || '').toUpperCase();
+  const lakebaseActive = lakebaseStatus === 'ACTIVE';
+  const lakebaseBlock = info.db_enabled ? `
+    <div class="tech-section">
+      <div class="tech-label">
+        Lakebase &nbsp;
+        ${lakebaseStatus ? `<span class="lakebase-status-badge ${lakebaseActive ? 'active' : 'inactive'}">${lakebaseStatus}</span>` : ''}
+      </div>
+      <div style="margin-top:4px;">
+        <div class="tech-sub-row">
+          <span class="tech-sub-key">Project</span>
+          <span class="tech-sub-val">
+            ${lakebaseUrl
+              ? `<a class="tech-link" href="${lakebaseUrl}" target="_blank">${escHtml(info.lakebase_project || '—')} ↗</a>`
+              : escHtml(info.lakebase_project || '—')}
+          </span>
+        </div>
+        ${info.lakebase_host ? `
+        <div class="tech-sub-row">
+          <span class="tech-sub-key">Host</span>
+          <span class="tech-sub-val" title="${escHtml(info.lakebase_host)}">${escHtml(info.lakebase_host.split('.')[0])}…</span>
+        </div>` : ''}
+        <div class="tech-sub-row">
+          <span class="tech-sub-key">Port</span>
+          <span class="tech-sub-val">5432</span>
+        </div>
+        <div class="tech-sub-row">
+          <span class="tech-sub-key">Database</span>
+          <span class="tech-sub-val">${escHtml(info.lakebase_dbname || 'databricks_postgres')}</span>
+        </div>
+        ${info.lakebase_pg_version ? `
+        <div class="tech-sub-row">
+          <span class="tech-sub-key">PostgreSQL</span>
+          <span class="tech-sub-val">v${info.lakebase_pg_version}</span>
+        </div>` : ''}
+        ${info.lakebase_min_cu ? `
+        <div class="tech-sub-row">
+          <span class="tech-sub-key">Autoscaling</span>
+          <span class="tech-sub-val">${info.lakebase_min_cu}–${info.lakebase_max_cu} CU</span>
+        </div>` : ''}
+      </div>
+    </div>` :
+    row('Lakebase', 'Not configured', false);
+
+  const mlflowBlock =
+    rowLink('Supervisor Traces', info.mlflow_experiment_url, info.mlflow_experiment_url ? 'Supervisor Traces' : '—', info.mlflow_experiment_url ? true : null) +
+    rowLink('Evaluation Notebook', info.eval_notebook_url, info.eval_notebook_url ? 'Evaluation Notebook' : '—', info.eval_notebook_url ? true : null);
+
+  panel.innerHTML =
+    rowLink('Databricks Workspace', host, hostShort.slice(0, 26) + (hostShort.length > 26 ? '…' : ''), true) +
+    row('Current User', (info.current_user || '—').split('@')[0]) +
+    rowLink('Catalog', catalogUrl, info.catalog || '—', true) +
+    lakebaseBlock +
+    rowLink('Supervisor Agent', supervisorUrl, supervisorLabel, info.supervisor_enabled) +
+    mlflowBlock +
+    (info.warehouse_id ? rowLink('SQL Warehouse', warehouseUrl, info.warehouse_id.slice(0, 14) + '…', true) : '') +
+    `<div class="tech-section" id="agents-panel">
+      <div class="tech-label">Sub-Agents</div>
+      <div class="tech-value" style="font-size:10px; line-height:1.8; color:var(--text-muted);">Loading…</div>
+    </div>`;
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Utils
+// ────────────────────────────────────────────────────────────────────────────
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2500);
+}
+
+// Auto-resize textarea
+document.getElementById('chat-input').addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// Sub-Agents panel
+// ────────────────────────────────────────────────────────────────────────────
+async function loadAgents() {
+  try {
+    const res = await fetch('/api/agents');
+    const agents = await res.json();
+    const panel = document.getElementById('agents-panel');
+    if (!panel) return;
+
+    const makeItem = a => {
+      const inner = `
+        <span class="agent-icon">${a.icon}</span>
+        <span class="agent-name">${escHtml(a.name)}</span>
+        <span class="agent-arrow">↗</span>`;
+      return a.url
+        ? `<a class="agent-item" href="${escHtml(a.url)}" target="_blank" title="Open in Databricks ↗">${inner}</a>`
+        : `<div class="agent-item" style="cursor:default;opacity:0.5;" title="URL not available">${inner.replace('<span class="agent-arrow">↗</span>','')}</div>`;
+    };
+
+    const genieAgents = agents.filter(a => a.type === 'genie');
+    const kaAgents    = agents.filter(a => a.type === 'ka');
+
+    const genieHtml = genieAgents.length
+      ? `<div class="agent-group-label">Genie Spaces</div>` + genieAgents.map(makeItem).join('')
+      : '';
+    const kaHtml = kaAgents.length
+      ? `<div class="agent-group-label">Knowledge Assistants</div>` + kaAgents.map(makeItem).join('')
+      : '';
+
+    const noLinks = agents.every(a => !a.url);
+    const hint = noLinks
+      ? `<div style="font-size:9px;color:var(--text-muted);margin-top:6px;">Links unavailable — check app permissions</div>`
+      : '';
+
+    panel.innerHTML = `
+      <div class="tech-label">Sub-Agents (${agents.length})</div>
+      <div style="padding-top:4px;">${genieHtml}${kaHtml}${hint}</div>`;
+  } catch(e) {
+    console.error('loadAgents:', e);
+    const panel = document.getElementById('agents-panel');
+    if (panel) panel.innerHTML = `<div class="tech-label">Sub-Agents</div><div style="font-size:10px;color:var(--text-muted);">Failed to load</div>`;
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Sidebar toggles
+// ────────────────────────────────────────────────────────────────────────────
+function toggleLeftSidebar() {
+  const sidebar = document.getElementById('left-sidebar');
+  const icon = document.getElementById('left-toggle-icon');
+  const collapsed = sidebar.classList.toggle('collapsed');
+  icon.textContent = collapsed ? '▶' : '◀';
+  if (locationMap) setTimeout(() => locationMap.invalidateSize(), 220);
+}
+
+function toggleRightSidebar() {
+  const sidebar = document.getElementById('right-sidebar');
+  const icon = document.getElementById('right-toggle-icon');
+  const collapsed = sidebar.classList.toggle('collapsed');
+  icon.textContent = collapsed ? '◀' : '▶';
+  if (locationMap) setTimeout(() => locationMap.invalidateSize(), 220);
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Init
+// ────────────────────────────────────────────────────────────────────────────
+async function init() {
+  await Promise.all([
+    loadSessions(),
+    loadRevenue(),
+    initMap(),
+    loadTechInfo().then(() => loadAgents()),
+    loadDocuments(),
+  ]);
+  // Pre-fetch consultancy KA answers in background so hire/fire/ai buttons respond instantly
+}
+
+init();
+</script>
+
+  <!-- Demo breaking alert toast — fires 35s after page load -->
+  <div id="demo-alert-toast" class="demo-alert-toast" style="display:none;">
+    <div class="demo-alert-toast-dot"></div>
+    <div class="demo-alert-toast-body">
+      <div class="demo-alert-toast-title">🔴 New alert</div>
+      <div class="demo-alert-toast-text">Munich food safety inspection failed — grade C, 3 critical violations</div>
+    </div>
+    <button class="demo-alert-toast-cta" onclick="window._demoAlertInvestigate()">Investigate →</button>
+    <button class="demo-alert-toast-close" onclick="window._demoAlertDismiss()">✕</button>
+  </div>
+</body>
+</html>

@@ -1,0 +1,446 @@
+{
+  "regulatory_docs": [
+    {
+      "doc_id": "REG-01-2001",
+      "location_id": 1,
+      "location_name": "San Francisco",
+      "address": "1847 Market Street, San Francisco, CA 94103",
+      "city": "San Francisco",
+      "state": "CA",
+      "doc_type": "Food Service Establishment Permit",
+      "issuing_authority": "San Francisco Department of Public Health",
+      "issue_date": "2023-09-24",
+      "expiry_date": "2024-03-22",
+      "status": "APPROVED \u2013 Active",
+      "conditions": [
+        "Facility must maintain compliance with all applicable food safety regulations.",
+        "Any change to menu, ownership, or facility layout requires prior approval.",
+        "Permit must be posted in a conspicuous location visible to the public.",
+        "Annual renewal required by permit expiration date."
+      ],
+      "inspector": "Fire Marshal, District 7"
+    },
+    {
+      "doc_id": "REG-01-2002",
+      "location_id": 1,
+      "location_name": "San Francisco",
+      "address": "1847 Market Street, San Francisco, CA 94103",
+      "city": "San Francisco",
+      "state": "CA",
+      "doc_type": "Fire Safety & Occupancy Certificate",
+      "issuing_authority": "San Francisco Fire Department",
+      "issue_date": "2023-09-21",
+      "expiry_date": "2025-09-20",
+      "status": "ISSUED",
+      "conditions": [
+        "Maximum occupancy of 45 persons including staff at all times.",
+        "Monthly testing of fire suppression system required.",
+        "Annual fire safety training mandatory for all kitchen staff.",
+        "Exit routes must remain unobstructed at all times."
+      ],
+      "inspector": "Fire Marshal, District 7"
+    },
+    {
+      "doc_id": "REG-01-2003",
+      "location_id": 1,
+      "location_name": "San Francisco",
+      "address": "1847 Market Street, San Francisco, CA 94103",
+      "city": "San Francisco",
+      "state": "CA",
+      "doc_type": "Zoning Compliance Letter",
+      "issuing_authority": "SF Planning Department",
+      "issue_date": "2023-09-23",
+      "expiry_date": "2024-09-22",
+      "status": "UNDER REVIEW",
+      "conditions": [
+        "Use limited to food service and preparation (ghost kitchen operations).",
+        "Delivery vehicle access restricted to rear alley between 6AM\u201310PM.",
+        "Exterior signage must comply with Municipal Code \u00a7 136.3.",
+        "On-site dining is not permitted under ghost kitchen classification."
+      ],
+      "inspector": "Senior Zoning Administrator"
+    },
+    {
+      "doc_id": "REG-01-2004",
+      "location_id": 1,
+      "location_name": "San Francisco",
+      "address": "1847 Market Street, San Francisco, CA 94103",
+      "city": "San Francisco",
+      "state": "CA",
+      "doc_type": "FDA Food Facility Registration",
+      "issuing_authority": "San Francisco Department of Public Health",
+      "issue_date": "2023-12-08",
+      "expiry_date": "2024-12-07",
+      "status": "REGISTERED \u2013 Biennial Renewal Due",
+      "conditions": [
+        "Registration under 21 CFR Part 1, Subpart H \u2014 Food Facilities.",
+        "Facility must allow FDA inspection upon request with no prior notice.",
+        "Any changes to facility, processes, or products must be reported within 60 days.",
+        "FSMA Preventive Controls Rule compliance required."
+      ],
+      "inspector": "Fire Marshal, District 7"
+    },
+    {
+      "doc_id": "REG-01-2005",
+      "location_id": 1,
+      "location_name": "San Francisco",
+      "address": "1847 Market Street, San Francisco, CA 94103",
+      "city": "San Francisco",
+      "state": "CA",
+      "doc_type": "Food Handler Certification \u2014 Corporate Compliance",
+      "issuing_authority": "San Francisco Department of Public Health",
+      "issue_date": "2023-12-19",
+      "expiry_date": "2025-12-18",
+      "status": "IN COMPLIANCE",
+      "conditions": [
+        "All food handlers must hold a current food handler certificate.",
+        "Certified Food Manager must be present during all operating hours.",
+        "Certificates expire every 3 years; renewal training required.",
+        "Records of all certifications must be maintained on-site."
+      ],
+      "inspector": "Fire Marshal, District 7"
+    },
+    {
+      "doc_id": "REG-02-2006",
+      "location_id": 2,
+      "location_name": "Silicon Valley",
+      "address": "2350 El Camino Real, Santa Clara, CA 95051",
+      "city": "Santa Clara",
+      "state": "CA",
+      "doc_type": "Food Service Establishment Permit",
+      "issuing_authority": "Santa Clara County Environmental Health",
+      "issue_date": "2023-09-11",
+      "expiry_date": "2024-03-09",
+      "status": "RENEWAL PENDING",
+      "conditions": [
+        "Facility must maintain compliance with all applicable food safety regulations.",
+        "Any change to menu, ownership, or facility layout requires prior approval.",
+        "Permit must be posted in a conspicuous location visible to the public.",
+        "Annual renewal required by permit expiration date."
+      ],
+      "inspector": "Regional Compliance Officer"
+    },
+    {
+      "doc_id": "REG-02-2007",
+      "location_id": 2,
+      "location_name": "Silicon Valley",
+      "address": "2350 El Camino Real, Santa Clara, CA 95051",
+      "city": "Santa Clara",
+      "state": "CA",
+      "doc_type": "Fire Safety & Occupancy Certificate",
+      "issuing_authority": "Santa Clara Fire Department",
+      "issue_date": "2023-12-28",
+      "expiry_date": "2024-06-25",
+      "status": "ISSUED",
+      "conditions": [
+        "Maximum occupancy of 45 persons including staff at all times.",
+        "Monthly testing of fire suppression system required.",
+        "Annual fire safety training mandatory for all kitchen staff.",
+        "Exit routes must remain unobstructed at all times."
+      ],
+      "inspector": "Senior Zoning Administrator"
+    },
+    {
+      "doc_id": "REG-02-2008",
+      "location_id": 2,
+      "location_name": "Silicon Valley",
+      "address": "2350 El Camino Real, Santa Clara, CA 95051",
+      "city": "Santa Clara",
+      "state": "CA",
+      "doc_type": "Zoning Compliance Letter",
+      "issuing_authority": "Santa Clara Planning & Inspection",
+      "issue_date": "2023-10-30",
+      "expiry_date": "2024-04-27",
+      "status": "UNDER REVIEW",
+      "conditions": [
+        "Use limited to food service and preparation (ghost kitchen operations).",
+        "Delivery vehicle access restricted to rear alley between 6AM\u201310PM.",
+        "Exterior signage must comply with Municipal Code \u00a7 136.3.",
+        "On-site dining is not permitted under ghost kitchen classification."
+      ],
+      "inspector": "Senior Zoning Administrator"
+    },
+    {
+      "doc_id": "REG-02-2009",
+      "location_id": 2,
+      "location_name": "Silicon Valley",
+      "address": "2350 El Camino Real, Santa Clara, CA 95051",
+      "city": "Santa Clara",
+      "state": "CA",
+      "doc_type": "FDA Food Facility Registration",
+      "issuing_authority": "Santa Clara County Environmental Health",
+      "issue_date": "2023-10-20",
+      "expiry_date": "2024-04-17",
+      "status": "REGISTERED",
+      "conditions": [
+        "Registration under 21 CFR Part 1, Subpart H \u2014 Food Facilities.",
+        "Facility must allow FDA inspection upon request with no prior notice.",
+        "Any changes to facility, processes, or products must be reported within 60 days.",
+        "FSMA Preventive Controls Rule compliance required."
+      ],
+      "inspector": "Senior Zoning Administrator"
+    },
+    {
+      "doc_id": "REG-02-2010",
+      "location_id": 2,
+      "location_name": "Silicon Valley",
+      "address": "2350 El Camino Real, Santa Clara, CA 95051",
+      "city": "Santa Clara",
+      "state": "CA",
+      "doc_type": "Food Handler Certification \u2014 Corporate Compliance",
+      "issuing_authority": "Santa Clara County Environmental Health",
+      "issue_date": "2023-10-14",
+      "expiry_date": "2024-10-13",
+      "status": "PARTIAL COMPLIANCE \u2013 2 Staff Pending Renewal",
+      "conditions": [
+        "All food handlers must hold a current food handler certificate.",
+        "Certified Food Manager must be present during all operating hours.",
+        "Certificates expire every 3 years; renewal training required.",
+        "Records of all certifications must be maintained on-site."
+      ],
+      "inspector": "Regional Compliance Officer"
+    },
+    {
+      "doc_id": "REG-03-2011",
+      "location_id": 3,
+      "location_name": "Bellevue",
+      "address": "10456 NE 8th Street, Bellevue, WA 98004",
+      "city": "Bellevue",
+      "state": "WA",
+      "doc_type": "Food Service Establishment Permit",
+      "issuing_authority": "King County Public Health",
+      "issue_date": "2023-09-28",
+      "expiry_date": "2024-09-27",
+      "status": "APPROVED \u2013 Active (Conditional)",
+      "conditions": [
+        "Facility must maintain compliance with all applicable food safety regulations.",
+        "Any change to menu, ownership, or facility layout requires prior approval.",
+        "Permit must be posted in a conspicuous location visible to the public.",
+        "Annual renewal required by permit expiration date."
+      ],
+      "inspector": "Fire Marshal, District 7"
+    },
+    {
+      "doc_id": "REG-03-2012",
+      "location_id": 3,
+      "location_name": "Bellevue",
+      "address": "10456 NE 8th Street, Bellevue, WA 98004",
+      "city": "Bellevue",
+      "state": "WA",
+      "doc_type": "Fire Safety & Occupancy Certificate",
+      "issuing_authority": "Bellevue Fire Department",
+      "issue_date": "2023-12-02",
+      "expiry_date": "2025-12-01",
+      "status": "ISSUED",
+      "conditions": [
+        "Maximum occupancy of 45 persons including staff at all times.",
+        "Monthly testing of fire suppression system required.",
+        "Annual fire safety training mandatory for all kitchen staff.",
+        "Exit routes must remain unobstructed at all times."
+      ],
+      "inspector": "Deputy Director of Environmental Health"
+    },
+    {
+      "doc_id": "REG-03-2013",
+      "location_id": 3,
+      "location_name": "Bellevue",
+      "address": "10456 NE 8th Street, Bellevue, WA 98004",
+      "city": "Bellevue",
+      "state": "WA",
+      "doc_type": "Zoning Compliance Letter",
+      "issuing_authority": "City of Bellevue Development Services",
+      "issue_date": "2023-12-29",
+      "expiry_date": "2024-06-26",
+      "status": "COMPLIANT",
+      "conditions": [
+        "Use limited to food service and preparation (ghost kitchen operations).",
+        "Delivery vehicle access restricted to rear alley between 6AM\u201310PM.",
+        "Exterior signage must comply with Municipal Code \u00a7 136.3.",
+        "On-site dining is not permitted under ghost kitchen classification."
+      ],
+      "inspector": "Deputy Director of Environmental Health"
+    },
+    {
+      "doc_id": "REG-03-2014",
+      "location_id": 3,
+      "location_name": "Bellevue",
+      "address": "10456 NE 8th Street, Bellevue, WA 98004",
+      "city": "Bellevue",
+      "state": "WA",
+      "doc_type": "FDA Food Facility Registration",
+      "issuing_authority": "King County Public Health",
+      "issue_date": "2023-11-19",
+      "expiry_date": "2025-11-18",
+      "status": "REGISTERED",
+      "conditions": [
+        "Registration under 21 CFR Part 1, Subpart H \u2014 Food Facilities.",
+        "Facility must allow FDA inspection upon request with no prior notice.",
+        "Any changes to facility, processes, or products must be reported within 60 days.",
+        "FSMA Preventive Controls Rule compliance required."
+      ],
+      "inspector": "Senior Zoning Administrator"
+    },
+    {
+      "doc_id": "REG-03-2015",
+      "location_id": 3,
+      "location_name": "Bellevue",
+      "address": "10456 NE 8th Street, Bellevue, WA 98004",
+      "city": "Bellevue",
+      "state": "WA",
+      "doc_type": "Food Handler Certification \u2014 Corporate Compliance",
+      "issuing_authority": "King County Public Health",
+      "issue_date": "2023-10-24",
+      "expiry_date": "2024-10-23",
+      "status": "IN COMPLIANCE",
+      "conditions": [
+        "All food handlers must hold a current food handler certificate.",
+        "Certified Food Manager must be present during all operating hours.",
+        "Certificates expire every 3 years; renewal training required.",
+        "Records of all certifications must be maintained on-site."
+      ],
+      "inspector": "Senior Zoning Administrator"
+    },
+    {
+      "doc_id": "REG-04-2016",
+      "location_id": 4,
+      "location_name": "Chicago",
+      "address": "872 N. Milwaukee Avenue, Chicago, IL 60642",
+      "city": "Chicago",
+      "state": "IL",
+      "doc_type": "Food Service Establishment Permit",
+      "issuing_authority": "Chicago Department of Public Health",
+      "issue_date": "2023-12-30",
+      "expiry_date": "2025-12-29",
+      "status": "RENEWAL PENDING",
+      "conditions": [
+        "Facility must maintain compliance with all applicable food safety regulations.",
+        "Any change to menu, ownership, or facility layout requires prior approval.",
+        "Permit must be posted in a conspicuous location visible to the public.",
+        "Annual renewal required by permit expiration date."
+      ],
+      "inspector": "Regional Compliance Officer"
+    },
+    {
+      "doc_id": "REG-04-2017",
+      "location_id": 4,
+      "location_name": "Chicago",
+      "address": "872 N. Milwaukee Avenue, Chicago, IL 60642",
+      "city": "Chicago",
+      "state": "IL",
+      "doc_type": "Fire Safety & Occupancy Certificate",
+      "issuing_authority": "Chicago Fire Department",
+      "issue_date": "2023-12-12",
+      "expiry_date": "2025-12-11",
+      "status": "ISSUED",
+      "conditions": [
+        "Maximum occupancy of 45 persons including staff at all times.",
+        "Monthly testing of fire suppression system required.",
+        "Annual fire safety training mandatory for all kitchen staff.",
+        "Exit routes must remain unobstructed at all times."
+      ],
+      "inspector": "Fire Marshal, District 7"
+    },
+    {
+      "doc_id": "REG-04-2018",
+      "location_id": 4,
+      "location_name": "Chicago",
+      "address": "872 N. Milwaukee Avenue, Chicago, IL 60642",
+      "city": "Chicago",
+      "state": "IL",
+      "doc_type": "Zoning Compliance Letter",
+      "issuing_authority": "Chicago Department of Buildings",
+      "issue_date": "2023-09-15",
+      "expiry_date": "2025-09-14",
+      "status": "UNDER REVIEW",
+      "conditions": [
+        "Use limited to food service and preparation (ghost kitchen operations).",
+        "Delivery vehicle access restricted to rear alley between 6AM\u201310PM.",
+        "Exterior signage must comply with Municipal Code \u00a7 136.3.",
+        "On-site dining is not permitted under ghost kitchen classification."
+      ],
+      "inspector": "Fire Marshal, District 7"
+    },
+    {
+      "doc_id": "REG-04-2019",
+      "location_id": 4,
+      "location_name": "Chicago",
+      "address": "872 N. Milwaukee Avenue, Chicago, IL 60642",
+      "city": "Chicago",
+      "state": "IL",
+      "doc_type": "FDA Food Facility Registration",
+      "issuing_authority": "Chicago Department of Public Health",
+      "issue_date": "2023-11-16",
+      "expiry_date": "2024-11-15",
+      "status": "REGISTERED \u2013 Biennial Renewal Due",
+      "conditions": [
+        "Registration under 21 CFR Part 1, Subpart H \u2014 Food Facilities.",
+        "Facility must allow FDA inspection upon request with no prior notice.",
+        "Any changes to facility, processes, or products must be reported within 60 days.",
+        "FSMA Preventive Controls Rule compliance required."
+      ],
+      "inspector": "Deputy Director of Environmental Health"
+    },
+    {
+      "doc_id": "REG-04-2020",
+      "location_id": 4,
+      "location_name": "Chicago",
+      "address": "872 N. Milwaukee Avenue, Chicago, IL 60642",
+      "city": "Chicago",
+      "state": "IL",
+      "doc_type": "Food Handler Certification \u2014 Corporate Compliance",
+      "issuing_authority": "Chicago Department of Public Health",
+      "issue_date": "2023-09-22",
+      "expiry_date": "2025-09-21",
+      "status": "PARTIAL COMPLIANCE \u2013 2 Staff Pending Renewal",
+      "conditions": [
+        "All food handlers must hold a current food handler certificate.",
+        "Certified Food Manager must be present during all operating hours.",
+        "Certificates expire every 3 years; renewal training required.",
+        "Records of all certifications must be maintained on-site."
+      ],
+      "inspector": "Senior Zoning Administrator"
+    }
+  ],
+  "locations": [
+    {
+      "location_id": 1,
+      "name": "San Francisco",
+      "address": "1847 Market Street, San Francisco, CA 94103",
+      "state": "CA",
+      "city": "San Francisco",
+      "health_dept": "San Francisco Department of Public Health",
+      "fire_dept": "San Francisco Fire Department",
+      "zoning_office": "SF Planning Department"
+    },
+    {
+      "location_id": 2,
+      "name": "Silicon Valley",
+      "address": "2350 El Camino Real, Santa Clara, CA 95051",
+      "state": "CA",
+      "city": "Santa Clara",
+      "health_dept": "Santa Clara County Environmental Health",
+      "fire_dept": "Santa Clara Fire Department",
+      "zoning_office": "Santa Clara Planning & Inspection"
+    },
+    {
+      "location_id": 3,
+      "name": "Bellevue",
+      "address": "10456 NE 8th Street, Bellevue, WA 98004",
+      "state": "WA",
+      "city": "Bellevue",
+      "health_dept": "King County Public Health",
+      "fire_dept": "Bellevue Fire Department",
+      "zoning_office": "City of Bellevue Development Services"
+    },
+    {
+      "location_id": 4,
+      "name": "Chicago",
+      "address": "872 N. Milwaukee Avenue, Chicago, IL 60642",
+      "state": "IL",
+      "city": "Chicago",
+      "health_dept": "Chicago Department of Public Health",
+      "fire_dept": "Chicago Fire Department",
+      "zoning_office": "Chicago Department of Buildings"
+    }
+  ]
+}
