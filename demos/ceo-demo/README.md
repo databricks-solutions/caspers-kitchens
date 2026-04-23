@@ -177,7 +177,8 @@ CEO Supervisor (Multi-Agent Supervisor)
 5. Show the trace-derived dataset and the production→eval flywheel
 6. Every AI decision is now auditable
 
-### Important: add LLM judges and datasets via UI, no automatic way as of now 
+### Important: run ceo_mlflow_setup notebook to setup mlflow scorers
+### We're using SA which is a managed agent which means it's impossible to get sessions from the messages from the app. If you want to demonstrate sessions, create a few from SA directly, those are captured 
 
 ---
 

@@ -410,9 +410,10 @@ def _clean_mas_text(text: str) -> str:
     text = re.sub(r'Error:\s*KA endpoint [^\n]+\n?', '', text)
     text = re.sub(r'Error:\s*Failed to query Genie space [^\n]+\n?', '', text)
 
-    # 2. Strip footnote definition blocks: cut the text at the first [^id]: line.
-    #    Everything from that point is source-document citations, not answer content.
-    text = re.split(r'(?:^|\n)\[\^[^\]]+\]:', text, maxsplit=1)[0]
+    # 2. Strip footnote definition lines (e.g. [^1]: Source...) — remove each line
+    #    individually rather than cutting the whole response, because KAs emit
+    #    citations inline (not just as a block at the bottom).
+    text = re.sub(r'(?m)^\[\^[^\]]+\]:.*$', '', text)
 
     # 3. Strip any remaining inline footnote reference markers: [^id]
     text = re.sub(r'\[\^[^\]]+\]', '', text)
@@ -502,7 +503,7 @@ def _detect_routing(text: str) -> str:
     return hits[0][0]
 
 
-async def _stream_supervisor(message: str) -> AsyncIterator[str]:
+async def _stream_supervisor(message: str, session_id: str = "") -> AsyncIterator[str]:
     """Stream the CEO supervisor MAS endpoint, yielding SSE content chunks as tokens arrive.
 
     MAS can take 30-90 s before sending the first token while it orchestrates
@@ -519,6 +520,8 @@ async def _stream_supervisor(message: str) -> AsyncIterator[str]:
     url = f"{(_sdk_config.host or '').rstrip('/')}/serving-endpoints/{SUPERVISOR_ENDPOINT}/invocations"
     headers = {"Content-Type": "application/json"}
     headers.update(_sdk_config.authenticate())  # returns {"Authorization": "Bearer <token>"}
+    if session_id:
+        headers["Databricks-Source-Conversation-Id"] = session_id
     body = {"input": [{"role": "user", "content": message}], "stream": True}
 
     # Bridge the upstream httpx stream into an asyncio.Queue so we can inject
@@ -586,7 +589,7 @@ async def chat(req: ChatRequest):
     full_response = []
 
     async def generate():
-        async for chunk in _stream_supervisor(req.message):
+        async for chunk in _stream_supervisor(req.message, session_id=req.session_id):
             if chunk.strip() == "data: [DONE]":
                 # Emit routing detection before DONE so the frontend can show which agent handled this
                 complete_text = "".join(full_response)

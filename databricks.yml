@@ -653,23 +653,17 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/ceo_supervisor
 
-            - task_key: CEO_Evaluation
-              max_retries: 0
-              depends_on:
-                - task_key: CEO_Supervisor
-              notebook_task:
-                notebook_path: ${workspace.root_path}/demos/ceo-demo/ceo_evaluation
-
             - task_key: CEO_Lakebase
               max_retries: 0
               depends_on:
-                - task_key: CEO_Supervisor
+                - task_key: Canonical_Data
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/ceo_lakebase
 
             - task_key: CEO_App
               max_retries: 0
               depends_on:
+                - task_key: CEO_Supervisor
                 - task_key: CEO_Lakebase
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/ceo_app
@@ -680,3 +674,10 @@ targets:
                 - task_key: CEO_App
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/ceo_readiness_check
+
+            - task_key: CEO_Evaluation
+              max_retries: 0
+              depends_on:
+                - task_key: CEO_Readiness_Check
+              notebook_task:
+                notebook_path: ${workspace.root_path}/demos/ceo-demo/ceo_evaluation

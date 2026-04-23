@@ -1071,9 +1071,10 @@ body { background: var(--bg-primary); color: var(--text-primary); display: flex;
 function cleanMarkdown(text) {
   if (!text) return text;
 
-  // Cut off at the first footnote definition block (lines starting with [^id]:)
-  text = text.split(/(?:^|\n)\[\^[^\]]+\]:/m)[0];
-  // Strip remaining inline footnote markers like [^id]
+  // Strip footnote definition lines (e.g. [^1]: Source doc...) — remove each line
+  // rather than cutting the whole response, because KAs emit citations inline.
+  text = text.replace(/^\[\^[^\]]+\]:.*$/gm, '');
+  // Strip remaining inline footnote reference markers like [^id]
   text = text.replace(/\[\^[^\]]+\]/g, '');
 
   // Strip the MAS routing announcement ("I'll query the X system to...")
