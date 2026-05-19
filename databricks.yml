@@ -489,6 +489,16 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/canonical_data
 
+            # Empty placeholder for small post-ingestion environment-population
+            # helpers (seed lookup tables, register helper UDFs, grant demo-user
+            # perms, etc.).  Runs after Canonical_Data so catalog/schemas exist;
+            # currently a no-op.  Add helpers inside stages/environment_helpers.ipynb.
+            - task_key: Environment_Helpers
+              depends_on:
+                - task_key: Canonical_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/environment_helpers
+
             - task_key: Spark_Declarative_Pipeline
               depends_on:
                 - task_key: Canonical_Data
