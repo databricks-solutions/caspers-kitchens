@@ -1,0 +1,419 @@
+{
+  "reports": [
+    {
+      "report_id": "CON-4001",
+      "location_id": 0,
+      "location_name": "All Locations (Corporate)",
+      "report_type": "Market Expansion Strategy",
+      "subtitle": "Identifying High-Value Growth Markets for Ghost Kitchen Operations",
+      "consulting_firm": "Oliver Wyman",
+      "report_date": "2023-07-15",
+      "executive_summary": "Casper's Kitchens has demonstrated strong unit economics across its 4 operating locations. This engagement analyzes 12 potential expansion markets across the United States, scoring each on population density, delivery app penetration, competitive intensity, and real estate costs. We recommend prioritizing Austin TX, Denver CO, and Seattle WA as Tier-1 expansion candidates for 2024\u20132025, with projected EBITDA breakeven at 14\u201318 months per location.",
+      "sections": [
+        [
+          "Market Sizing",
+          "The U.S. ghost kitchen market is projected to reach $71.4B by 2027 (CAGR 12.3%). Delivery-app adoption in target markets averages 38% of restaurant-goers. Casper's 16-brand portfolio gives a meaningful differentiation advantage vs. single-concept operators."
+        ],
+        [
+          "Competitive Landscape",
+          "Primary competitors include Kitchen United, CloudKitchens, and regional operators. Casper's AI-driven demand forecasting and multi-brand efficiency creates a 15\u201322% cost-per-order advantage in modeled scenarios."
+        ],
+        [
+          "Recommended Markets",
+          "Austin TX: Population 978K, delivery penetration 44%, real estate cost index 0.72. Denver CO: Population 2.1M metro, tech-worker density high, index 0.81. Seattle WA: High income per capita, strong DoorDash/UberEats market share, index 0.88."
+        ],
+        [
+          "Financial Projections",
+          "Modeled 3-year P&L: Year 1 revenue $2.1M\u2013$2.8M per location; Year 2 $3.4M\u2013$4.2M; Year 3 $4.8M\u2013$6.1M. Target Contribution Margin of 28% achievable with current brand mix and operational model."
+        ],
+        [
+          "Recommendations",
+          "Proceed with Austin TX as first expansion by Q3 2024. Secure dark kitchen facility lease (3,500\u20134,500 sq ft) at $18\u201322/sq ft NNN. Budget $420K\u2013$560K for fit-out, equipment, and pre-opening expenses."
+        ]
+      ]
+    },
+    {
+      "report_id": "CON-4002",
+      "location_id": 2,
+      "location_name": "Silicon Valley",
+      "report_type": "Market Expansion Strategy",
+      "subtitle": "Identifying High-Value Growth Markets for Ghost Kitchen Operations",
+      "consulting_firm": "McKinsey & Company",
+      "report_date": "2023-07-26",
+      "executive_summary": "Casper's Kitchens has demonstrated strong unit economics across its 4 operating locations. This engagement analyzes 12 potential expansion markets across the United States, scoring each on population density, delivery app penetration, competitive intensity, and real estate costs. We recommend prioritizing Austin TX, Denver CO, and Seattle WA as Tier-1 expansion candidates for 2024\u20132025, with projected EBITDA breakeven at 14\u201318 months per location.",
+      "sections": [
+        [
+          "Market Sizing",
+          "The U.S. ghost kitchen market is projected to reach $71.4B by 2027 (CAGR 12.3%). Delivery-app adoption in target markets averages 38% of restaurant-goers. Casper's 16-brand portfolio gives a meaningful differentiation advantage vs. single-concept operators."
+        ],
+        [
+          "Competitive Landscape",
+          "Primary competitors include Kitchen United, CloudKitchens, and regional operators. Casper's AI-driven demand forecasting and multi-brand efficiency creates a 15\u201322% cost-per-order advantage in modeled scenarios."
+        ],
+        [
+          "Recommended Markets",
+          "Austin TX: Population 978K, delivery penetration 44%, real estate cost index 0.72. Denver CO: Population 2.1M metro, tech-worker density high, index 0.81. Seattle WA: High income per capita, strong DoorDash/UberEats market share, index 0.88."
+        ],
+        [
+          "Financial Projections",
+          "Modeled 3-year P&L: Year 1 revenue $2.1M\u2013$2.8M per location; Year 2 $3.4M\u2013$4.2M; Year 3 $4.8M\u2013$6.1M. Target Contribution Margin of 28% achievable with current brand mix and operational model."
+        ],
+        [
+          "Recommendations",
+          "Proceed with Austin TX as first expansion by Q3 2024. Secure dark kitchen facility lease (3,500\u20134,500 sq ft) at $18\u201322/sq ft NNN. Budget $420K\u2013$560K for fit-out, equipment, and pre-opening expenses."
+        ]
+      ]
+    },
+    {
+      "report_id": "CON-4003",
+      "location_id": 4,
+      "location_name": "Chicago",
+      "report_type": "Operations Efficiency Analysis",
+      "subtitle": "Reducing Cost-Per-Order and Improving Kitchen Throughput",
+      "consulting_firm": "Bain & Company",
+      "report_date": "2024-03-14",
+      "executive_summary": "An operational review of Casper's Kitchens ghost kitchen locations identified $1.2M\u2013$1.8M in annualized cost reduction opportunities through process optimization, scheduling improvements, and waste reduction. This report presents 14 specific initiatives ranked by ease-of-implementation and financial impact, with a 90-day implementation roadmap.",
+      "sections": [
+        [
+          "Current State Assessment",
+          "Average cost-per-order across locations: $8.40. Industry benchmark for comparable operations: $6.90\u2013$7.50. Labor accounts for 34% of total costs vs. 28% benchmark. Food waste running at 8.2% of food cost vs. 4\u20135% best-in-class."
+        ],
+        [
+          "Initiative 1 \u2014 Dynamic Labor Scheduling",
+          "Implementing AI-driven scheduling to match labor hours to predicted order volume. Estimated savings: $180K\u2013$240K annually. Payback period: 4 months. Risk: Low. Recommended tool: 7shifts or HotSchedules integration."
+        ],
+        [
+          "Initiative 2 \u2014 Menu Rationalization",
+          "Current 16-brand \u00d7 ~45 item average = 720 active SKUs across locations. Analysis shows 30% of items generate 8% of revenue. Reducing to top-performing 12 items per brand estimated to reduce prep time by 18% and food waste by 31%."
+        ],
+        [
+          "Initiative 3 \u2014 Batch Cooking Protocols",
+          "Standardizing batch cooking windows for high-volume items (proteins, sauces) reduces cook-to-order time by 23% during peak hours. Estimated throughput increase: +2.4 orders/hour/kitchen."
+        ],
+        [
+          "Initiative 4 \u2014 Supplier Consolidation",
+          "Consolidating from 18 to 9 primary suppliers enables volume discounts of 6\u201311% on produce and proteins. Estimated savings: $95K\u2013$140K annually. Also reduces receiving labor by 22%."
+        ],
+        [
+          "Implementation Roadmap",
+          "Days 1\u201330: Labor scheduling rollout, supplier consolidation RFP. Days 31\u201360: Menu rationalization pilot at San Francisco and Chicago. Days 61\u201390: Batch cooking SOP rollout, pilot measurement and scaling decision."
+        ]
+      ]
+    },
+    {
+      "report_id": "CON-4004",
+      "location_id": 2,
+      "location_name": "Silicon Valley",
+      "report_type": "Operations Efficiency Analysis",
+      "subtitle": "Reducing Cost-Per-Order and Improving Kitchen Throughput",
+      "consulting_firm": "Boston Consulting Group",
+      "report_date": "2023-06-27",
+      "executive_summary": "An operational review of Casper's Kitchens ghost kitchen locations identified $1.2M\u2013$1.8M in annualized cost reduction opportunities through process optimization, scheduling improvements, and waste reduction. This report presents 14 specific initiatives ranked by ease-of-implementation and financial impact, with a 90-day implementation roadmap.",
+      "sections": [
+        [
+          "Current State Assessment",
+          "Average cost-per-order across locations: $8.40. Industry benchmark for comparable operations: $6.90\u2013$7.50. Labor accounts for 34% of total costs vs. 28% benchmark. Food waste running at 8.2% of food cost vs. 4\u20135% best-in-class."
+        ],
+        [
+          "Initiative 1 \u2014 Dynamic Labor Scheduling",
+          "Implementing AI-driven scheduling to match labor hours to predicted order volume. Estimated savings: $180K\u2013$240K annually. Payback period: 4 months. Risk: Low. Recommended tool: 7shifts or HotSchedules integration."
+        ],
+        [
+          "Initiative 2 \u2014 Menu Rationalization",
+          "Current 16-brand \u00d7 ~45 item average = 720 active SKUs across locations. Analysis shows 30% of items generate 8% of revenue. Reducing to top-performing 12 items per brand estimated to reduce prep time by 18% and food waste by 31%."
+        ],
+        [
+          "Initiative 3 \u2014 Batch Cooking Protocols",
+          "Standardizing batch cooking windows for high-volume items (proteins, sauces) reduces cook-to-order time by 23% during peak hours. Estimated throughput increase: +2.4 orders/hour/kitchen."
+        ],
+        [
+          "Initiative 4 \u2014 Supplier Consolidation",
+          "Consolidating from 18 to 9 primary suppliers enables volume discounts of 6\u201311% on produce and proteins. Estimated savings: $95K\u2013$140K annually. Also reduces receiving labor by 22%."
+        ],
+        [
+          "Implementation Roadmap",
+          "Days 1\u201330: Labor scheduling rollout, supplier consolidation RFP. Days 31\u201360: Menu rationalization pilot at San Francisco and Chicago. Days 61\u201390: Batch cooking SOP rollout, pilot measurement and scaling decision."
+        ]
+      ]
+    },
+    {
+      "report_id": "CON-4005",
+      "location_id": 1,
+      "location_name": "San Francisco",
+      "report_type": "Operations Efficiency Analysis",
+      "subtitle": "Reducing Cost-Per-Order and Improving Kitchen Throughput",
+      "consulting_firm": "A.T. Kearney",
+      "report_date": "2023-11-20",
+      "executive_summary": "An operational review of Casper's Kitchens ghost kitchen locations identified $1.2M\u2013$1.8M in annualized cost reduction opportunities through process optimization, scheduling improvements, and waste reduction. This report presents 14 specific initiatives ranked by ease-of-implementation and financial impact, with a 90-day implementation roadmap.",
+      "sections": [
+        [
+          "Current State Assessment",
+          "Average cost-per-order across locations: $8.40. Industry benchmark for comparable operations: $6.90\u2013$7.50. Labor accounts for 34% of total costs vs. 28% benchmark. Food waste running at 8.2% of food cost vs. 4\u20135% best-in-class."
+        ],
+        [
+          "Initiative 1 \u2014 Dynamic Labor Scheduling",
+          "Implementing AI-driven scheduling to match labor hours to predicted order volume. Estimated savings: $180K\u2013$240K annually. Payback period: 4 months. Risk: Low. Recommended tool: 7shifts or HotSchedules integration."
+        ],
+        [
+          "Initiative 2 \u2014 Menu Rationalization",
+          "Current 16-brand \u00d7 ~45 item average = 720 active SKUs across locations. Analysis shows 30% of items generate 8% of revenue. Reducing to top-performing 12 items per brand estimated to reduce prep time by 18% and food waste by 31%."
+        ],
+        [
+          "Initiative 3 \u2014 Batch Cooking Protocols",
+          "Standardizing batch cooking windows for high-volume items (proteins, sauces) reduces cook-to-order time by 23% during peak hours. Estimated throughput increase: +2.4 orders/hour/kitchen."
+        ],
+        [
+          "Initiative 4 \u2014 Supplier Consolidation",
+          "Consolidating from 18 to 9 primary suppliers enables volume discounts of 6\u201311% on produce and proteins. Estimated savings: $95K\u2013$140K annually. Also reduces receiving labor by 22%."
+        ],
+        [
+          "Implementation Roadmap",
+          "Days 1\u201330: Labor scheduling rollout, supplier consolidation RFP. Days 31\u201360: Menu rationalization pilot at San Francisco and Chicago. Days 61\u201390: Batch cooking SOP rollout, pilot measurement and scaling decision."
+        ]
+      ]
+    },
+    {
+      "report_id": "CON-4006",
+      "location_id": 1,
+      "location_name": "San Francisco",
+      "report_type": "AI & Digital Transformation Roadmap",
+      "subtitle": "Accelerating Value Creation Through Intelligent Automation",
+      "consulting_firm": "McKinsey & Company",
+      "report_date": "2023-08-23",
+      "executive_summary": "Casper's Kitchens is well-positioned to leverage artificial intelligence across demand forecasting, customer experience personalization, and operational intelligence. This report outlines a phased 18-month AI transformation roadmap with projected ROI of 3.2x\u20134.8x on technology investment. Priority use cases include predictive ordering, AI-driven refund resolution, and real-time kitchen performance analytics.",
+      "sections": [
+        [
+          "Current Technology Stack",
+          "Current capabilities: Basic POS integration, manual demand forecasting, reactive customer service. Gaps: No predictive analytics, limited automation in complaint resolution, no unified data platform across locations."
+        ],
+        [
+          "Phase 1 \u2014 Data Foundation (Months 1\u20134)",
+          "Deploy a unified data lakehouse architecture (Databricks recommended) ingesting POS, delivery platform, and supplier data. Estimated investment: $280K\u2013$340K. Output: Single source of truth for all operational metrics accessible within 24 hours."
+        ],
+        [
+          "Phase 2 \u2014 Predictive Intelligence (Months 5\u201310)",
+          "AI demand forecasting: Reduce food waste by 35\u201340% (estimated $220K\u2013$310K annual savings). AI refund agent: Automate 68% of refund decisions, reducing resolution time from 4.2 hours to 8 minutes. Customer propensity models to personalize promotions."
+        ],
+        [
+          "Phase 3 \u2014 Autonomous Operations (Months 11\u201318)",
+          "Kitchen orchestration AI to auto-route orders based on real-time capacity. Predictive maintenance for equipment (reduce downtime by 45%). AI-generated supply chain reordering. Estimated Year 2 incremental EBITDA contribution: $1.4M\u2013$2.1M."
+        ],
+        [
+          "Build vs. Buy Recommendation",
+          "Recommend a hybrid approach: Databricks platform (buy) + custom AI models (build on top). Avoid point-solution vendors in demand forecasting and refund automation \u2014 proprietary models trained on Casper's data will outperform generic SaaS by 30\u201350% within 6 months of training data accumulation."
+        ],
+        [
+          "Investment & ROI Summary",
+          "Total 18-month investment: $1.1M\u2013$1.5M. Year 1 savings + revenue uplift: $680K\u2013$890K. Year 2\u20133 annualized benefit: $2.2M\u2013$3.1M. Blended 3-year ROI: 320\u2013480%. Recommendation: PROCEED immediately with Phase 1 data foundation."
+        ]
+      ]
+    },
+    {
+      "report_id": "CON-4007",
+      "location_id": 3,
+      "location_name": "Bellevue",
+      "report_type": "AI & Digital Transformation Roadmap",
+      "subtitle": "Accelerating Value Creation Through Intelligent Automation",
+      "consulting_firm": "A.T. Kearney",
+      "report_date": "2023-07-15",
+      "executive_summary": "Casper's Kitchens is well-positioned to leverage artificial intelligence across demand forecasting, customer experience personalization, and operational intelligence. This report outlines a phased 18-month AI transformation roadmap with projected ROI of 3.2x\u20134.8x on technology investment. Priority use cases include predictive ordering, AI-driven refund resolution, and real-time kitchen performance analytics.",
+      "sections": [
+        [
+          "Current Technology Stack",
+          "Current capabilities: Basic POS integration, manual demand forecasting, reactive customer service. Gaps: No predictive analytics, limited automation in complaint resolution, no unified data platform across locations."
+        ],
+        [
+          "Phase 1 \u2014 Data Foundation (Months 1\u20134)",
+          "Deploy a unified data lakehouse architecture (Databricks recommended) ingesting POS, delivery platform, and supplier data. Estimated investment: $280K\u2013$340K. Output: Single source of truth for all operational metrics accessible within 24 hours."
+        ],
+        [
+          "Phase 2 \u2014 Predictive Intelligence (Months 5\u201310)",
+          "AI demand forecasting: Reduce food waste by 35\u201340% (estimated $220K\u2013$310K annual savings). AI refund agent: Automate 68% of refund decisions, reducing resolution time from 4.2 hours to 8 minutes. Customer propensity models to personalize promotions."
+        ],
+        [
+          "Phase 3 \u2014 Autonomous Operations (Months 11\u201318)",
+          "Kitchen orchestration AI to auto-route orders based on real-time capacity. Predictive maintenance for equipment (reduce downtime by 45%). AI-generated supply chain reordering. Estimated Year 2 incremental EBITDA contribution: $1.4M\u2013$2.1M."
+        ],
+        [
+          "Build vs. Buy Recommendation",
+          "Recommend a hybrid approach: Databricks platform (buy) + custom AI models (build on top). Avoid point-solution vendors in demand forecasting and refund automation \u2014 proprietary models trained on Casper's data will outperform generic SaaS by 30\u201350% within 6 months of training data accumulation."
+        ],
+        [
+          "Investment & ROI Summary",
+          "Total 18-month investment: $1.1M\u2013$1.5M. Year 1 savings + revenue uplift: $680K\u2013$890K. Year 2\u20133 annualized benefit: $2.2M\u2013$3.1M. Blended 3-year ROI: 320\u2013480%. Recommendation: PROCEED immediately with Phase 1 data foundation."
+        ]
+      ]
+    },
+    {
+      "report_id": "CON-4008",
+      "location_id": 3,
+      "location_name": "Bellevue",
+      "report_type": "AI & Digital Transformation Roadmap",
+      "subtitle": "Accelerating Value Creation Through Intelligent Automation",
+      "consulting_firm": "McKinsey & Company",
+      "report_date": "2023-07-06",
+      "executive_summary": "Casper's Kitchens is well-positioned to leverage artificial intelligence across demand forecasting, customer experience personalization, and operational intelligence. This report outlines a phased 18-month AI transformation roadmap with projected ROI of 3.2x\u20134.8x on technology investment. Priority use cases include predictive ordering, AI-driven refund resolution, and real-time kitchen performance analytics.",
+      "sections": [
+        [
+          "Current Technology Stack",
+          "Current capabilities: Basic POS integration, manual demand forecasting, reactive customer service. Gaps: No predictive analytics, limited automation in complaint resolution, no unified data platform across locations."
+        ],
+        [
+          "Phase 1 \u2014 Data Foundation (Months 1\u20134)",
+          "Deploy a unified data lakehouse architecture (Databricks recommended) ingesting POS, delivery platform, and supplier data. Estimated investment: $280K\u2013$340K. Output: Single source of truth for all operational metrics accessible within 24 hours."
+        ],
+        [
+          "Phase 2 \u2014 Predictive Intelligence (Months 5\u201310)",
+          "AI demand forecasting: Reduce food waste by 35\u201340% (estimated $220K\u2013$310K annual savings). AI refund agent: Automate 68% of refund decisions, reducing resolution time from 4.2 hours to 8 minutes. Customer propensity models to personalize promotions."
+        ],
+        [
+          "Phase 3 \u2014 Autonomous Operations (Months 11\u201318)",
+          "Kitchen orchestration AI to auto-route orders based on real-time capacity. Predictive maintenance for equipment (reduce downtime by 45%). AI-generated supply chain reordering. Estimated Year 2 incremental EBITDA contribution: $1.4M\u2013$2.1M."
+        ],
+        [
+          "Build vs. Buy Recommendation",
+          "Recommend a hybrid approach: Databricks platform (buy) + custom AI models (build on top). Avoid point-solution vendors in demand forecasting and refund automation \u2014 proprietary models trained on Casper's data will outperform generic SaaS by 30\u201350% within 6 months of training data accumulation."
+        ],
+        [
+          "Investment & ROI Summary",
+          "Total 18-month investment: $1.1M\u2013$1.5M. Year 1 savings + revenue uplift: $680K\u2013$890K. Year 2\u20133 annualized benefit: $2.2M\u2013$3.1M. Blended 3-year ROI: 320\u2013480%. Recommendation: PROCEED immediately with Phase 1 data foundation."
+        ]
+      ]
+    },
+    {
+      "report_id": "CON-4009",
+      "location_id": 3,
+      "location_name": "Bellevue",
+      "report_type": "Workforce Management & Culture Report",
+      "subtitle": "Building a High-Performance Ghost Kitchen Workforce",
+      "consulting_firm": "McKinsey & Company",
+      "report_date": "2023-07-23",
+      "executive_summary": "Staff turnover across Casper's Kitchens locations averages 84% annually \u2014 significantly above the 72% food service industry average. This report identifies the root causes of attrition, benchmarks compensation and culture practices, and recommends a 12-month Workforce Transformation Program projected to reduce turnover to 55\u201360% and save $340K\u2013$480K annually in recruiting and training costs.",
+      "sections": [
+        [
+          "Turnover Analysis",
+          "Chicago location: 112% annual turnover (critical). San Francisco: 91%. Silicon Valley: 78%. Bellevue: 71% (best performer). Primary drivers: Scheduling unpredictability (cited by 61% of exit interviews), compensation gap vs. market (8\u201312% below), and limited advancement path."
+        ],
+        [
+          "Compensation Benchmarking",
+          "Current average kitchen staff hourly rate: $17.40. Market benchmark (Glassdoor, Indeed, LinkedIn data): $19.20\u2013$21.50. Closing 50% of the gap (+$0.90\u2013$1.80/hr) combined with performance bonuses estimated to reduce voluntary exits by 28%."
+        ],
+        [
+          "Culture & Engagement Initiatives",
+          "Recommended: Monthly all-hands per location (30 min, CEO video + local manager Q&A). Peer recognition program ('Kitchen MVP'). Transparent promotion pathways: Lead Cook \u2192 Kitchen Supervisor \u2192 Location Manager (3\u201318 months). Target: eNPS improvement from current -12 to +20 within 12 months."
+        ],
+        [
+          "Training & Development",
+          "Current: 8-hour onboarding. Recommended: 24-hour structured onboarding + 90-day buddy program. Cross-training across all 16 brands increases scheduling flexibility by 35% and reduces call-out impact. Annual training budget per FTE: increase from $180 to $420."
+        ],
+        [
+          "Hiring & Onboarding Optimization",
+          "Partner with local culinary schools in all 4 markets. Streamline application-to-offer timeline from 18 days to 7 days. Offer $500 signing bonus contingent on 90-day tenure. Pre-screen for tech-friendliness (order management systems)."
+        ],
+        [
+          "Financial Impact",
+          "Current annual turnover cost per employee (recruiting + training + productivity loss): $4,200. At 84% turnover on 120 FTE base: $423K/year. At 58% turnover post-program: $292K/year. Net saving: $131K/year. Combined with reduced training costs and productivity gains: $340K\u2013$480K total annual benefit."
+        ]
+      ]
+    },
+    {
+      "report_id": "CON-4010",
+      "location_id": 0,
+      "location_name": "All Locations (Corporate)",
+      "report_type": "Workforce Management & Culture Report",
+      "subtitle": "Building a High-Performance Ghost Kitchen Workforce",
+      "consulting_firm": "Boston Consulting Group",
+      "report_date": "2023-08-12",
+      "executive_summary": "Staff turnover across Casper's Kitchens locations averages 84% annually \u2014 significantly above the 72% food service industry average. This report identifies the root causes of attrition, benchmarks compensation and culture practices, and recommends a 12-month Workforce Transformation Program projected to reduce turnover to 55\u201360% and save $340K\u2013$480K annually in recruiting and training costs.",
+      "sections": [
+        [
+          "Turnover Analysis",
+          "Chicago location: 112% annual turnover (critical). San Francisco: 91%. Silicon Valley: 78%. Bellevue: 71% (best performer). Primary drivers: Scheduling unpredictability (cited by 61% of exit interviews), compensation gap vs. market (8\u201312% below), and limited advancement path."
+        ],
+        [
+          "Compensation Benchmarking",
+          "Current average kitchen staff hourly rate: $17.40. Market benchmark (Glassdoor, Indeed, LinkedIn data): $19.20\u2013$21.50. Closing 50% of the gap (+$0.90\u2013$1.80/hr) combined with performance bonuses estimated to reduce voluntary exits by 28%."
+        ],
+        [
+          "Culture & Engagement Initiatives",
+          "Recommended: Monthly all-hands per location (30 min, CEO video + local manager Q&A). Peer recognition program ('Kitchen MVP'). Transparent promotion pathways: Lead Cook \u2192 Kitchen Supervisor \u2192 Location Manager (3\u201318 months). Target: eNPS improvement from current -12 to +20 within 12 months."
+        ],
+        [
+          "Training & Development",
+          "Current: 8-hour onboarding. Recommended: 24-hour structured onboarding + 90-day buddy program. Cross-training across all 16 brands increases scheduling flexibility by 35% and reduces call-out impact. Annual training budget per FTE: increase from $180 to $420."
+        ],
+        [
+          "Hiring & Onboarding Optimization",
+          "Partner with local culinary schools in all 4 markets. Streamline application-to-offer timeline from 18 days to 7 days. Offer $500 signing bonus contingent on 90-day tenure. Pre-screen for tech-friendliness (order management systems)."
+        ],
+        [
+          "Financial Impact",
+          "Current annual turnover cost per employee (recruiting + training + productivity loss): $4,200. At 84% turnover on 120 FTE base: $423K/year. At 58% turnover post-program: $292K/year. Net saving: $131K/year. Combined with reduced training costs and productivity gains: $340K\u2013$480K total annual benefit."
+        ]
+      ]
+    },
+    {
+      "report_id": "CON-4011",
+      "location_id": 0,
+      "location_name": "All Locations (Corporate)",
+      "report_type": "Workforce Management & Culture Report",
+      "subtitle": "Building a High-Performance Ghost Kitchen Workforce",
+      "consulting_firm": "Oliver Wyman",
+      "report_date": "2023-10-28",
+      "executive_summary": "Staff turnover across Casper's Kitchens locations averages 84% annually \u2014 significantly above the 72% food service industry average. This report identifies the root causes of attrition, benchmarks compensation and culture practices, and recommends a 12-month Workforce Transformation Program projected to reduce turnover to 55\u201360% and save $340K\u2013$480K annually in recruiting and training costs.",
+      "sections": [
+        [
+          "Turnover Analysis",
+          "Chicago location: 112% annual turnover (critical). San Francisco: 91%. Silicon Valley: 78%. Bellevue: 71% (best performer). Primary drivers: Scheduling unpredictability (cited by 61% of exit interviews), compensation gap vs. market (8\u201312% below), and limited advancement path."
+        ],
+        [
+          "Compensation Benchmarking",
+          "Current average kitchen staff hourly rate: $17.40. Market benchmark (Glassdoor, Indeed, LinkedIn data): $19.20\u2013$21.50. Closing 50% of the gap (+$0.90\u2013$1.80/hr) combined with performance bonuses estimated to reduce voluntary exits by 28%."
+        ],
+        [
+          "Culture & Engagement Initiatives",
+          "Recommended: Monthly all-hands per location (30 min, CEO video + local manager Q&A). Peer recognition program ('Kitchen MVP'). Transparent promotion pathways: Lead Cook \u2192 Kitchen Supervisor \u2192 Location Manager (3\u201318 months). Target: eNPS improvement from current -12 to +20 within 12 months."
+        ],
+        [
+          "Training & Development",
+          "Current: 8-hour onboarding. Recommended: 24-hour structured onboarding + 90-day buddy program. Cross-training across all 16 brands increases scheduling flexibility by 35% and reduces call-out impact. Annual training budget per FTE: increase from $180 to $420."
+        ],
+        [
+          "Hiring & Onboarding Optimization",
+          "Partner with local culinary schools in all 4 markets. Streamline application-to-offer timeline from 18 days to 7 days. Offer $500 signing bonus contingent on 90-day tenure. Pre-screen for tech-friendliness (order management systems)."
+        ],
+        [
+          "Financial Impact",
+          "Current annual turnover cost per employee (recruiting + training + productivity loss): $4,200. At 84% turnover on 120 FTE base: $423K/year. At 58% turnover post-program: $292K/year. Net saving: $131K/year. Combined with reduced training costs and productivity gains: $340K\u2013$480K total annual benefit."
+        ]
+      ]
+    }
+  ],
+  "locations": [
+    {
+      "location_id": 0,
+      "name": "All Locations (Corporate)",
+      "address": "Corporate HQ"
+    },
+    {
+      "location_id": 1,
+      "name": "San Francisco",
+      "address": "1847 Market Street, San Francisco, CA 94103"
+    },
+    {
+      "location_id": 2,
+      "name": "Silicon Valley",
+      "address": "2350 El Camino Real, Santa Clara, CA 95051"
+    },
+    {
+      "location_id": 3,
+      "name": "Bellevue",
+      "address": "10456 NE 8th Street, Bellevue, WA 98004"
+    },
+    {
+      "location_id": 4,
+      "name": "Chicago",
+      "address": "872 N. Milwaukee Avenue, Chicago, IL 60642"
+    }
+  ]
+}

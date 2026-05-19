@@ -29,11 +29,14 @@ sync:
     - images/**
     - docs/**
     - apps/caspersai-terminal/node_modules/**
+    - apps/caspers-ops-dashboard/app.yaml
     - apps/caspersai-terminal/logs/**
     - apps/caspersai-terminal/test/**
     - apps/supportconsolek/**/.databricks/**
     - apps/supportconsolek/**/node_modules/**
     - apps/supportconsolek/**/dist/**
+    - apps/caspers-ops-dashboard/**/__pycache__/**
+    - apps/caspers-ops-dashboard/**/*.pyc
 
 scripts:
   cleanup:
@@ -81,6 +84,9 @@ scripts:
 
 
 targets:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # default — focused refund demo (refund recommender + reverse-ETL + manager app)
+  # ─────────────────────────────────────────────────────────────────────────────
   default:
     default: true
 
@@ -97,8 +103,29 @@ targets:
               default: ${var.catalog}
             - name: EVENTS_VOLUME
               default: events
+            # Switched off `databricks-meta-llama-3-3-70b-instruct` because it is
+            # the most heavily contended shared FMAPI endpoint in every workspace
+            # — agent eval + DSPy CoT bursts + the two `ai_gen()` generator
+            # crons + everyone else on the workspace consistently push the
+            # shared QPS bucket over its ceiling, surfacing as
+            # REQUEST_LIMIT_EXCEEDED (429) during the Refund/Complaint agent
+            # tasks even with eval concurrency pinned to 1.  Claude Sonnet 4.5
+            # has a separate per-endpoint QPS bucket, equivalent or better
+            # tool-use / structured-output quality, and is OpenAI-compatible
+            # so DSPy / `ai_gen()` / OpenAI client UDFs all keep working
+            # without code changes.  Override at run time with
+            # `--params "LLM_MODEL=..."` if you need a specific model.
             - name: LLM_MODEL
-              default: databricks-meta-llama-3-3-70b-instruct
+              default: databricks-claude-sonnet-4-5
+            # Eval is opt-in: it's a quality-measurement burst of ~30-50 LM
+            # calls in tight succession and was the dominant 429 source even
+            # with eval concurrency pinned to 1.  Deploy / register / endpoint
+            # readiness checks only burn ~1-2 calls and run fine.  Flip to
+            # "false" when you specifically want to measure agent quality:
+            #   databricks bundle run caspers -t all \
+            #     --params "CATALOG=oleksandra,SKIP_EVAL=false"
+            - name: SKIP_EVAL
+              default: "true"
             - name: REFUND_AGENT_ENDPOINT_NAME
               default: ${var.catalog}_refund_agent
             - name: SIMULATOR_SCHEMA
@@ -147,6 +174,9 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/apps
 
+  # ─────────────────────────────────────────────────────────────────────────────
+  # complaints — focused complaints demo
+  # ─────────────────────────────────────────────────────────────────────────────
   complaints:
     resources:
       jobs:
@@ -161,8 +191,29 @@ targets:
               default: ${var.catalog}
             - name: EVENTS_VOLUME
               default: events
+            # Switched off `databricks-meta-llama-3-3-70b-instruct` because it is
+            # the most heavily contended shared FMAPI endpoint in every workspace
+            # — agent eval + DSPy CoT bursts + the two `ai_gen()` generator
+            # crons + everyone else on the workspace consistently push the
+            # shared QPS bucket over its ceiling, surfacing as
+            # REQUEST_LIMIT_EXCEEDED (429) during the Refund/Complaint agent
+            # tasks even with eval concurrency pinned to 1.  Claude Sonnet 4.5
+            # has a separate per-endpoint QPS bucket, equivalent or better
+            # tool-use / structured-output quality, and is OpenAI-compatible
+            # so DSPy / `ai_gen()` / OpenAI client UDFs all keep working
+            # without code changes.  Override at run time with
+            # `--params "LLM_MODEL=..."` if you need a specific model.
             - name: LLM_MODEL
-              default: databricks-meta-llama-3-3-70b-instruct
+              default: databricks-claude-sonnet-4-5
+            # Eval is opt-in: it's a quality-measurement burst of ~30-50 LM
+            # calls in tight succession and was the dominant 429 source even
+            # with eval concurrency pinned to 1.  Deploy / register / endpoint
+            # readiness checks only burn ~1-2 calls and run fine.  Flip to
+            # "false" when you specifically want to measure agent quality:
+            #   databricks bundle run caspers -t all \
+            #     --params "CATALOG=oleksandra,SKIP_EVAL=false"
+            - name: SKIP_EVAL
+              default: "true"
             - name: COMPLAINT_AGENT_ENDPOINT_NAME
               default: ${var.catalog}_complaint_agent
             - name: COMPLAINT_RATE
@@ -214,6 +265,9 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/complaint_lakebase
 
+  # ─────────────────────────────────────────────────────────────────────────────
+  # free — minimal demo (canonical data + Spark Declarative Pipeline only)
+  # ─────────────────────────────────────────────────────────────────────────────
   free:
     resources:
       jobs:
@@ -250,98 +304,9 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/lakeflow
 
-  menus:
-    resources:
-      jobs:
-        caspers:
-          name: "Casper's Initializer"
-          queue:
-            enabled: true
-          performance_target: PERFORMANCE_OPTIMIZED
-
-          parameters:
-            - name: CATALOG
-              default: ${var.catalog}
-            - name: EVENTS_VOLUME
-              default: events
-            - name: LLM_MODEL
-              default: databricks-meta-llama-3-3-70b-instruct
-            - name: REFUND_AGENT_ENDPOINT_NAME
-              default: ${var.catalog}_refund_agent
-            - name: MENU_KNOWLEDGE_ENDPOINT_NAME
-              default: ${var.catalog}_menu_knowledge
-            - name: INSPECTION_KNOWLEDGE_ENDPOINT_NAME
-              default: ${var.catalog}_inspection_knowledge
-            - name: MENU_SUPERVISOR_ENDPOINT_NAME
-              default: ${var.catalog}_menu_supervisor
-            - name: SIMULATOR_SCHEMA
-              default: simulator
-            - name: START_DAY
-              default: "70"
-            - name: SPEED_MULTIPLIER
-              default: "60.0"
-            - name: SCHEDULE_MINUTES
-              default: "3"
-            - name: PIPELINE_SCHEDULE_MINUTES
-              default: "0"
-
-          tasks:
-            - task_key: Canonical_Data
-              notebook_task:
-                notebook_path: ${workspace.root_path}/stages/canonical_data
-
-            - task_key: Menu_Data
-              max_retries: 0
-              depends_on:
-                - task_key: Canonical_Data
-              notebook_task:
-                notebook_path: ${workspace.root_path}/stages/menu_data
-
-            - task_key: Inspection_Data
-              max_retries: 0
-              depends_on:
-                - task_key: Canonical_Data
-              notebook_task:
-                notebook_path: ${workspace.root_path}/stages/inspection_data
-
-            - task_key: Menu_Pipeline
-              max_retries: 0
-              depends_on:
-                - task_key: Menu_Data
-                - task_key: Inspection_Data
-              notebook_task:
-                notebook_path: ${workspace.root_path}/stages/menu_pipeline
-
-            - task_key: Menu_Genie
-              max_retries: 0
-              depends_on:
-                - task_key: Menu_Pipeline
-              notebook_task:
-                notebook_path: ${workspace.root_path}/stages/menu_genie
-
-            - task_key: Menu_Knowledge_Agent
-              max_retries: 0
-              depends_on:
-                - task_key: Menu_Pipeline
-              notebook_task:
-                notebook_path: ${workspace.root_path}/stages/menu_knowledge_agent
-
-            - task_key: Inspection_Knowledge_Agent
-              max_retries: 0
-              depends_on:
-                - task_key: Inspection_Data
-              notebook_task:
-                notebook_path: ${workspace.root_path}/stages/inspection_knowledge_agent
-
-            - task_key: Menu_Supervisor
-              max_retries: 0
-              depends_on:
-                - task_key: Menu_Genie
-                - task_key: Menu_Knowledge_Agent
-                - task_key: Inspection_Knowledge_Agent
-              notebook_task:
-                notebook_path: ${workspace.root_path}/stages/menu_supervisor
-
+  # ─────────────────────────────────────────────────────────────────────────────
+  # support — focused customer support agent demo
+  # ─────────────────────────────────────────────────────────────────────────────
   support:
     resources:
       jobs:
@@ -356,8 +321,29 @@ targets:
               default: ${var.catalog}
             - name: EVENTS_VOLUME
               default: events
+            # Switched off `databricks-meta-llama-3-3-70b-instruct` because it is
+            # the most heavily contended shared FMAPI endpoint in every workspace
+            # — agent eval + DSPy CoT bursts + the two `ai_gen()` generator
+            # crons + everyone else on the workspace consistently push the
+            # shared QPS bucket over its ceiling, surfacing as
+            # REQUEST_LIMIT_EXCEEDED (429) during the Refund/Complaint agent
+            # tasks even with eval concurrency pinned to 1.  Claude Sonnet 4.5
+            # has a separate per-endpoint QPS bucket, equivalent or better
+            # tool-use / structured-output quality, and is OpenAI-compatible
+            # so DSPy / `ai_gen()` / OpenAI client UDFs all keep working
+            # without code changes.  Override at run time with
+            # `--params "LLM_MODEL=..."` if you need a specific model.
             - name: LLM_MODEL
-              default: databricks-meta-llama-3-3-70b-instruct
+              default: databricks-claude-sonnet-4-5
+            # Eval is opt-in: it's a quality-measurement burst of ~30-50 LM
+            # calls in tight succession and was the dominant 429 source even
+            # with eval concurrency pinned to 1.  Deploy / register / endpoint
+            # readiness checks only burn ~1-2 calls and run fine.  Flip to
+            # "false" when you specifically want to measure agent quality:
+            #   databricks bundle run caspers -t all \
+            #     --params "CATALOG=oleksandra,SKIP_EVAL=false"
+            - name: SKIP_EVAL
+              default: "true"
             - name: SUPPORT_AGENT_ENDPOINT_NAME
               default: ${var.catalog}_support_agent
             - name: SUPPORT_RATE
@@ -408,8 +394,37 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/support_lakebase
 
+  # ─────────────────────────────────────────────────────────────────────────────
+  # all — comprehensive DAIS demo: refund + complaints + Operational Dashboard
+  # ─────────────────────────────────────────────────────────────────────────────
   all:
     resources:
+      # Ops SQL warehouse.  DABs is the sole owner of this warehouse so that
+      # `bundle deploy -t all` has a stable warehouse id available for the
+      # dashboard at deploy time (no chicken-and-egg with task-run-time
+      # warehouse creation).  Config matches what `stages/operational_app.ipynb`
+      # used to create; the stage was refactored to find-only and uses this
+      # warehouse via name lookup.
+      sql_warehouses:
+        caspers_ops_warehouse:
+          name: ${var.catalog}-ops-warehouse
+          cluster_size: 2X-Small
+          min_num_clusters: 1
+          max_num_clusters: 1
+          auto_stop_mins: 10
+          enable_serverless_compute: true
+          warehouse_type: PRO
+      # AI/BI dashboard.  Scoped to `all` only because it queries schemas that
+      # other targets do not build (complaints, food_safety, recommender,
+      # lakeflow).  Datasets in the JSON are unqualified (`schema.table`) and
+      # `dataset_catalog` injects ${var.catalog} at runtime so the same JSON
+      # works in any catalog.
+      dashboards:
+        caspers_ops:
+          display_name: "Casper's Kitchen Operations (${var.catalog})"
+          file_path: ./resources/dashboards/caspers_kitchen_operations.lvdash.json
+          warehouse_id: ${resources.sql_warehouses.caspers_ops_warehouse.id}
+          dataset_catalog: ${var.catalog}
       jobs:
         caspers:
           name: "Casper's Initializer"
@@ -422,20 +437,29 @@ targets:
               default: ${var.catalog}
             - name: EVENTS_VOLUME
               default: events
+            # Switched off `databricks-meta-llama-3-3-70b-instruct` because it is
+            # the most heavily contended shared FMAPI endpoint in every workspace
+            # — agent eval + DSPy CoT bursts + the two `ai_gen()` generator
+            # crons + everyone else on the workspace consistently push the
+            # shared QPS bucket over its ceiling, surfacing as
+            # REQUEST_LIMIT_EXCEEDED (429) during the Refund/Complaint agent
+            # tasks even with eval concurrency pinned to 1.  Claude Sonnet 4.5
+            # has a separate per-endpoint QPS bucket, equivalent or better
+            # tool-use / structured-output quality, and is OpenAI-compatible
+            # so DSPy / `ai_gen()` / OpenAI client UDFs all keep working
+            # without code changes.  Override at run time with
+            # `--params "LLM_MODEL=..."` if you need a specific model.
             - name: LLM_MODEL
-              default: databricks-meta-llama-3-3-70b-instruct
-            - name: REFUND_AGENT_ENDPOINT_NAME
-              default: ${var.catalog}_refund_agent
-            - name: COMPLAINT_AGENT_ENDPOINT_NAME
-              default: ${var.catalog}_complaint_agent
-            - name: COMPLAINT_RATE
-              default: "0.15"
-            - name: MENU_KNOWLEDGE_ENDPOINT_NAME
-              default: ${var.catalog}_menu_knowledge
-            - name: INSPECTION_KNOWLEDGE_ENDPOINT_NAME
-              default: ${var.catalog}_inspection_knowledge
-            - name: MENU_SUPERVISOR_ENDPOINT_NAME
-              default: ${var.catalog}_menu_supervisor
+              default: databricks-claude-sonnet-4-5
+            # Eval is opt-in: it's a quality-measurement burst of ~30-50 LM
+            # calls in tight succession and was the dominant 429 source even
+            # with eval concurrency pinned to 1.  Deploy / register / endpoint
+            # readiness checks only burn ~1-2 calls and run fine.  Flip to
+            # "false" when you specifically want to measure agent quality:
+            #   databricks bundle run caspers -t all \
+            #     --params "CATALOG=oleksandra,SKIP_EVAL=false"
+            - name: SKIP_EVAL
+              default: "true"
             - name: SIMULATOR_SCHEMA
               default: simulator
             - name: START_DAY
@@ -446,8 +470,21 @@ targets:
               default: "3"
             - name: PIPELINE_SCHEDULE_MINUTES
               default: "0"
+            # Refund + complaints
+            - name: REFUND_AGENT_ENDPOINT_NAME
+              default: ${var.catalog}_refund_agent
+            - name: COMPLAINT_AGENT_ENDPOINT_NAME
+              default: ${var.catalog}_complaint_agent
+            - name: COMPLAINT_RATE
+              default: "0.15"
+            # Operational Dashboard — Knowledge Assistant endpoints are auto-generated
+            # by the KA v2.1 API and resolved from uc_state by downstream stages.
+            # Operational Dashboard — Multi-Agent Supervisor endpoint (user-supplied)
+            - name: SUPERVISOR_ENDPOINT_NAME
+              default: ${var.catalog}_operational_supervisor
 
           tasks:
+            # ─── Data foundation ──────────────────────────────────────────────
             - task_key: Canonical_Data
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/canonical_data
@@ -458,6 +495,7 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/lakeflow
 
+            # ─── Refund recommender ───────────────────────────────────────────
             - task_key: Refund_Recommender_Agent
               depends_on:
                 - task_key: Spark_Declarative_Pipeline
@@ -470,9 +508,31 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/refunder_stream
 
+            - task_key: Lakebase_Reverse_ETL
+              depends_on:
+                - task_key: Refund_Recommender_Stream
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/lakebase
+
+            - task_key: Databricks_App_Refund_Manager
+              depends_on:
+                - task_key: Lakebase_Reverse_ETL
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/apps
+
+            # ─── Complaints stream ────────────────────────────────────────────
             - task_key: Complaint_Agent
               depends_on:
                 - task_key: Spark_Declarative_Pipeline
+                # Serialized AFTER Refund_Recommender_Agent so the two agents do
+                # not race on the workspace QPS limit for the shared pay-per-token
+                # endpoint `databricks-meta-llama-3-3-70b-instruct` during their
+                # MLflow eval steps.  Under the previous parallel layout, the
+                # combined in-flight request rate consistently triggered
+                # REQUEST_LIMIT_EXCEEDED (429) and the auto-retry hit the same
+                # ceiling, failing the whole `all` run.  Adds ~10 min wall-clock
+                # but eliminates the rate-limit flake.  See review item P1-9.
+                - task_key: Refund_Recommender_Agent
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/complaint_agent
 
@@ -495,59 +555,69 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/complaint_lakebase
 
-            - task_key: Lakebase_Reverse_ETL
-              depends_on:
-                - task_key: Refund_Recommender_Stream
-              notebook_task:
-                notebook_path: ${workspace.root_path}/stages/lakebase
-
-            - task_key: Databricks_App_Refund_Manager
-              depends_on:
-                - task_key: Lakebase_Reverse_ETL
-              notebook_task:
-                notebook_path: ${workspace.root_path}/stages/apps
-
-            - task_key: Menu_Data
+            # ─── Operational Dashboard: documents → menu pipeline → genie / KA / MAS / app ───
+            - task_key: Document_Data
+              max_retries: 0
               depends_on:
                 - task_key: Canonical_Data
               notebook_task:
-                notebook_path: ${workspace.root_path}/stages/menu_data
-
-            - task_key: Inspection_Data
-              depends_on:
-                - task_key: Canonical_Data
-              notebook_task:
-                notebook_path: ${workspace.root_path}/stages/inspection_data
+                notebook_path: ${workspace.root_path}/stages/document_data
 
             - task_key: Menu_Pipeline
+              max_retries: 0
               depends_on:
-                - task_key: Menu_Data
-                - task_key: Inspection_Data
+                - task_key: Document_Data
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/menu_pipeline
 
-            - task_key: Menu_Genie
+            - task_key: Genie_Spaces
+              max_retries: 0
               depends_on:
+                - task_key: Spark_Declarative_Pipeline
                 - task_key: Menu_Pipeline
               notebook_task:
-                notebook_path: ${workspace.root_path}/stages/menu_genie
+                notebook_path: ${workspace.root_path}/stages/genie_spaces
 
-            - task_key: Menu_Knowledge_Agent
+            - task_key: Knowledge_Agents
+              max_retries: 0
               depends_on:
-                - task_key: Menu_Pipeline
+                - task_key: Document_Data
               notebook_task:
-                notebook_path: ${workspace.root_path}/stages/menu_knowledge_agent
+                notebook_path: ${workspace.root_path}/stages/knowledge_agents
 
-            - task_key: Inspection_Knowledge_Agent
+            - task_key: Operational_Lakebase
+              max_retries: 0
               depends_on:
-                - task_key: Inspection_Data
+                - task_key: Canonical_Data
               notebook_task:
-                notebook_path: ${workspace.root_path}/stages/inspection_knowledge_agent
+                notebook_path: ${workspace.root_path}/stages/operational_lakebase
 
-            - task_key: Menu_Supervisor
+            - task_key: Operational_Supervisor
+              max_retries: 0
               depends_on:
-                - task_key: Menu_Genie
-                - task_key: Menu_Knowledge_Agent
-                - task_key: Inspection_Knowledge_Agent
+                - task_key: Genie_Spaces
+                - task_key: Knowledge_Agents
               notebook_task:
-                notebook_path: ${workspace.root_path}/stages/menu_supervisor
+                notebook_path: ${workspace.root_path}/stages/operational_supervisor
+
+            - task_key: Operational_App
+              max_retries: 0
+              depends_on:
+                - task_key: Operational_Supervisor
+                - task_key: Operational_Lakebase
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/operational_app
+
+            - task_key: Readiness_Check
+              max_retries: 0
+              depends_on:
+                - task_key: Operational_App
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/operational_readiness_check
+
+            - task_key: Evaluation
+              max_retries: 0
+              depends_on:
+                - task_key: Readiness_Check
+              notebook_task:
+                notebook_path: ${workspace.root_path}/demos/operational-dashboard-demo/evaluation

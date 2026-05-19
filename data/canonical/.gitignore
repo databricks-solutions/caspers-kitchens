@@ -1,0 +1,10 @@
+# Local virtualenv created by regenerate.sh
+.venv/
+
+# OSM road-network caches downloaded by generate_canonical_dataset.py.
+# These regenerate on demand; keeping them out of git so the repo stays small.
+cache_*_graph.pkl
+
+# osmnx's own raw OSM JSON response cache (separate from the pickle graph cache).
+# Auto-populated on download from openstreetmap.org.
+cache/

@@ -22,17 +22,19 @@ This approach provides:
 ```
 canonical/
 ├── README.md                           # This file
+├── regenerate.sh                       # One-shot regen helper (venv + run)
 ├── generate_canonical_dataset.py       # Offline dataset generator
-├── caspers_data_source.py             # Standalone Python streaming source
-├── caspers_streaming_notebook.py      # Databricks notebook version
+├── update_locations_parquet.py         # Add/edit locations (dim parquet only)
+├── caspers_data_source.py              # Standalone Python streaming source
+├── caspers_streaming_notebook.py       # Databricks notebook version
 └── canonical_dataset/
-    ├── events.parquet                 # 1M+ events, 75K+ orders (34.5 MB)
-    ├── locations.parquet              # 4 ghost kitchen locations (6 KB)
-    ├── brands.parquet                 # 24 food brands (4 KB)
-    ├── brand_locations.parquet        # Brand availability by city/time (5 KB)
-    ├── categories.parquet             # 112 menu categories (4 KB)
-    ├── menus.parquet                  # 24 menus (3 KB)
-    └── items.parquet                  # 181 menu items with prices (9 KB)
+    ├── events.parquet                  # All events, orders + driver pings
+    ├── locations.parquet               # Ghost kitchen locations (4 US + 4 EMEA)
+    ├── brands.parquet                  # 24 food brands (4 KB)
+    ├── brand_locations.parquet         # Brand availability by city/time
+    ├── categories.parquet              # 112 menu categories (4 KB)
+    ├── menus.parquet                   # 24 menus (3 KB)
+    └── items.parquet                   # 181 menu items with prices (9 KB)
 ```
 
 ---
@@ -82,12 +84,23 @@ python3 caspers_data_source.py
 
 ### Cities & Narratives
 
+US (original 4):
 | City | Location ID | Growth | Daily Orders | Narrative |
 |------|-------------|--------|--------------|-----------|
 | **San Francisco** | 1 | +74% | 171 → 297 | Health-focused brands, steady growth |
 | **Silicon Valley** | 2 | +190% | 53 → 155 | Tech startup culture, explosive growth, late-night spike |
 | **Bellevue** | 3 | +2% (flat) | 230 → 234 | Suburban comfort food, stagnant |
 | **Chicago** | 4 | -25% | 318 → 240 | Legacy operation, declining quality |
+
+EMEA (added for operational dashboard demo):
+| City | Location ID | Growth | Daily Orders | Notes |
+|------|-------------|--------|--------------|-------|
+| **London** | 5 | +0.3%/day | ~22 baseline | Shoreditch, UK |
+| **Munich** | 6 | +0.2%/day | ~18 baseline | Schwabing, Germany |
+| **Amsterdam** | 7 | +0.25%/day | ~20 baseline | City center, Netherlands |
+| **Vianen** | 8 | +0.4%/day | ~10 baseline | Smallest, fastest growth |
+
+EMEA locations all inherit the location-1 (SF) brand mix in `brand_locations.parquet`. To customise per-city, edit `update_locations_parquet.py` (or hand-edit `brand_locations.parquet` after regen).
 
 ### Event Types
 
@@ -229,24 +242,55 @@ Each run automatically processes the correct amount based on elapsed time.
 
 ## Dataset Generation
 
-### Prerequisites
+### One-shot regen (recommended)
 
 ```bash
-pip install pandas pyarrow osmnx networkx geopy scikit-learn
+cd data/canonical
+./regenerate.sh
 ```
 
-### Regenerate Dataset
+This creates a local `.venv`, installs deps, runs `update_locations_parquet.py`,
+then `generate_canonical_dataset.py`. Takes **~15–25 min for 8 cities** (longer
+than the original ~10 min for 4 because of the EMEA OSM downloads), and needs
+internet to fetch OSM road networks via `osmnx`.
+
+When done, commit the updated parquets:
 
 ```bash
+git add data/canonical/canonical_dataset/locations.parquet \
+        data/canonical/canonical_dataset/brand_locations.parquet \
+        data/canonical/canonical_dataset/events.parquet
+git commit -m "regenerate canonical dataset"
+```
+
+### Manual two-step (advanced)
+
+```bash
+cd data/canonical
+pip install pandas pyarrow osmnx networkx geopy
+
+# 1. Add/edit locations (only updates dim parquets)
+python3 update_locations_parquet.py
+
+# 2. Regenerate events for ALL locations present in locations.parquet
 python3 generate_canonical_dataset.py
 ```
 
-**Takes ~10 minutes** to:
+### What the generator does
+
 1. Load dimension tables (brands, locations, items)
-2. Download/cache OpenStreetMap road networks for 4 cities
-3. Generate 90 days of orders with realistic demand patterns
-4. Calculate real shortest-path routes using OSM
-5. Output compact parquet format (34.5 MB)
+2. Download/cache OpenStreetMap road networks (one cache file per city, `cache_<code>_graph.pkl`)
+3. Generate 90 days of orders with realistic demand patterns per location
+4. Calculate real shortest-path routes via OSM + NetworkX
+5. Output compact `events.parquet`
+
+### Adding a new location
+
+1. Edit `NEW_LOCATIONS` in `update_locations_parquet.py` (set a fresh `location_id`).
+2. Run `./regenerate.sh`.
+3. Commit the updated parquet files.
+
+That's the only step required — `stages/canonical_data.ipynb` loads whatever is in `locations.parquet` and the lakeflow pipeline will naturally produce silver/gold rows for every city present in `events.parquet`.
 
 ### Data Features
 

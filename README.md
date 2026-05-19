@@ -34,7 +34,7 @@ Available targets:
 | `support` | Data generation, Lakeflow pipeline, support triage agent, Lakebase + app |
 | `complaints` | Data generation, Lakeflow pipeline, complaint agent, Lakebase |
 | `free` | Data generation, Lakeflow pipeline (Free Edition compatible) |
-| `menus` | Document intelligence, DLT pipeline, Genie, Knowledge Assistants, Multi-Agent Supervisor |
+| `all` | Everything end-to-end: refund + complaints + Operational Dashboard (3 Genies + 6 Knowledge Assistants + Multi-Agent Supervisor + Lakebase-backed FastAPI app) |
 
 Optionally specify a catalog (default: `caspersdev`):
 
