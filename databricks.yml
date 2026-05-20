@@ -414,15 +414,30 @@ targets:
           auto_stop_mins: 10
           enable_serverless_compute: true
           warehouse_type: PRO
-      # AI/BI dashboard.  Scoped to `all` only because it queries schemas that
-      # other targets do not build (complaints, food_safety, recommender,
-      # lakeflow).  Datasets in the JSON are unqualified (`schema.table`) and
-      # `dataset_catalog` injects ${var.catalog} at runtime so the same JSON
-      # works in any catalog.
+      # AI/BI dashboards.  Scoped to `all` only because they query schemas
+      # that other targets do not build (complaints, food_safety, recommender,
+      # lakeflow, ai).  Datasets in each JSON are unqualified (`schema.table`)
+      # and `dataset_catalog` injects ${var.catalog} at runtime so the same
+      # JSON works in any catalog.  Both dashboards share the ops warehouse.
       dashboards:
         caspers_ops:
           display_name: "Casper's Kitchen Operations (${var.catalog})"
           file_path: ./resources/dashboards/caspers_kitchen_operations.lvdash.json
+          warehouse_id: ${resources.sql_warehouses.caspers_ops_warehouse.id}
+          dataset_catalog: ${var.catalog}
+        caspers_delivery:
+          display_name: "Caspers Kitchen - Delivery Performance & SLA (${var.catalog})"
+          file_path: ./resources/dashboards/caspers_kitchen_delivery_performance.lvdash.json
+          warehouse_id: ${resources.sql_warehouses.caspers_ops_warehouse.id}
+          dataset_catalog: ${var.catalog}
+        caspers_ai_agent_performance:
+          display_name: "Caspers Kitchen - AI Agent Performance (${var.catalog})"
+          file_path: ./resources/dashboards/caspers_kitchen_ai_agent_performance.lvdash.json
+          warehouse_id: ${resources.sql_warehouses.caspers_ops_warehouse.id}
+          dataset_catalog: ${var.catalog}
+        caspers_menu_intelligence:
+          display_name: "Caspers Kitchen - Menu Intelligence & Nutrition (${var.catalog})"
+          file_path: ./resources/dashboards/caspers_kitchen_menu_intelligence.lvdash.json
           warehouse_id: ${resources.sql_warehouses.caspers_ops_warehouse.id}
           dataset_catalog: ${var.catalog}
       jobs:
@@ -489,13 +504,16 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/canonical_data
 
-            # Empty placeholder for small post-ingestion environment-population
-            # helpers (seed lookup tables, register helper UDFs, grant demo-user
-            # perms, etc.).  Runs after Canonical_Data so catalog/schemas exist;
-            # currently a no-op.  Add helpers inside stages/environment_helpers.ipynb.
+            # Small post-ingestion environment-population helpers (seed lookup
+            # tables, register helper UDFs, run AI SQL demos on uploaded PDFs,
+            # grant demo-user perms, etc.).  Depends on Canonical_Data for the
+            # catalog/schemas and on Document_Data for the food_safety PDF
+            # volume that the AI SQL cells parse.  Add new helpers inside
+            # stages/environment_helpers.ipynb; keep each idempotent.
             - task_key: Environment_Helpers
               depends_on:
                 - task_key: Canonical_Data
+                - task_key: Document_Data
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/environment_helpers
 
