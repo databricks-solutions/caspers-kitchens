@@ -34,3 +34,16 @@ env:
     value: ''
   - name: DATABRICKS_WAREHOUSE_ID
     value: ''
+  # Operations dashboard is published in two variants — light + dark —
+  # because Databricks embedded dashboards always render in light mode
+  # regardless of the `?theme=` URL param.  The frontend swaps the iframe
+  # src between these two IDs when the user toggles the app theme.  The
+  # stage writes both runtime values; OPS_DASHBOARD_ID is the light variant.
+  - name: OPS_DASHBOARD_ID
+    value: ''
+  - name: OPS_DASHBOARD_ID_DARK
+    value: ''
+  # Multi-page dashboard — leave empty so the iframe URL doesn't append a
+  # #page= fragment and the user sees the dashboard's default landing page.
+  - name: OPS_DASHBOARD_PAGE
+    value: ''

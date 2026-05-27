@@ -52,6 +52,11 @@ LAKEBASE_INSTANCE    = os.environ.get("LAKEBASE_ENDPOINT_PATH", "")   # non-empt
 WAREHOUSE_ID         = os.environ.get("DATABRICKS_WAREHOUSE_ID", "")
 GENIE_REVENUE_ID     = os.environ.get("GENIE_ID_REVENUE", "")
 GENIE_OPS_ID         = os.environ.get("GENIE_ID_OPS",     "")
+# Embedded AI/BI dashboard (Casper's Kitchen Operations) — written by the
+# operational_app stage at deploy time after publishing the dashboard.
+OPS_DASHBOARD_ID      = os.environ.get("OPS_DASHBOARD_ID", "")       # light variant (default)
+OPS_DASHBOARD_ID_DARK = os.environ.get("OPS_DASHBOARD_ID_DARK", "")  # dark variant
+OPS_DASHBOARD_PAGE    = os.environ.get("OPS_DASHBOARD_PAGE", "")
 
 _sdk_config = Config()
 _ws = WorkspaceClient()   # shared, reused across all requests
@@ -75,7 +80,17 @@ def _startup():
 def index():
     if not INDEX_HTML.exists():
         raise HTTPException(404, "index.html not found")
-    return FileResponse(str(INDEX_HTML))
+    # Always hand back fresh HTML — every deploy ships a new index.html and
+    # we don't want the browser caching the previous bundle, otherwise the
+    # user has to manually hard-refresh after every push.
+    return FileResponse(
+        str(INDEX_HTML),
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
 
 
 # ─── Tech Info ────────────────────────────────────────────────────────────────
@@ -204,6 +219,26 @@ def tech_info():
         except Exception as e:
             log.warning(f"Could not resolve eval notebook via app deployment: {e}")
 
+    # Full Operations dashboard embed URLs — used by the opt-in "Ops
+    # Dashboard" tab in the left sidebar.  Two variants are published
+    # (light + dark) because Databricks embedded dashboards always render
+    # their `light` theme slot regardless of the `?theme=` URL parameter.
+    # The frontend swaps the iframe `src` between these two URLs when the
+    # user toggles the app theme.  The Revenue card on the always-visible
+    # view uses Chart.js instead of an embed (the embed's other quirks —
+    # fixed canvas width, separate workspace login on first view — were
+    # deal-breakers there but acceptable for an opt-in tab).
+    def _embed_url(d_id: str) -> str:
+        if not (d_id and host):
+            return ""
+        org_param = f"?o={workspace_id}" if workspace_id else ""
+        page_frag = f"#page={OPS_DASHBOARD_PAGE}" if OPS_DASHBOARD_PAGE else ""
+        return f"{host}/embed/dashboardsv3/{d_id}{org_param}{page_frag}"
+
+    ops_dashboard_embed_url       = _embed_url(OPS_DASHBOARD_ID)
+    ops_dashboard_embed_url_dark  = _embed_url(OPS_DASHBOARD_ID_DARK or OPS_DASHBOARD_ID)
+    ops_dashboard_embed_url_light = ops_dashboard_embed_url
+
     return {
         "databricks_host": host,
         "current_user": me.user_name,
@@ -226,6 +261,12 @@ def tech_info():
         "mlflow_experiment_id": mlflow_experiment_id,
         "mlflow_experiment_url": mlflow_experiment_url,
         "eval_notebook_url": eval_notebook_url,
+        "ops_dashboard_id": OPS_DASHBOARD_ID,
+        "ops_dashboard_id_dark": OPS_DASHBOARD_ID_DARK,
+        "ops_dashboard_page": OPS_DASHBOARD_PAGE,
+        "ops_dashboard_embed_url": ops_dashboard_embed_url,
+        "ops_dashboard_embed_url_light": ops_dashboard_embed_url_light,
+        "ops_dashboard_embed_url_dark": ops_dashboard_embed_url_dark,
     }
 
 
@@ -645,16 +686,29 @@ def revenue():
 
     try:
         from databricks import sql as dbsql
+        # databricks-sql-connector expects `credentials_provider` to be a
+        # zero-arg callable that returns a *header factory* — itself a zero-arg
+        # callable that returns the Authorization header dict. Passing a dict
+        # directly (or a one-shot snapshot of `_sdk_config.token`) crashes the
+        # connector with `'dict' object is not callable` and breaks every
+        # OAuth-M2M refresh. `_sdk_config.authenticate` is the SDK's bound
+        # method that returns a fresh `{"Authorization": "Bearer …"}` each
+        # call, so handing it off as the header factory gets us auto-refresh.
         conn = dbsql.connect(
             server_hostname=_sdk_config.host.replace("https://", ""),
             http_path=f"/sql/1.0/warehouses/{WAREHOUSE_ID}",
-            credentials_provider=lambda: {"Authorization": f"Bearer {_sdk_config.token}"},
+            credentials_provider=lambda: _sdk_config.authenticate,
         )
         cursor = conn.cursor()
 
         # Use pre-aggregated Gold tables — 10-100x faster than scanning all_events
         # gold_location_sales_hourly: pre-computed orders + revenue per location per hour
         # gold_order_header: one row per order with pre-computed order_revenue
+        # cancel_stats: derived from `lakeflow.all_events`.  The event stream
+        # has no explicit cancellation event — a cancelled order is an
+        # `order_created` with no matching `delivered`.  Anti-join over the
+        # last 30 days gives us per-location cancel counts that drive the
+        # location map's risk_level coloring (high/medium/low).
         cursor.execute(f"""
             WITH current_period AS (
                 SELECT
@@ -681,6 +735,29 @@ def revenue():
                 FROM {CATALOG}.lakeflow.gold_order_header
                 WHERE order_day >= current_date() - INTERVAL 30 DAYS
                 GROUP BY location_id
+            ),
+            created_orders AS (
+                SELECT DISTINCT
+                    CAST(location_id AS STRING) AS location_id,
+                    order_id
+                FROM {CATALOG}.lakeflow.all_events
+                WHERE event_type = 'order_created'
+                  AND ts >= current_timestamp() - INTERVAL 30 DAYS
+            ),
+            delivered_orders AS (
+                SELECT DISTINCT order_id
+                FROM {CATALOG}.lakeflow.all_events
+                WHERE event_type = 'delivered'
+                  AND ts >= current_timestamp() - INTERVAL 30 DAYS
+            ),
+            cancel_stats AS (
+                SELECT
+                    c.location_id,
+                    COUNT(*) AS created_total,
+                    SUM(CASE WHEN d.order_id IS NULL THEN 1 ELSE 0 END) AS cancelled_orders
+                FROM created_orders c
+                LEFT JOIN delivered_orders d USING (order_id)
+                GROUP BY c.location_id
             )
             SELECT
                 l.name            AS location,
@@ -689,14 +766,19 @@ def revenue():
                 ROUND(COALESCE(p.revenue_prev, 0), 0)  AS revenue_prev,
                 COALESCE(a.avg_order_value, 0)         AS avg_order_value,
                 COALESCE(c.total_orders, 0)            AS total_orders,
-                COALESCE(c.total_orders, 0)            AS completed_orders,
-                0                                      AS cancelled_orders,
+                COALESCE(c.total_orders, 0) - COALESCE(cs.cancelled_orders, 0) AS completed_orders,
+                COALESCE(cs.cancelled_orders, 0)       AS cancelled_orders,
                 0                                      AS complaints,
-                0.0                                    AS cancel_rate_pct
+                CASE
+                    WHEN COALESCE(cs.created_total, 0) > 0
+                    THEN ROUND(100.0 * cs.cancelled_orders / cs.created_total, 1)
+                    ELSE 0.0
+                END                                    AS cancel_rate_pct
             FROM {CATALOG}.simulator.locations l
-            LEFT JOIN current_period c ON CAST(l.location_id AS STRING) = c.location_id
-            LEFT JOIN prev_period   p ON CAST(l.location_id AS STRING) = p.location_id
-            LEFT JOIN avg_order     a ON CAST(l.location_id AS STRING) = a.location_id
+            LEFT JOIN current_period c  ON CAST(l.location_id AS STRING) = c.location_id
+            LEFT JOIN prev_period    p  ON CAST(l.location_id AS STRING) = p.location_id
+            LEFT JOIN avg_order      a  ON CAST(l.location_id AS STRING) = a.location_id
+            LEFT JOIN cancel_stats   cs ON CAST(l.location_id AS STRING) = cs.location_id
             ORDER BY revenue DESC
         """)
         rows = cursor.fetchall()
@@ -974,18 +1056,50 @@ def locations():
     except Exception:
         rev_data = {}
 
-    result = []
+    # Compute per-location 30d revenue growth %.  Real data shows every
+    # location growing (synthetic dataset has no real decline) and cancel
+    # rates are tiny (0-0.2 %), so absolute thresholds like `cancel > 8`
+    # never trigger and the map ends up all-green with no "problem" pin.
+    # Instead we rank locations by growth and flag the bottom quartile as
+    # "high" risk and the next quartile as "medium" — guarantees the map
+    # always shows at least one underperformer for the demo while still
+    # honoring genuine cancel-rate spikes via the OR clauses below.
+    pct_changes = []
     for loc in base_locations:
         rev = rev_data.get(loc["location_id"], {})
+        rev_cur  = rev.get("revenue", 0)      or 0
+        rev_prev = rev.get("revenue_prev", 0) or 0
+        pct = (100.0 * (rev_cur - rev_prev) / rev_prev) if rev_prev > 0 else 0.0
+        pct_changes.append(pct)
+
+    sorted_pcts = sorted(pct_changes)
+    n = max(1, len(sorted_pcts))
+    p25 = sorted_pcts[max(0, n // 4 - 1)]
+    p50 = sorted_pcts[max(0, n // 2 - 1)]
+
+    result = []
+    for i, loc in enumerate(base_locations):
+        rev         = rev_data.get(loc["location_id"], {})
         cancel_rate = rev.get("cancel_rate_pct", 0) or 0
-        complaints = rev.get("complaints", 0) or 0
-        risk = "high" if cancel_rate > 8 or complaints > 200 else ("medium" if cancel_rate > 5 or complaints > 100 else "low")
+        complaints  = rev.get("complaints", 0) or 0
+        pct_change  = pct_changes[i]
+
+        if cancel_rate > 5 or complaints > 200 or pct_change <= p25:
+            risk = "high"
+        elif cancel_rate > 2 or complaints > 100 or pct_change <= p50:
+            risk = "medium"
+        else:
+            risk = "low"
+
         result.append({
             **loc,
-            "total_orders": rev.get("total_orders", 0),
-            "complaints": complaints,
+            "total_orders":    rev.get("total_orders", 0),
+            "complaints":      complaints,
             "cancel_rate_pct": cancel_rate,
-            "risk_level": risk,
+            "revenue":         rev.get("revenue", 0),
+            "revenue_prev":    rev.get("revenue_prev", 0),
+            "revenue_change_pct": round(pct_change, 1),
+            "risk_level":      risk,
         })
 
     return result

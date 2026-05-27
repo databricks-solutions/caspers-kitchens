@@ -249,6 +249,34 @@ body { background: var(--bg-primary); color: var(--text-primary); display: flex;
   flex: 1; min-height: 0; position: relative;
 }
 
+/* Full Operations dashboard tab — iframe takes the whole left-main area.
+   We accept the Lakeview embed quirks (fixed natural canvas width,
+   always-light rendering, requires a workspace login on first view in a
+   fresh browser session) for this opt-in tab. */
+.ops-dashboard-panel {
+  display: none; flex-direction: column; height: 100%; overflow: hidden;
+  background: var(--bg-secondary);
+}
+.ops-dashboard-panel.active { display: flex; }
+.ops-dashboard-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+}
+.ops-dashboard-title { font-weight: 600; font-size: 14px; color: var(--text-primary); flex: 1; }
+.ops-dashboard-close {
+  background: transparent; border: 1px solid var(--border);
+  color: var(--text-secondary); padding: 4px 10px; border-radius: var(--radius-sm);
+  font-size: 12px; cursor: pointer; transition: var(--transition);
+}
+.ops-dashboard-close:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+.ops-dashboard-iframe-wrap {
+  flex: 1; min-height: 0; position: relative; display: flex;
+  background: var(--bg-card);
+}
+#ops-full-dashboard-iframe {
+  flex: 1; border: none; width: 100%; height: 100%; background: var(--bg-card);
+}
+
 /* Map */
 .map-container {
   flex: 1; min-height: 0; border-radius: var(--radius-sm); overflow: hidden;
@@ -878,6 +906,9 @@ body { background: var(--bg-primary); color: var(--text-primary); display: flex;
         <span class="icon">📄</span> Document Viewer
         <span id="doc-badge" style="display:none; margin-left:auto; background:var(--accent); color:#fff; font-size:10px; padding:1px 6px; border-radius:10px;"></span>
       </button>
+      <button class="nav-item" id="nav-ops-dashboard" onclick="switchView('ops-dashboard')">
+        <span class="icon">📈</span> Ops Dashboard
+      </button>
     </nav>
 
     <div class="sidebar-divider"></div>
@@ -918,14 +949,14 @@ body { background: var(--bg-primary); color: var(--text-primary); display: flex;
       <!-- Dashboard Panel -->
       <div class="dashboard-panel" id="view-dashboard">
 
-        <!-- Revenue Section (top half) -->
+        <!-- Revenue Section (top half) — Chart.js KPIs + revenue trend -->
         <div class="dashboard-section">
           <div class="section-title">
             <div class="pulse"></div>
             Revenue Performance · Current vs Prior Period
           </div>
           <div class="metric-row" id="metric-row">
-            <!-- populated by JS -->
+            <!-- populated by renderMetrics() from /api/revenue -->
           </div>
           <div class="chart-container">
             <canvas id="revenue-chart"></canvas>
@@ -942,6 +973,33 @@ body { background: var(--bg-primary); color: var(--text-primary); display: flex;
           </div>
         </div>
 
+      </div>
+
+      <!-- Ops Dashboard Panel (full embedded AI/BI dashboard).
+           Lakeview embed iframe — `caspers_kitchen_operations` is a multi-page
+           dashboard so we render it full-bleed in its own tab.  Accepts a
+           workspace-domain login flow on first view (no shortcut around
+           Databricks' embed auth), but it's expected behaviour for a tab
+           that the user opts into, unlike the always-visible Revenue panel
+           where double-login was a deal-breaker. -->
+      <div class="ops-dashboard-panel" id="view-ops-dashboard">
+        <div class="ops-dashboard-header">
+          <span style="font-size:20px;">📈</span>
+          <span class="ops-dashboard-title">Casper's Kitchen Operations</span>
+          <button class="ops-dashboard-close" onclick="switchView('dashboard')">← Back</button>
+        </div>
+        <div class="ops-dashboard-iframe-wrap">
+          <iframe
+            id="ops-full-dashboard-iframe"
+            title="Casper's Kitchen Operations dashboard"
+            loading="lazy"
+            allowfullscreen
+            style="display:none;"
+          ></iframe>
+          <div id="ops-full-dashboard-empty" style="display:flex; align-items:center; justify-content:center; height:100%; color:var(--text-muted); font-size:13px; padding:20px; text-align:center;">
+            Loading dashboard…
+          </div>
+        </div>
       </div>
 
       <!-- Document Viewer Panel -->
@@ -1140,6 +1198,11 @@ let _streamAbortController = null;
 let _waitPromptTimer = null;
 let revenueChart = null;
 let locationMap = null;
+// Hoisted above setTheme() — `let` creates a temporal dead zone, and
+// initTheme() invokes setTheme() before loadRevenue() ever runs, so this
+// declaration must come early.  Populated by loadRevenue() and reused by
+// setTheme() on theme toggle to re-paint chart palette without re-fetching.
+let _lastRevenueData = null;
 let referencedDocs = [];
 let sessions = [];
 let techInfo = {};
@@ -1154,8 +1217,22 @@ function setTheme(theme) {
   document.getElementById('theme-dark').classList.toggle('active', theme === 'dark');
   document.getElementById('theme-light').classList.toggle('active', theme === 'light');
   if (locationMap) {
-    // Re-render tiles by invalidating map size
+    // Re-render tiles by invalidating map size (the Leaflet tile filter is
+    // already swapped via the [data-theme] CSS selectors above).
     setTimeout(() => locationMap.invalidateSize(), 100);
+  }
+  // Re-render the Chart.js Revenue panel so the bar/grid/label colors pick
+  // up the new palette.  The chart reads `data-theme` at render time, so
+  // a destroy+recreate cycle is sufficient — no /api/revenue refetch.
+  if (typeof renderRevenueChart === 'function' && _lastRevenueData) {
+    renderMetrics(_lastRevenueData);
+    renderRevenueChart(_lastRevenueData);
+  }
+  // Swap the embedded ops dashboard iframe to the matching light/dark
+  // variant.  Databricks embeds always render their `light` theme slot,
+  // so we publish two dashboards with different palettes baked in.
+  if (typeof mountOpsFullDashboardIframe === 'function' && currentView === 'ops-dashboard') {
+    mountOpsFullDashboardIframe();
   }
 }
 
@@ -1169,12 +1246,17 @@ function setTheme(theme) {
 // ────────────────────────────────────────────────────────────────────────────
 function switchView(view) {
   currentView = view;
-  document.getElementById('view-dashboard').style.display = view === 'dashboard' ? 'flex' : 'none';
-  document.getElementById('view-documents').classList.toggle('active', view === 'documents');
-  document.getElementById('nav-dashboard').classList.toggle('active', view === 'dashboard');
-  document.getElementById('nav-documents').classList.toggle('active', view === 'documents');
+  document.getElementById('view-dashboard').style.display    = view === 'dashboard'     ? 'flex' : 'none';
+  document.getElementById('view-documents').classList.toggle('active',     view === 'documents');
+  document.getElementById('view-ops-dashboard').classList.toggle('active', view === 'ops-dashboard');
+  document.getElementById('nav-dashboard').classList.toggle('active',      view === 'dashboard');
+  document.getElementById('nav-documents').classList.toggle('active',      view === 'documents');
+  document.getElementById('nav-ops-dashboard').classList.toggle('active',  view === 'ops-dashboard');
   if (view === 'dashboard' && locationMap) {
     setTimeout(() => locationMap.invalidateSize(), 200);
+  }
+  if (view === 'ops-dashboard') {
+    mountOpsFullDashboardIframe();
   }
 }
 
@@ -2162,16 +2244,55 @@ function viewDoc(i) {
 // ────────────────────────────────────────────────────────────────────────────
 // Revenue Chart
 // ────────────────────────────────────────────────────────────────────────────
+// `_lastRevenueData` is declared near the top of the module so setTheme()
+// can read it without hitting a temporal-dead-zone error at page load.
 async function loadRevenue() {
   try {
     const res = await fetch('/api/revenue');
-    const data = await res.json();
-    renderMetrics(data);
-    renderRevenueChart(data);
+    _lastRevenueData = await res.json();
   } catch (e) {
-    renderMetrics(_mockRevenue());
-    renderRevenueChart(_mockRevenue());
+    _lastRevenueData = _mockRevenue();
   }
+  renderMetrics(_lastRevenueData);
+  renderRevenueChart(_lastRevenueData);
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Embedded AI/BI Operations Dashboard (opt-in "Ops Dashboard" tab)
+// ────────────────────────────────────────────────────────────────────────────
+// We publish the dashboard in TWO variants — light + dark — because
+// Databricks embedded dashboards always render their `light` theme slot
+// (the `?theme=` URL param is ignored).  The dark variant bakes dark-
+// palette tokens into the light slot; the iframe just needs the right ID,
+// which the frontend swaps when the user toggles the app theme.
+//
+// We deliberately do NOT embed in the always-visible Revenue card — the
+// embed has four hard limitations (fixed canvas width → whitespace, no
+// anonymous viewing, separate workspace login on first view, no dynamic
+// theming) that are deal-breakers for an always-visible panel but
+// acceptable for an opt-in tab the user explicitly navigates to.
+function mountOpsFullDashboardIframe() {
+  const iframe = document.getElementById('ops-full-dashboard-iframe');
+  const empty  = document.getElementById('ops-full-dashboard-empty');
+  if (!iframe || !empty) return;
+  if (!techInfo) {
+    iframe.style.display = 'none';
+    empty.style.display  = 'flex';
+    return;
+  }
+  const isDark   = (document.documentElement.getAttribute('data-theme') || 'dark') === 'dark';
+  const darkUrl  = techInfo.ops_dashboard_embed_url_dark  || '';
+  const lightUrl = techInfo.ops_dashboard_embed_url_light || techInfo.ops_dashboard_embed_url || '';
+  const url      = isDark ? (darkUrl || lightUrl) : (lightUrl || darkUrl);
+  if (!url) {
+    iframe.style.display = 'none';
+    empty.style.display  = 'flex';
+    empty.textContent    = 'Operations dashboard URL not configured. Check OPS_DASHBOARD_ID in app.yaml.';
+    return;
+  }
+  if (iframe.src !== url) iframe.src = url;
+  iframe.style.display = 'block';
+  empty.style.display  = 'none';
 }
 
 function _mockRevenue() {
@@ -2353,7 +2474,7 @@ async function initMap() {
           <div style="font-size: 11px; color: #666; margin-bottom: 8px;">${loc.address}</div>
           <div style="font-size: 11px; margin-bottom: 10px;">
             <b>Orders:</b> ${(loc.total_orders || 0).toLocaleString()}<br>
-            <b>Complaints:</b> ${loc.complaints || 0}<br>
+            <b>Revenue Δ vs prior 30d:</b> <span style="color:${(loc.revenue_change_pct ?? 0) < 20 ? '#e85d5d' : '#3ecf8e'}; font-weight:600;">${(loc.revenue_change_pct ?? 0) > 0 ? '+' : ''}${(loc.revenue_change_pct ?? 0).toFixed(1)}%</span><br>
             <b>Cancel Rate:</b> ${(loc.cancel_rate_pct || 0).toFixed(1)}%<br>
             <b>Risk:</b> <span style="color:${riskColor}; font-weight:600;">${loc.risk_level?.toUpperCase()}</span>
           </div>

@@ -438,23 +438,34 @@ targets:
       # and `dataset_catalog` injects ${var.catalog} at runtime so the same
       # JSON works in any catalog.  Both dashboards share the ops warehouse.
       dashboards:
+        # The Operations dashboard is published in TWO variants — light and
+        # dark — because Databricks embedded dashboards always render in
+        # "light" mode (the `?theme=` URL param is ignored).  The dark
+        # variant bakes dark-palette tokens into the `light` theme slot so
+        # the iframe renders with dark colors.  The frontend swaps the
+        # iframe src when the user toggles the app theme.
         caspers_ops:
-          display_name: "Casper's Kitchen Operations (${var.catalog})"
+          display_name: "Casper's Kitchen - Operations (${var.catalog})"
           file_path: ./resources/dashboards/caspers_kitchen_operations.lvdash.json
           warehouse_id: ${resources.sql_warehouses.caspers_ops_warehouse.id}
           dataset_catalog: ${var.catalog}
+        caspers_ops_dark:
+          display_name: "Casper's Kitchen - Operations - Dark (${var.catalog})"
+          file_path: ./resources/dashboards/caspers_kitchen_operations_dark.lvdash.json
+          warehouse_id: ${resources.sql_warehouses.caspers_ops_warehouse.id}
+          dataset_catalog: ${var.catalog}
         caspers_delivery:
-          display_name: "Caspers Kitchen - Delivery Performance & SLA (${var.catalog})"
+          display_name: "Casper's Kitchen - Delivery Performance & SLA (${var.catalog})"
           file_path: ./resources/dashboards/caspers_kitchen_delivery_performance.lvdash.json
           warehouse_id: ${resources.sql_warehouses.caspers_ops_warehouse.id}
           dataset_catalog: ${var.catalog}
         caspers_ai_agent_performance:
-          display_name: "Caspers Kitchen - AI Agent Performance (${var.catalog})"
+          display_name: "Casper's Kitchen - AI Agent Performance (${var.catalog})"
           file_path: ./resources/dashboards/caspers_kitchen_ai_agent_performance.lvdash.json
           warehouse_id: ${resources.sql_warehouses.caspers_ops_warehouse.id}
           dataset_catalog: ${var.catalog}
         caspers_menu_intelligence:
-          display_name: "Caspers Kitchen - Menu Intelligence & Nutrition (${var.catalog})"
+          display_name: "Casper's Kitchen - Menu Intelligence & Nutrition (${var.catalog})"
           file_path: ./resources/dashboards/caspers_kitchen_menu_intelligence.lvdash.json
           warehouse_id: ${resources.sql_warehouses.caspers_ops_warehouse.id}
           dataset_catalog: ${var.catalog}
