@@ -5,7 +5,7 @@ env:
   - name: LAKEBASE_ENDPOINT_PATH
     value: ''
   - name: LAKEBASE_DATABASE_NAME
-    value: 'databricks_postgres'
+    value: 'caspers-ops'
   - name: DATABRICKS_CATALOG
     value: ''
   - name: SUPERVISOR_ENDPOINT

@@ -17,26 +17,27 @@ sync:
   include:
     - ./*
   exclude:
+    # Repo / tooling
     - .git/**
     - .DS_Store
     - .claude/**
     - .databricks/**
     - .venv/**
     - .bundle/**
-    - ./data/universe/**
     - __pycache__/**
     - "*.pyc"
+    # Repo content we never want shipped
+    - ./data/universe/**
     - images/**
     - docs/**
-    - apps/caspersai-terminal/node_modules/**
+    # Per-app build artifacts (anywhere under apps/)
+    - apps/**/.databricks/**
+    - apps/**/node_modules/**
+    - apps/**/dist/**
+    # App-specific files
     - apps/caspers-ops-dashboard/app.yaml
     - apps/caspersai-terminal/logs/**
     - apps/caspersai-terminal/test/**
-    - apps/supportconsolek/**/.databricks/**
-    - apps/supportconsolek/**/node_modules/**
-    - apps/supportconsolek/**/dist/**
-    - apps/caspers-ops-dashboard/**/__pycache__/**
-    - apps/caspers-ops-dashboard/**/*.pyc
 
 scripts:
   cleanup:
@@ -144,6 +145,16 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/canonical_data
 
+            # Shared Lakebase Autoscaling project.  Runs early in parallel with
+            # the data pipeline so the synced-table create downstream has its
+            # destination project ready when needed.  All Lakebase-consuming
+            # tasks depend on this stage; per-component logical databases
+            # (caspers_refund, caspers_complaint, caspers_ops) are created by
+            # their own stages inside this single project.
+            - task_key: Lakebase_Project
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/lakebase_project
+
             - task_key: Spark_Declarative_Pipeline
               depends_on:
                 - task_key: Canonical_Data
@@ -165,6 +176,7 @@ targets:
             - task_key: Lakebase_Reverse_ETL
               depends_on:
                 - task_key: Refund_Recommender_Stream
+                - task_key: Lakebase_Project
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/lakebase
 
@@ -234,6 +246,11 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/canonical_data
 
+            # Shared Lakebase Autoscaling project (see comment under default).
+            - task_key: Lakebase_Project
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/lakebase_project
+
             - task_key: Spark_Declarative_Pipeline
               depends_on:
                 - task_key: Canonical_Data
@@ -262,6 +279,7 @@ targets:
             - task_key: Complaint_Lakebase
               depends_on:
                 - task_key: Complaint_Agent_Stream
+                - task_key: Lakebase_Project
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/complaint_lakebase
 
@@ -504,6 +522,15 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/canonical_data
 
+            # Shared Lakebase Autoscaling project.  All Lakebase-consuming tasks
+            # (Lakebase_Reverse_ETL, Complaint_Lakebase, Operational_Lakebase)
+            # depend on this.  Per-component logical databases (caspers_refund,
+            # caspers_complaint, caspers_ops) are created by their own stages
+            # inside this single project.
+            - task_key: Lakebase_Project
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/lakebase_project
+
             # Small post-ingestion environment-population helpers (seed lookup
             # tables, register helper UDFs, run AI SQL demos on uploaded PDFs,
             # grant demo-user perms, etc.).  Depends on Canonical_Data for the
@@ -539,6 +566,7 @@ targets:
             - task_key: Lakebase_Reverse_ETL
               depends_on:
                 - task_key: Refund_Recommender_Stream
+                - task_key: Lakebase_Project
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/lakebase
 
@@ -580,6 +608,7 @@ targets:
             - task_key: Complaint_Lakebase
               depends_on:
                 - task_key: Complaint_Agent_Stream
+                - task_key: Lakebase_Project
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/complaint_lakebase
 
@@ -617,6 +646,7 @@ targets:
               max_retries: 0
               depends_on:
                 - task_key: Canonical_Data
+                - task_key: Lakebase_Project
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/operational_lakebase
 

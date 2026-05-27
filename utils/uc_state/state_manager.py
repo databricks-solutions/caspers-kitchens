@@ -7,8 +7,6 @@ import json
 import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
-from databricks.sdk import WorkspaceClient
-from databricks.sdk.service.catalog import CatalogInfo, SchemaInfo
 import logging
 
 logger = logging.getLogger(__name__)
@@ -16,22 +14,27 @@ logger = logging.getLogger(__name__)
 
 class UCState:
     """Unity Catalog-based state management for Databricks resources."""
-    
+
     def __init__(self, catalog: str, schema: str = "_internal_state", table: str = "resources"):
         """
         Initialize UC-State manager.
-        
+
         Args:
             catalog: The catalog name to store state in
-            schema: Schema name (default: _internal_state)  
+            schema: Schema name (default: _internal_state)
             table: Table name (default: resources)
         """
         self.catalog = catalog
         self.schema = schema
         self.table = table
         self.full_table_name = f"{catalog}.{schema}.{table}"
+        # Lazy-import the SDK so `from uc_state import add` doesn't pay the
+        # WorkspaceClient discovery cost in notebooks that only import the
+        # module (e.g. for type hints or convenience functions) without ever
+        # constructing a UCState.
+        from databricks.sdk import WorkspaceClient
         self.w = WorkspaceClient()
-        
+
         self._ensure_catalog_schema_table()
     
     def _ensure_catalog_schema_table(self):
@@ -222,7 +225,11 @@ class UCState:
         # postgres_projects (Lakebase Autoscale) goes after apps so any app consuming
         # a Lakebase endpoint is removed first, and adjacent to databaseinstances
         # (legacy Lakebase Provisioned) for logical grouping.
-        deletion_order = ['experiments', 'jobs', 'pipelines', 'multi_agent_supervisors', 'knowledge_assistants', 'genie_spaces', 'endpoints', 'vector_search_indexes', 'vector_search_endpoints', 'apps', 'warehouses', 'databasecatalogs', 'catalogs', 'postgres_projects', 'databaseinstances']
+        # autoscale_synced_tables (Postgres synced tables created via
+        # `utils/lakebase_autoscale.py`) MUST be deleted before postgres_projects,
+        # otherwise the parent-project delete cascades and orphans the synced-table
+        # UC entries, which then fail their own UC drop on the catalog cascade.
+        deletion_order = ['experiments', 'jobs', 'pipelines', 'multi_agent_supervisors', 'knowledge_assistants', 'genie_spaces', 'endpoints', 'vector_search_indexes', 'vector_search_endpoints', 'apps', 'warehouses', 'databasecatalogs', 'catalogs', 'autoscale_synced_tables', 'postgres_projects', 'databaseinstances']
         results = {}
         
         for resource_type in deletion_order:
@@ -261,6 +268,8 @@ class UCState:
                     resource_name = resource_data.get('name', 'Unknown')
                 elif resource_type == 'postgres_projects':
                     resource_name = resource_data.get('name') or resource_data.get('project_id', 'Unknown')
+                elif resource_type == 'autoscale_synced_tables':
+                    resource_name = resource_data.get('synced_table_name') or resource_data.get('name', 'Unknown')
                 elif resource_type == 'databasecatalogs':
                     resource_name = resource_data if isinstance(resource_data, str) else resource_data.get('name', 'Unknown')
                 elif resource_type == 'catalogs':
@@ -411,6 +420,28 @@ class UCState:
                             deletion_successful = True
                         else:
                             error_message = "No instance name found in resource data"
+
+                    elif resource_type == 'autoscale_synced_tables':
+                        # Lakebase Autoscale synced table created via
+                        # `utils/lakebase_autoscale.create_autoscale_synced_table`.
+                        # Resource data: {synced_table_name: "<catalog>.<schema>.<table>",
+                        #                 project_id: "...", postgres_database: "..."}
+                        # Delete via the helper's DELETE; the UC table entry itself
+                        # disappears with the cascading catalog drop below.
+                        from lakebase_autoscale import delete_autoscale_synced_table  # local import; utils on sys.path
+                        synced_table_name = resource_data.get('synced_table_name') or resource_data.get('name')
+                        if synced_table_name:
+                            try:
+                                deleted = delete_autoscale_synced_table(self.w, synced_table_name)
+                                logger.info(
+                                    f"Autoscale synced table {synced_table_name}: "
+                                    f"{'deleted' if deleted else 'already gone'}"
+                                )
+                                deletion_successful = True
+                            except Exception as e:
+                                error_message = f"delete_autoscale_synced_table({synced_table_name}) failed: {e}"
+                        else:
+                            error_message = "No synced_table_name found in resource data"
 
                     elif resource_type == 'postgres_projects':
                         # Lakebase Autoscale project. Resource data is either:

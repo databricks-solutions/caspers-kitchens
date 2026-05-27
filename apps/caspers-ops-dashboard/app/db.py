@@ -1,8 +1,20 @@
 """
 Lakebase (PostgreSQL) connection management with automatic token refresh.
 
-Uses Databricks short-lived credentials (~1h), refreshed every 50 minutes
-via a background thread to support long-lived app processes.
+Uses Databricks short-lived credentials (~1h), refreshed via a background
+thread to support long-lived app processes.
+
+Refresh strategy:
+
+- Steady state: refresh every ``TOKEN_REFRESH_INTERVAL`` seconds (~48 min),
+  well before the 60-min credential expiry.
+- On refresh failure: retry on an exponential backoff capped at
+  ``TOKEN_RETRY_MAX`` seconds.  Connections that race a failed refresh keep
+  using the previous (still-valid) token from ``_conn_str`` until the
+  retry succeeds.
+- ``get_conn()`` callers always pull the latest snapshot of ``_conn_str``
+  under ``_token_lock`` so an in-flight refresh cannot hand a half-built
+  connection string to a request.
 """
 
 import os
@@ -25,6 +37,10 @@ _token_expiry: float = 0.0
 ENDPOINT_PATH = os.environ.get("LAKEBASE_ENDPOINT_PATH", "")  # e.g. projects/{id}/branches/production/endpoints/primary
 DB_NAME = os.environ.get("LAKEBASE_DATABASE_NAME", "databricks_postgres")
 
+TOKEN_REFRESH_INTERVAL = 2900  # ~48 min between successful refreshes
+TOKEN_RETRY_BASE = 30          # first retry wait after a failure
+TOKEN_RETRY_MAX = 600          # cap retry waits at 10 min
+
 
 def _workspace_client() -> WorkspaceClient:
     global _w
@@ -43,26 +59,45 @@ def _get_token() -> tuple[str, str, str]:
     return host, user, cred.token
 
 
-def _refresh_token() -> None:
+def _refresh_token() -> bool:
+    """Best-effort refresh.  Returns True on success, False on any failure.
+
+    A failure leaves the previous ``_conn_str`` in place so existing
+    requests can keep using the still-valid token.
+    """
     global _current_token, _token_expiry, _conn_str
     try:
         host, user, token = _get_token()
-        with _token_lock:
-            _current_token = token
-            _token_expiry = time.time() + 3000  # 50 minutes
-            _conn_str = (
-                f"host={host} dbname={DB_NAME} user={user} "
-                f"password={token} sslmode=require"
-            )
-        log.info("Lakebase token refreshed")
     except Exception as e:
-        log.error(f"Token refresh failed: {e}")
+        log.error(f"Lakebase token refresh failed: {type(e).__name__}: {e}")
+        return False
+    with _token_lock:
+        _current_token = token
+        _token_expiry = time.time() + TOKEN_REFRESH_INTERVAL
+        _conn_str = (
+            f"host={host} dbname={DB_NAME} user={user} "
+            f"password={token} sslmode=require"
+        )
+    log.info("Lakebase token refreshed")
+    return True
 
 
 def _token_refresher() -> None:
+    """Background loop.  Sleeps ``TOKEN_REFRESH_INTERVAL`` between successes,
+    and falls back to exponential backoff (capped at ``TOKEN_RETRY_MAX``)
+    after a failure so a brief Databricks API outage doesn't wedge the app."""
+    retry_wait = TOKEN_RETRY_BASE
     while True:
-        time.sleep(2900)  # refresh every ~48 minutes
-        _refresh_token()
+        if _refresh_token():
+            retry_wait = TOKEN_RETRY_BASE
+            time.sleep(TOKEN_REFRESH_INTERVAL)
+        else:
+            log.warning(
+                f"Lakebase token refresh failed; retrying in {retry_wait}s "
+                f"(connections continue using previous token until then)"
+            )
+            time.sleep(retry_wait)
+            retry_wait = min(retry_wait * 2, TOKEN_RETRY_MAX)
 
 
 def init_db() -> None:
@@ -71,7 +106,7 @@ def init_db() -> None:
         log.warning("LAKEBASE_ENDPOINT_PATH not set — DB features disabled")
         return
     _refresh_token()
-    t = threading.Thread(target=_token_refresher, daemon=True)
+    t = threading.Thread(target=_token_refresher, daemon=True, name="lakebase-token-refresher")
     t.start()
     if not _conn_str:
         log.warning("Lakebase token unavailable at startup — DB features disabled until token refresh succeeds")
@@ -80,9 +115,13 @@ def init_db() -> None:
 
 
 def _conn_string() -> str:
-    if not _conn_str:
+    # Snapshot under the lock so a concurrent refresh can't hand us a
+    # half-updated connection string.
+    with _token_lock:
+        cs = _conn_str
+    if not cs:
         raise RuntimeError("Database not initialized. LAKEBASE_ENDPOINT_PATH may be missing.")
-    return _conn_str
+    return cs
 
 
 @contextmanager

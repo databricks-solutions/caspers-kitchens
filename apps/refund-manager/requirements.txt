@@ -2,5 +2,7 @@ fastapi
 uvicorn[standard]
 sqlalchemy
 psycopg[binary]
-databricks-sdk
+# Autoscale per-endpoint credentials & w.postgres.get_endpoint require SDK
+# 0.81.0+ (Apps base image often pins an older version that lacks `w.postgres`).
+databricks-sdk>=0.81.0
 databricks-sql-connector
