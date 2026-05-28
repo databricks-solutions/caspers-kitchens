@@ -566,6 +566,100 @@ body { background: var(--bg-primary); color: var(--text-primary); display: flex;
   border: 1px solid rgba(99,102,241,0.35);
 }
 .action-btn.ai:hover { background: rgba(99,102,241,0.25); }
+.action-btn.refund {
+  background: rgba(240,192,64,0.1); color: var(--gold);
+  border: 1px solid rgba(240,192,64,0.3);
+}
+.action-btn.refund:hover { background: rgba(240,192,64,0.2); }
+.action-btn.complaints {
+  background: rgba(232,52,26,0.08); color: var(--accent-light);
+  border: 1px solid rgba(232,52,26,0.25);
+}
+.action-btn.complaints:hover { background: rgba(232,52,26,0.18); }
+
+/* Agent result card — shown inline in chat */
+.agent-result-card {
+  margin-top: 10px; padding-top: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+}
+.agent-result-card-header {
+  font-size: 10px; font-weight: 700; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px;
+  display: flex; align-items: center; gap: 5px;
+}
+.agent-result-body {
+  background: var(--bg-tertiary); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.agent-result-row {
+  display: flex; align-items: baseline; gap: 8px; font-size: 12px;
+}
+.agent-result-key { color: var(--text-muted); min-width: 80px; flex-shrink: 0; }
+.agent-result-val { color: var(--text-primary); font-weight: 500; }
+.agent-result-val.decision-none    { color: var(--success); }
+.agent-result-val.decision-partial { color: var(--warning); }
+.agent-result-val.decision-full    { color: var(--danger); }
+.agent-result-val.escalate-true    { color: var(--danger); font-weight: 700; }
+.agent-result-val.escalate-false   { color: var(--success); }
+.complaint-row { cursor: pointer; border-radius: var(--radius-sm); padding: 6px 4px; transition: background 0.12s; }
+.complaint-row:hover { background: color-mix(in srgb, var(--border) 30%, transparent); }
+.complaint-detail {
+  display: none; margin: 6px 0 8px 0; padding: 10px 12px;
+  background: color-mix(in srgb, var(--bg-primary) 60%, transparent);
+  border-left: 3px solid var(--gold); border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 11px; color: var(--text-secondary); line-height: 1.6;
+}
+.complaint-detail.open { display: block; }
+.complaint-detail-label { color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 6px; }
+.complaint-refund-btn {
+  display: inline-flex; align-items: center; gap: 5px; margin-top: 8px;
+  padding: 5px 10px; background: var(--gold); color: #111; border: none;
+  border-radius: var(--radius-sm); font-size: 11px; font-weight: 700;
+  cursor: pointer; transition: var(--transition);
+}
+.complaint-refund-btn:hover { opacity: 0.85; }
+
+/* Refund modal overlay */
+.refund-modal-overlay {
+  position: fixed; inset: 0; z-index: 2100;
+  background: rgba(0,0,0,0.65); backdrop-filter: blur(3px);
+  display: flex; align-items: center; justify-content: center;
+  animation: fadeIn 0.15s ease;
+}
+.refund-modal {
+  width: 380px; background: var(--bg-secondary);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  animation: slideUp 0.18s ease; overflow: hidden;
+}
+.refund-modal-header {
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.refund-modal-title { font-size: 14px; font-weight: 600; flex: 1; }
+.refund-modal-close {
+  background: none; border: none; color: var(--text-muted);
+  font-size: 16px; cursor: pointer; padding: 0 4px; line-height: 1;
+}
+.refund-modal-close:hover { color: var(--text-primary); }
+.refund-modal-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.refund-input-row { display: flex; gap: 8px; }
+.refund-input {
+  flex: 1; background: var(--bg-input); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 8px 12px;
+  color: var(--text-primary); font-size: 13px; font-family: inherit;
+}
+.refund-input:focus { outline: none; border-color: var(--gold); }
+.refund-submit-btn {
+  padding: 8px 14px; background: var(--gold); color: #111; border: none;
+  border-radius: var(--radius-sm); font-size: 12px; font-weight: 700;
+  cursor: pointer; transition: var(--transition); white-space: nowrap;
+}
+.refund-submit-btn:hover:not(:disabled) { opacity: 0.85; }
+.refund-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.refund-result { display: none; }
+.refund-result.visible { display: block; }
 
 /* Retry button on connection-error messages */
 .retry-btn {
@@ -909,6 +1003,14 @@ body { background: var(--bg-primary); color: var(--text-primary); display: flex;
       <button class="nav-item" id="nav-ops-dashboard" onclick="switchView('ops-dashboard')">
         <span class="icon">📈</span> Ops Dashboard
       </button>
+      <a class="nav-item" id="nav-refund-manager" href="#" target="_blank" rel="noopener"
+         style="display:none; text-decoration:none;">
+        <span class="icon">💳</span> Refund Manager ↗
+      </a>
+      <a class="nav-item" id="nav-support-console" href="#" target="_blank" rel="noopener"
+         style="display:none; text-decoration:none;">
+        <span class="icon">🎧</span> Support Console ↗
+      </a>
     </nav>
 
     <div class="sidebar-divider"></div>
@@ -1044,7 +1146,7 @@ body { background: var(--bg-primary); color: var(--text-primary); display: flex;
       </div>
 
       <!-- Contextual action buttons -->
-      <div class="action-buttons" id="action-buttons" style="display:none;">
+      <div class="action-buttons" id="action-buttons" style="display:flex;">
         <button class="action-btn hire" id="btn-hire" style="display:none;" onclick="triggerAction('hire')">
           💼 Bring in the Suits
         </button>
@@ -1053,6 +1155,12 @@ body { background: var(--bg-primary); color: var(--text-primary); display: flex;
         </button>
         <button class="action-btn ai" id="btn-ai" style="display:none;" onclick="triggerAction('ai')">
           🤖 Go Full AI
+        </button>
+        <button class="action-btn refund" id="btn-refund" style="display:none;" onclick="openRefundModal()">
+          💳 Process Refund
+        </button>
+        <button class="action-btn complaints" id="btn-complaints" style="display:flex;" onclick="triggerComplaintSummary()">
+          📬 Review Complaints
         </button>
       </div>
 
@@ -1099,6 +1207,27 @@ body { background: var(--bg-primary); color: var(--text-primary); display: flex;
   </aside>
 
 </div><!-- /layout -->
+
+<!-- ── Refund Modal ── -->
+<div class="refund-modal-overlay" id="refund-modal" style="display:none;" onclick="closeRefundModal(event)">
+  <div class="refund-modal" onclick="event.stopPropagation()">
+    <div class="refund-modal-header">
+      <span style="font-size:20px;">💳</span>
+      <span class="refund-modal-title">Refund Decision Engine</span>
+      <button class="refund-modal-close" onclick="closeRefundModal()">✕</button>
+    </div>
+    <div class="refund-modal-body">
+      <div style="font-size:12px; color:var(--text-muted);">
+        Enter an order ID to get an instant refund recommendation based on delivery time vs. location benchmarks.
+      </div>
+      <div class="refund-input-row">
+        <input class="refund-input" id="refund-order-id" placeholder="Order ID (e.g. ORD-001234)" onkeydown="if(event.key==='Enter')submitRefund()" />
+        <button class="refund-submit-btn" id="refund-submit-btn" onclick="submitRefund()">Evaluate</button>
+      </div>
+      <div class="refund-result" id="refund-result"></div>
+    </div>
+  </div>
+</div>
 
 <!-- ── PDF Viewer Modal ── -->
 <div class="pdf-modal-overlay" id="pdf-modal" style="display:none;" onclick="closePdfModal(event)">
@@ -1246,9 +1375,9 @@ function setTheme(theme) {
 // ────────────────────────────────────────────────────────────────────────────
 function switchView(view) {
   currentView = view;
-  document.getElementById('view-dashboard').style.display    = view === 'dashboard'     ? 'flex' : 'none';
-  document.getElementById('view-documents').classList.toggle('active',     view === 'documents');
-  document.getElementById('view-ops-dashboard').classList.toggle('active', view === 'ops-dashboard');
+  document.getElementById('view-dashboard').style.display    = view === 'dashboard' ? 'flex' : 'none';
+  document.getElementById('view-documents').classList.toggle('active',      view === 'documents');
+  document.getElementById('view-ops-dashboard').classList.toggle('active',  view === 'ops-dashboard');
   document.getElementById('nav-dashboard').classList.toggle('active',      view === 'dashboard');
   document.getElementById('nav-documents').classList.toggle('active',      view === 'documents');
   document.getElementById('nav-ops-dashboard').classList.toggle('active',  view === 'ops-dashboard');
@@ -1824,9 +1953,196 @@ function updateActionButtons(text) {
   show('btn-hire', ['performance gap', 'strategic', 'expansion', 'recommend', 'consultancy', 'bring in', 'engage', 'consultant']);
   show('btn-fire', ['poor roi', 'underperform', 'not deliver', 'redundant', 'overspend', 'cut', 'low roi', 'burning cash', 'terminate', 'discontinue']);
   show('btn-ai',  ['ai', 'automation', 'efficiency', 'digital', 'databricks', 'transform', 'machine learning', 'predictive', 'intelligent']);
-  const any = ['btn-hire', 'btn-fire', 'btn-ai']
+  show('btn-refund', ['refund', 'late delivery', 'late order', 'delivery time', 'compensation', 'reimburse']);
+  // btn-complaints is always visible — not keyword-driven
+  const any = ['btn-hire', 'btn-fire', 'btn-ai', 'btn-refund', 'btn-complaints']
     .some(id => document.getElementById(id).style.display === 'flex');
   document.getElementById('action-buttons').style.display = any ? 'flex' : 'none';
+}
+
+// ── Refund Modal ───────────────────────────────────────────────────────────────
+
+function openRefundModal(prefillOrderId) {
+  const modal = document.getElementById('refund-modal');
+  modal.style.display = 'flex';
+  document.getElementById('refund-order-id').value = prefillOrderId || '';
+  document.getElementById('refund-result').className = 'refund-result';
+  document.getElementById('refund-result').innerHTML = '';
+  document.getElementById('refund-submit-btn').disabled = false;
+  setTimeout(() => document.getElementById('refund-order-id').focus(), 50);
+}
+
+function closeRefundModal(e) {
+  if (e && e.target !== document.getElementById('refund-modal')) return;
+  document.getElementById('refund-modal').style.display = 'none';
+}
+
+async function submitRefund() {
+  const orderId = document.getElementById('refund-order-id').value.trim();
+  if (!orderId) return;
+  const btn = document.getElementById('refund-submit-btn');
+  const resultEl = document.getElementById('refund-result');
+  btn.disabled = true;
+  btn.textContent = '…';
+  resultEl.className = 'refund-result';
+  resultEl.innerHTML = '<div style="color:var(--text-muted);font-size:12px;">Calling refund agent…</div>';
+  resultEl.className = 'refund-result visible';
+  try {
+    const res = await fetch('/api/refund', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({order_id: orderId}),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({detail: res.statusText}));
+      throw new Error(err.detail || res.statusText);
+    }
+    const d = await res.json();
+    const cls = d.refund_class || 'none';
+    const clsLabel = cls === 'full' ? '🔴 FULL' : cls === 'partial' ? '🟡 PARTIAL' : '🟢 NONE';
+    const amount = d.refund_usd != null ? `$${Number(d.refund_usd).toFixed(2)}` : '—';
+    resultEl.innerHTML = `
+      <div class="agent-result-body">
+        <div class="agent-result-row">
+          <span class="agent-result-key">Decision</span>
+          <span class="agent-result-val decision-${cls}">${clsLabel}</span>
+        </div>
+        <div class="agent-result-row">
+          <span class="agent-result-key">Amount</span>
+          <span class="agent-result-val">${amount}</span>
+        </div>
+        <div class="agent-result-row" style="align-items:flex-start;">
+          <span class="agent-result-key">Reason</span>
+          <span class="agent-result-val" style="font-weight:400;color:var(--text-secondary);">${escHtml(d.reason || d.raw || '—')}</span>
+        </div>
+      </div>`;
+    // Also inject a summary card into the chat as a record
+    _appendRefundCardToChat(orderId, d);
+    _refreshLastComplaintCard();
+  } catch (e) {
+    resultEl.innerHTML = `<div style="color:var(--danger);font-size:12px;">⚠️ ${escHtml(e.message)}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Evaluate';
+  }
+}
+
+function _appendRefundCardToChat(orderId, d) {
+  const msgs = document.getElementById('chat-messages');
+  const cls = d.refund_class || 'none';
+  const clsLabel = cls === 'full' ? '🔴 Full refund' : cls === 'partial' ? '🟡 Partial refund' : '🟢 No refund';
+  const amount = d.refund_usd != null ? ` — $${Number(d.refund_usd).toFixed(2)}` : '';
+  const el = document.createElement('div');
+  el.className = 'message assistant';
+  el.innerHTML = `
+    <div class="message-avatar">💳</div>
+    <div class="message-bubble">
+      <div class="agent-result-card">
+        <div class="agent-result-card-header">💳 Refund Decision · Order ${escHtml(orderId)}</div>
+        <div class="agent-result-body">
+          <div class="agent-result-row">
+            <span class="agent-result-key">Decision</span>
+            <span class="agent-result-val decision-${cls}">${clsLabel}${amount}</span>
+          </div>
+          <div class="agent-result-row" style="align-items:flex-start;">
+            <span class="agent-result-key">Reason</span>
+            <span class="agent-result-val" style="font-weight:400;color:var(--text-secondary);">${escHtml(d.reason || d.raw || '—')}</span>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  msgs.appendChild(el);
+  msgs.scrollTop = msgs.scrollHeight;
+  document.getElementById('refund-modal').style.display = 'none';
+}
+
+// ── Complaint Summary ─────────────────────────────────────────────────────────
+
+let _lastComplaintsBody = null;
+
+function _toggleComplaintDetail(idx) {
+  const detail = document.getElementById(`complaint-detail-${idx}`);
+  if (!detail) return;
+  detail.classList.toggle('open');
+  const arrow = document.getElementById(`complaint-arrow-${idx}`);
+  if (arrow) arrow.textContent = detail.classList.contains('open') ? '▾' : '▸';
+}
+
+function _renderComplaintRows(decisions, uid) {
+  if (!decisions.length) {
+    return '<div style="color:var(--text-muted);font-size:12px;">No complaint decisions found. The complaint stream may not have run yet.</div>';
+  }
+  return decisions.map((d, i) => {
+    const key = `${uid}-${i}`;
+    const creditLabel = d.suggest_credit ? `<span style="color:var(--gold);font-size:11px;flex-shrink:0;margin-left:8px;">$${Number(d.suggest_credit).toFixed(2)}</span>` : '';
+    const refundBtn = (!d.escalate && d.suggest_credit && d.order_id)
+      ? `<button class="complaint-refund-btn" onclick="event.stopPropagation();openRefundModal('${escHtml(d.order_id)}')">💳 Process Refund for $${Number(d.suggest_credit).toFixed(2)}</button>`
+      : '';
+    const detailTs       = d.ts            ? `<div><span class="complaint-detail-label">Time</span><br>${escHtml(d.ts)}</div>` : '';
+    const detailOrderId  = d.order_id      ? `<div><span class="complaint-detail-label">Order ID</span><br>${escHtml(d.order_id)}</div>` : '';
+    const detailRationale= d.rationale     ? `<div style="margin-top:4px;"><span class="complaint-detail-label">Rationale</span><br>${escHtml(d.rationale)}</div>` : '';
+    const detailResponse = d.customer_response ? `<div style="margin-top:4px;"><span class="complaint-detail-label">Customer Response</span><br>${escHtml(d.customer_response)}</div>` : '';
+    return `
+      <div style="border-bottom:1px solid color-mix(in srgb, var(--border) 50%, transparent); margin-bottom:2px;">
+        <div class="agent-result-row complaint-row" onclick="_toggleComplaintDetail('${key}')">
+          <span style="color:var(--text-muted);font-size:11px;margin-right:2px;" id="complaint-arrow-${key}">▸</span>
+          <span class="agent-result-key" style="min-width:80px;">${escHtml(d.category || '—')}</span>
+          <span class="agent-result-val" style="font-size:11px;font-weight:400;color:var(--text-secondary);flex:1;">${escHtml((d.rationale || '').slice(0, 70))}${(d.rationale||'').length > 70 ? '…' : ''}</span>
+          <span class="agent-result-val" style="color:${d.escalate ? 'var(--danger)' : 'var(--success)'}; font-size:11px; flex-shrink:0; margin-left:8px;">${d.escalate ? '🔴 Escalate' : '🟢 Credit'}</span>
+          ${creditLabel}
+        </div>
+        <div class="complaint-detail" id="complaint-detail-${key}">
+          ${detailOrderId}${detailTs}${detailRationale}${detailResponse}
+          ${refundBtn}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function _refreshLastComplaintCard() {
+  if (!_lastComplaintsBody) return;
+  try {
+    const res = await fetch('/api/complaint-decisions');
+    if (!res.ok) return;
+    const decisions = await res.json();
+    window._complaintDecisions = decisions;
+    const uid = Date.now();
+    _lastComplaintsBody.innerHTML = _renderComplaintRows(decisions, uid);
+  } catch (_) {}
+}
+
+async function triggerComplaintSummary() {
+  if (!currentSessionId) await createSession();
+  appendMessage('user', 'Show me the latest complaint decisions from the agent.', false);
+  const typingEl = showTyping();
+  try {
+    const res = await fetch('/api/complaint-decisions');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    const decisions = await res.json();
+    window._complaintDecisions = decisions;
+    clearTyping(typingEl);
+    const msgs = document.getElementById('chat-messages');
+    const el = document.createElement('div');
+    el.className = 'message assistant';
+    const uid = Date.now();
+    el.innerHTML = `
+      <div class="message-avatar">📬</div>
+      <div class="message-bubble">
+        <div class="agent-result-card">
+          <div class="agent-result-card-header">📬 Latest Complaint Decisions <span style="font-size:10px;font-weight:400;color:var(--text-muted);margin-left:6px;">click row to expand</span></div>
+          <div class="agent-result-body" id="complaints-body-${uid}" style="gap:0;">${_renderComplaintRows(decisions, uid)}</div>
+        </div>
+      </div>`;
+    msgs.appendChild(el);
+    _lastComplaintsBody = el.querySelector(`#complaints-body-${uid}`);
+    msgs.scrollTop = msgs.scrollHeight;
+  } catch (e) {
+    clearTyping(typingEl);
+    appendMessage('assistant', `⚠️ Could not load complaint decisions: ${e.message}`, true);
+  }
 }
 
 // ── Inline document buttons in chat messages ───────────────────────────────
@@ -2529,6 +2845,16 @@ async function loadTechInfo() {
     const res = await fetch('/api/tech-info');
     techInfo = await res.json();
     renderTechInfo(techInfo);
+    const rmLink = document.getElementById('nav-refund-manager');
+    if (rmLink && techInfo.refund_manager_app_url) {
+      rmLink.href = techInfo.refund_manager_app_url;
+      rmLink.style.display = '';
+    }
+    const scLink = document.getElementById('nav-support-console');
+    if (scLink && techInfo.support_console_app_url) {
+      scLink.href = techInfo.support_console_app_url;
+      scLink.style.display = '';
+    }
   } catch (e) {
     renderTechInfo({
       catalog: 'caspersdev',

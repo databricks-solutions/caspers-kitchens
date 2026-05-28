@@ -48,6 +48,10 @@ APP_NAME             = os.environ.get("DATABRICKS_APP_NAME", "").strip() or "ops
 SUPERVISOR_ENDPOINT       = os.environ.get("SUPERVISOR_ENDPOINT", "")
 SUPERVISOR_TILE_ID        = os.environ.get("SUPERVISOR_TILE_ID", "")          # written by operational_lakebase stage
 SUPERVISOR_MLFLOW_EXP_ID  = os.environ.get("SUPERVISOR_MLFLOW_EXPERIMENT_ID", "")  # written by operational_lakebase stage
+REFUND_AGENT_ENDPOINT     = os.environ.get("REFUND_AGENT_ENDPOINT", "")
+COMPLAINT_AGENT_ENDPOINT  = os.environ.get("COMPLAINT_AGENT_ENDPOINT", "")
+REFUND_MANAGER_APP_URL    = os.environ.get("REFUND_MANAGER_APP_URL", "")
+SUPPORT_CONSOLE_APP_URL   = os.environ.get("SUPPORT_CONSOLE_APP_URL", "")
 LAKEBASE_INSTANCE    = os.environ.get("LAKEBASE_ENDPOINT_PATH", "")   # non-empty = DB enabled
 WAREHOUSE_ID         = os.environ.get("DATABRICKS_WAREHOUSE_ID", "")
 GENIE_REVENUE_ID     = os.environ.get("GENIE_ID_REVENUE", "")
@@ -258,6 +262,10 @@ def tech_info():
         "warehouse_id": WAREHOUSE_ID,
         "db_enabled": bool(LAKEBASE_INSTANCE),
         "supervisor_enabled": bool(SUPERVISOR_ENDPOINT),
+        "refund_agent_endpoint": REFUND_AGENT_ENDPOINT,
+        "complaint_agent_endpoint": COMPLAINT_AGENT_ENDPOINT,
+        "refund_manager_app_url": REFUND_MANAGER_APP_URL,
+        "support_console_app_url": SUPPORT_CONSOLE_APP_URL,
         "mlflow_experiment_id": mlflow_experiment_id,
         "mlflow_experiment_url": mlflow_experiment_url,
         "eval_notebook_url": eval_notebook_url,
@@ -431,6 +439,8 @@ _AGENT_LABELS = [
     "regulatory-compliance",
     "audit-findings",
     "consultancy-strategy",
+    "refund-agent",
+    "complaint-agent",
 ]
 
 def _clean_mas_text(text: str) -> str:
@@ -904,6 +914,155 @@ def quick_action(action_type: str):
         return {"action": action_type, "content": None, "error": str(e)}
 
 
+# ─── Custom Agents (Refund & Complaint) ──────────────────────────────────────
+
+class RefundRequest(BaseModel):
+    order_id: str
+
+
+class ComplaintRequest(BaseModel):
+    complaint_text: str
+    order_id: str = ""
+
+
+def _call_agent_endpoint(endpoint_name: str, payload: dict) -> dict:
+    """Call a model serving endpoint (ChatAgent or ResponsesAgent) and return the parsed response body."""
+    url = f"{(_sdk_config.host or '').rstrip('/')}/serving-endpoints/{endpoint_name}/invocations"
+    headers = {"Content-Type": "application/json"}
+    headers.update(_sdk_config.authenticate())
+    resp = httpx.post(url, headers=headers, json=payload, timeout=120.0)
+    resp.raise_for_status()
+    return resp.json()
+
+
+@app.post("/api/refund")
+def refund(req: RefundRequest):
+    """Call the refund agent for a given order_id and return a structured decision."""
+    if not REFUND_AGENT_ENDPOINT:
+        raise HTTPException(status_code=503, detail="Refund agent endpoint not configured.")
+    try:
+        data = _call_agent_endpoint(
+            REFUND_AGENT_ENDPOINT,
+            {"messages": [{"role": "user", "content": req.order_id}]},
+        )
+        # Extract the last assistant message from the ChatAgent response
+        messages = data.get("messages") or []
+        for msg in reversed(messages):
+            role = msg.get("role", "")
+            content = msg.get("content", "")
+            if role == "assistant" and content:
+                try:
+                    decision = json.loads(content)
+                    return {
+                        "order_id": req.order_id,
+                        "refund_usd": float(decision.get("refund_usd", 0)),
+                        "refund_class": decision.get("refund_class", "none"),
+                        "reason": decision.get("reason", ""),
+                    }
+                except Exception:
+                    return {"order_id": req.order_id, "raw": content}
+        raise HTTPException(status_code=502, detail="No assistant message in refund agent response.")
+    except HTTPException:
+        raise
+    except Exception as e:
+        log.error(f"Refund agent call failed: {e}", exc_info=True)
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+@app.post("/api/complaint")
+def complaint(req: ComplaintRequest):
+    """Call the complaint agent for a raw complaint text and return a structured classification."""
+    if not COMPLAINT_AGENT_ENDPOINT:
+        raise HTTPException(status_code=503, detail="Complaint agent endpoint not configured.")
+    content = req.complaint_text
+    if req.order_id:
+        content = f"{content} (Order ID: {req.order_id})"
+    try:
+        data = _call_agent_endpoint(
+            COMPLAINT_AGENT_ENDPOINT,
+            {"input": [{"role": "user", "content": content}]},
+        )
+        # ResponsesAgent returns output list or choices
+        output_text = ""
+        for out in data.get("output", []):
+            for part in (out.get("content") or []):
+                output_text += part.get("text", "")
+        if not output_text:
+            choices = data.get("choices") or []
+            if choices:
+                output_text = (choices[0].get("message") or {}).get("content", "")
+        if output_text:
+            try:
+                result = json.loads(output_text)
+                decision = result.get("decision", "")
+                return {
+                    "order_id": req.order_id or result.get("order_id", ""),
+                    "category": result.get("complaint_category", ""),
+                    "decision": decision,
+                    "suggest_credit": result.get("credit_amount") or 0,
+                    "escalate": decision == "escalate",
+                    "rationale": result.get("rationale", ""),
+                }
+            except Exception:
+                return {"order_id": req.order_id, "raw": output_text}
+        raise HTTPException(status_code=502, detail="No output in complaint agent response.")
+    except HTTPException:
+        raise
+    except Exception as e:
+        log.error(f"Complaint agent call failed: {e}", exc_info=True)
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+@app.get("/api/complaint-decisions")
+def complaint_decisions():
+    """Return the 10 most recent complaint agent decisions from the Delta table."""
+    if not WAREHOUSE_ID:
+        raise HTTPException(status_code=503, detail="DATABRICKS_WAREHOUSE_ID not configured.")
+    if not CATALOG:
+        raise HTTPException(status_code=503, detail="DATABRICKS_CATALOG not configured.")
+    try:
+        from databricks import sql as dbsql
+        conn = dbsql.connect(
+            server_hostname=_sdk_config.host.replace("https://", ""),
+            http_path=f"/sql/1.0/warehouses/{WAREHOUSE_ID}",
+            credentials_provider=lambda: _sdk_config.authenticate,
+        )
+        cursor = conn.cursor()
+        cursor.execute(f"""
+            SELECT complaint_id, order_id, ts, agent_response
+            FROM {CATALOG}.complaints.complaint_responses
+            ORDER BY ts DESC
+            LIMIT 10
+        """)
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        results = []
+        for complaint_id, order_id, ts, agent_response in rows:
+            try:
+                parsed = json.loads(agent_response or "{}")
+            except Exception:
+                parsed = {}
+            decision = parsed.get("decision", "")
+            results.append({
+                "complaint_id": complaint_id,
+                "order_id": order_id or parsed.get("order_id", ""),
+                "ts": str(ts) if ts else "",
+                "category": parsed.get("complaint_category", ""),
+                "decision": decision,
+                "suggest_credit": parsed.get("credit_amount", 0.0),
+                "escalate": decision == "escalate",
+                "rationale": parsed.get("rationale", ""),
+                "customer_response": parsed.get("customer_response", ""),
+            })
+        return results
+    except HTTPException:
+        raise
+    except Exception as e:
+        log.warning(f"complaint_decisions: {e}")
+        raise HTTPException(status_code=502, detail=str(e))
+
+
 # ─── Sub-Agents ───────────────────────────────────────────────────────────────
 
 # KA tile names as created by the stage notebooks
@@ -947,6 +1106,16 @@ def list_agents():
         url = f"{host}/ml/endpoints/{ep_name}" if ep_name and host else ""
         agents.append({"name": ka["name"], "icon": ka["icon"], "type": "ka",
                         "url": url, "id": tile_id})
+
+    _CUSTOM_AGENTS = [
+        {"name": "Refund Agent",    "icon": "💳", "endpoint": REFUND_AGENT_ENDPOINT},
+        {"name": "Complaint Agent", "icon": "📬", "endpoint": COMPLAINT_AGENT_ENDPOINT},
+    ]
+    for ca in _CUSTOM_AGENTS:
+        ep = ca["endpoint"]
+        url = f"{host}/ml/endpoints/{ep}" if ep and host else ""
+        agents.append({"name": ca["name"], "icon": ca["icon"], "type": "agent",
+                        "url": url, "id": ep})
 
     return agents
 
