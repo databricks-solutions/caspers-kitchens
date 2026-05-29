@@ -114,7 +114,14 @@ class UCState:
         else:
             # Handle primitive types or dictionaries
             resource_data = json.dumps(resource_obj, default=str)
-        
+
+        # SQL-escape single quotes in the JSON payload before string interpolation.
+        # JSON does not escape `'`, so descriptions like "Casper's Ops Dashboard"
+        # would break the f-string-built INSERT below with PARSE_SYNTAX_ERROR
+        # ("extra input 'Ops'" etc.).  Doubling the apostrophe is the SQL-standard
+        # escape and is safe to apply unconditionally.
+        resource_data = resource_data.replace("'", "''")
+
         insert_sql = f"""
         INSERT INTO {self.full_table_name} 
         (internal_id, resource_type, resource_data, created_at)
