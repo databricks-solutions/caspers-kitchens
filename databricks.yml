@@ -41,6 +41,20 @@ sync:
 
 scripts:
   cleanup:
+    # Cleanup is a bundle SCRIPT (not a job task), so it accepts bundle
+    # variable overrides — NOT job task `--params`.  Supported ways to
+    # specify the catalog to clean:
+    #
+    #   databricks bundle run cleanup -t <target> --var catalog=mycatalog
+    #   BUNDLE_VAR_catalog=mycatalog databricks bundle run cleanup -t <target>
+    #
+    # The `--params "CATALOG=..."` syntax (used for `bundle run caspers`)
+    # is silently ignored by this script — the CLI only forwards `--params`
+    # to job tasks, never to scripts.  If you forget `--var`, the script
+    # falls back to the catalog stored in `.databricks/` from the last
+    # deploy (or to `var.catalog`'s default), which may not be what you
+    # want.  The "Cleaning up catalog: <name>" line below is your last
+    # chance to confirm before resources are deleted.
     content: |
       set -eo pipefail
 
@@ -50,10 +64,13 @@ scripts:
         TARGET_FLAG="-t $DATABRICKS_BUNDLE_TARGET"
       fi
 
-      # Get fully-resolved bundle config (includes target overrides)
+      # Get fully-resolved bundle config (includes target overrides + --var)
       RESOLVED_JSON="$(databricks bundle validate $TARGET_FLAG --output json)"
 
-      # Pull values we need (requires jq)
+      # Pull values we need (requires jq).  Resolution order for CATALOG:
+      #   1. BUNDLE_VAR_catalog env (set by `--var catalog=X`)
+      #   2. .variables.catalog.value (set by previous `bundle deploy --var ...`)
+      #   3. .variables.catalog.default (`caspersdev` per databricks.yml)
       FILE_PATH="$(printf '%s' "$RESOLVED_JSON" | jq -r '.workspace.file_path // (.workspace.root_path + "/src")')"
 
       CATALOG="$(printf '%s' "$RESOLVED_JSON" | jq -r '.variables.catalog.value // .variables.catalog.default')"
@@ -63,6 +80,7 @@ scripts:
       fi
 
       echo "Cleaning up catalog: $CATALOG"
+      echo "  (override with: databricks bundle run cleanup -t <target> --var catalog=<name>)"
 
       mkdir -p .bundle
       cat > .bundle/submit.json <<JSON
@@ -167,9 +185,16 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/refunder_agent
 
+            # Refund_Recommender_Stream calls w.jobs.run_now() on the
+            # streaming inference job whose UDF queries the Refund agent
+            # serving endpoint.  The endpoint must exist and be READY before
+            # the stream's first batch fires — without the explicit
+            # Refund_Recommender_Agent edge the two tasks race and the
+            # stream can hit a missing endpoint.
             - task_key: Refund_Recommender_Stream
               depends_on:
                 - task_key: Spark_Declarative_Pipeline
+                - task_key: Refund_Recommender_Agent
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/refunder_stream
 
@@ -400,9 +425,14 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/support_request_agent
 
+            # Support_Request_Agent_Stream's UDF calls the Support agent
+            # serving endpoint, so the endpoint must exist and be READY
+            # before the stream's first batch fires.  Mirrors the
+            # Refund_Recommender_Stream and Complaint_Agent_Stream patterns.
             - task_key: Support_Request_Agent_Stream
               depends_on:
                 - task_key: Support_Request_Generator_Stream
+                - task_key: Support_Request_Agent
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/support_request_agent_stream
 
@@ -568,9 +598,16 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/refunder_agent
 
+            # Refund_Recommender_Stream calls w.jobs.run_now() on the
+            # streaming inference job whose UDF queries the Refund agent
+            # serving endpoint.  The endpoint must exist and be READY before
+            # the stream's first batch fires — without the explicit
+            # Refund_Recommender_Agent edge the two tasks race and the
+            # stream can hit a missing endpoint.
             - task_key: Refund_Recommender_Stream
               depends_on:
                 - task_key: Spark_Declarative_Pipeline
+                - task_key: Refund_Recommender_Agent
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/refunder_stream
 

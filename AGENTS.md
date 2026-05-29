@@ -51,8 +51,10 @@ Running `databricks bundle destroy` only removes the Job definition - **all runt
 
 **Cleanup workflow**:
 ```bash
-databricks bundle run cleanup    # Delete runtime resources via uc_state
-databricks bundle destroy        # Delete bundle resources via DABs
+# Cleanup is a bundle SCRIPT, so the catalog override uses --var (not --params).
+# --params is for job tasks only; passing it to cleanup is silently ignored.
+databricks bundle run cleanup -t <target> --var catalog=<name>    # Delete runtime resources via uc_state
+databricks bundle destroy      -t <target>                         # Delete bundle resources via DABs
 ```
 
 **Location**: `/utils/uc_state/` - See `README.md` for API usage
@@ -320,8 +322,10 @@ rm -rf .databricks .bundle
 
 1. **Clean existing deployment**
    ```bash
-   databricks bundle run cleanup --params "CATALOG=testcatalog"
-   databricks bundle destroy -t <target>
+   # Cleanup is a script — use --var (not --params).  See the Quick Reference
+   # at the bottom of this doc for full details.
+   databricks bundle run cleanup -t <target> --var catalog=testcatalog
+   databricks bundle destroy     -t <target>
    ```
 
 2. **Clear local cache** (if experiencing cache issues)
@@ -754,8 +758,13 @@ databricks bundle run caspers [--params "CATALOG=mycatalog"]
 
 ### Cleanup
 ```bash
-databricks bundle run cleanup [--params "CATALOG=mycatalog"]
-databricks bundle destroy -t <target>
+# IMPORTANT: cleanup is a bundle SCRIPT, not a job task.
+#   Catalog override:  --var catalog=<name>   (NOT --params "CATALOG=...")
+#   Target selection:  -t <target>            (passes through normally)
+# --params is silently ignored by scripts; passing it will clean the
+# default catalog (caspersdev) which is rarely what you want.
+databricks bundle run cleanup -t <target> [--var catalog=<name>]
+databricks bundle destroy     -t <target>
 rm -rf .databricks .bundle  # If cache issues
 ```
 

@@ -45,8 +45,9 @@ databricks bundle run caspers --params "CATALOG=mycatalog"
 ## Clean Up
 
 ```bash
-databricks bundle run cleanup
-databricks bundle destroy
+# Pass the target you deployed to; --var (not --params) overrides the catalog.
+databricks bundle run cleanup -t <target> [--var catalog=<name>]
+databricks bundle destroy     -t <target>
 ```
 
 ## Blog
