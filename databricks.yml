@@ -459,7 +459,11 @@ targets:
           cluster_size: 2X-Small
           min_num_clusters: 1
           max_num_clusters: 1
-          auto_stop_mins: 10
+          # 60 min keeps the warehouse hot through a typical demo session.
+          # At 10 min, the ops dashboard incurred a 30-60s cold-start every
+          # time the presenter stepped away — much worse UX than the small
+          # incremental cost of an idle 2X-Small serverless warehouse.
+          auto_stop_mins: 60
           enable_serverless_compute: true
           warehouse_type: PRO
       # AI/BI dashboards.  Scoped to `all` only because they query schemas

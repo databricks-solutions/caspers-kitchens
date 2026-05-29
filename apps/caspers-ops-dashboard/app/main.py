@@ -1098,16 +1098,37 @@ def refund(req: RefundRequest):
             role = msg.get("role", "")
             content = msg.get("content", "")
             if role == "assistant" and content:
+                # Robustly extract a JSON object from the assistant message:
+                # the agent's prompt asks for raw JSON, but LLMs often wrap it in
+                # ```json … ``` fences or sprinkle commentary around it. Try a
+                # bare json.loads first, then fall back to the first {...} match.
+                cleaned = content.strip()
+                if cleaned.startswith("```"):
+                    # strip markdown code fence (```json … ``` or ``` … ```)
+                    cleaned = cleaned.strip("`")
+                    if cleaned.lower().startswith("json"):
+                        cleaned = cleaned[4:]
+                    cleaned = cleaned.strip()
+                decision = None
                 try:
-                    decision = json.loads(content)
+                    decision = json.loads(cleaned)
+                except Exception:
+                    import re as _re
+                    m = _re.search(r"\{[\s\S]*\}", cleaned)
+                    if m:
+                        try:
+                            decision = json.loads(m.group(0))
+                        except Exception:
+                            decision = None
+                if decision is not None:
                     return {
                         "order_id": req.order_id,
                         "refund_usd": float(decision.get("refund_usd", 0)),
                         "refund_class": decision.get("refund_class", "none"),
                         "reason": decision.get("reason", ""),
                     }
-                except Exception:
-                    return {"order_id": req.order_id, "raw": content}
+                # Last-resort fallback: surface raw text so the UI can show something.
+                return {"order_id": req.order_id, "raw": content}
         raise HTTPException(status_code=502, detail="No assistant message in refund agent response.")
     except HTTPException:
         raise
