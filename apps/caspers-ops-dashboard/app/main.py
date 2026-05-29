@@ -619,7 +619,7 @@ def _detect_routing(text: str) -> str:
 
 
 async def _stream_supervisor(message: str, session_id: str = "") -> AsyncIterator[str]:
-    """Stream the CEO supervisor MAS endpoint, yielding SSE content chunks as tokens arrive.
+    """Stream the ops supervisor MAS endpoint, yielding SSE content chunks as tokens arrive.
 
     MAS can take 30-90 s before sending the first token while it orchestrates
     sub-agents. Without periodic activity the reverse proxy in front of the

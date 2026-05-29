@@ -567,21 +567,21 @@ body { background: var(--bg-primary); color: var(--text-primary); display: flex;
   transition: var(--transition); white-space: nowrap;
   display: flex; align-items: center; justify-content: center; gap: 5px;
 }
-.action-btn.hire {
-  background: rgba(62,207,142,0.12); color: var(--success);
-  border: 1px solid rgba(62,207,142,0.3);
-}
-.action-btn.hire:hover { background: rgba(62,207,142,0.25); }
-.action-btn.fire {
-  background: rgba(232,93,93,0.1); color: var(--danger);
-  border: 1px solid rgba(232,93,93,0.25);
-}
-.action-btn.fire:hover { background: rgba(232,93,93,0.2); }
-.action-btn.ai {
+.action-btn.briefing {
   background: rgba(99,102,241,0.12); color: #a5b4fc;
   border: 1px solid rgba(99,102,241,0.35);
 }
-.action-btn.ai:hover { background: rgba(99,102,241,0.25); }
+.action-btn.briefing:hover { background: rgba(99,102,241,0.25); }
+.action-btn.risk {
+  background: rgba(232,93,93,0.1); color: var(--danger);
+  border: 1px solid rgba(232,93,93,0.25);
+}
+.action-btn.risk:hover { background: rgba(232,93,93,0.2); }
+.action-btn.board {
+  background: rgba(62,207,142,0.12); color: var(--success);
+  border: 1px solid rgba(62,207,142,0.3);
+}
+.action-btn.board:hover { background: rgba(62,207,142,0.25); }
 .action-btn.refund {
   background: rgba(240,192,64,0.1); color: var(--gold);
   border: 1px solid rgba(240,192,64,0.3);
@@ -1156,7 +1156,7 @@ body { background: var(--bg-primary); color: var(--text-primary); display: flex;
     <div class="right-main">
       <div class="chat-header">
         <span class="chat-header-icon">🤖</span>
-        CEO Intelligence
+        Ops Intelligence
         <span class="chat-header-sub" id="chat-session-label">No session</span>
       </div>
 
@@ -1165,28 +1165,30 @@ body { background: var(--bg-primary); color: var(--text-primary); display: flex;
         <div class="message assistant">
           <div class="message-avatar">AI</div>
           <div class="message-bubble">
-            <p>Good morning. I'm your CEO Intelligence assistant for <strong>Casper's Kitchens</strong>.</p>
+            <p>Good morning. I'm your Ops Intelligence assistant for <strong>Casper's Kitchens</strong>.</p>
             <p>I have access to your <strong>revenue analytics</strong>, <strong>operations data</strong>, <strong>food safety inspections</strong>, <strong>legal exposure</strong>, <strong>regulatory compliance</strong>, <strong>audit findings</strong>, and <strong>consultancy reports</strong> across all 8 locations (US + EMEA).</p>
             <p>What would you like to know?</p>
           </div>
         </div>
       </div>
 
-      <!-- Contextual action buttons -->
+      <!-- Action buttons: 3 always-visible Supervisor shortcuts (from the DAIS
+           runbook) + Review Complaints (always visible, real backend) + Process
+           Refund (only shown when the AI mentions a refund-shaped topic). -->
       <div class="action-buttons" id="action-buttons" style="display:flex;">
-        <button class="action-btn hire" id="btn-hire" style="display:none;" onclick="triggerAction('hire')">
-          💼 Bring in the Suits
+        <button class="action-btn briefing" id="btn-briefing" onclick="askSuggestion('Give me the executive briefing on the state of the business.')">
+          📊 Executive briefing
         </button>
-        <button class="action-btn fire" id="btn-fire" style="display:none;" onclick="triggerAction('fire')">
-          🔥 Cut the Deadweight
+        <button class="action-btn risk" id="btn-risk" onclick="askSuggestion('Which location is the highest combined legal and operational risk right now?')">
+          ⚠️ Highest combined risk
         </button>
-        <button class="action-btn ai" id="btn-ai" style="display:none;" onclick="triggerAction('ai')">
-          🤖 Go Full AI
+        <button class="action-btn board" id="btn-board" onclick="askSuggestion('What are the top 3 things to know before the board call tomorrow?')">
+          🎯 Top 3 for the board
         </button>
         <button class="action-btn refund" id="btn-refund" style="display:none;" onclick="openRefundModal()">
           💳 Process Refund
         </button>
-        <button class="action-btn complaints" id="btn-complaints" style="display:flex;" onclick="triggerComplaintSummary()">
+        <button class="action-btn complaints" id="btn-complaints" onclick="triggerComplaintSummary()">
           📬 Review Complaints
         </button>
       </div>
@@ -1292,7 +1294,7 @@ function cleanMarkdown(text) {
   text = text.replace(/\[\^[^\]]+\]/g, '');
 
   // Strip the MAS routing announcement ("I'll query the X system to...")
-  // These appear before the actual answer and are just noise to the CEO.
+  // These appear before the actual answer and are just noise to the user.
   text = text.replace(/^I'(?:ll|m going to) (?:query|check|access|search|look up|pull|retrieve|examine|analyze|review|consult|use)[^.!?]*[.!?]\s*/i, '');
 
   // Strip KA/Genie error lines injected by MAS when a sub-agent fails
@@ -1455,7 +1457,7 @@ async function createSession() {
     const res = await fetch('/api/sessions', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({title: 'CEO Session'}),
+      body: JSON.stringify({title: 'Ops Session'}),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const session = await res.json();
@@ -1722,7 +1724,7 @@ async function sendMessage() {
   }
 
   // Auto-name session if first message
-  if (sessions.find(s => s.id === currentSessionId)?.title === 'CEO Session' && text.length > 10) {
+  if (sessions.find(s => s.id === currentSessionId)?.title === 'Ops Session' && text.length > 10) {
     const shortTitle = text.slice(0, 35) + (text.length > 35 ? '…' : '');
     fetch(`/api/sessions/${currentSessionId}`, {
       method: 'PUT',
@@ -1897,10 +1899,6 @@ function renderWelcome() {
   msgs.appendChild(el);
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-// Action Buttons
-// ────────────────────────────────────────────────────────────────────────────
-// Show all 3 CEO action buttons once the chat has any AI response
 // ── Impatient bunny ────────────────────────────────────────────────────────
 const BUNNY_MSGS = [
   "Still waiting… 🙄",
@@ -1971,20 +1969,14 @@ function stopStreaming() {
 }
 
 function updateActionButtons(text) {
+  // The briefing/risk/board shortcut buttons and Review Complaints are always
+  // visible — they all send real Supervisor prompts. Only Process Refund is
+  // keyword-driven, surfaced when the AI mentions a refund-shaped topic.
   if (!text || text.trim().length < 20) return;
   const t = text.toLowerCase();
-  const show = (id, keywords) => {
-    document.getElementById(id).style.display =
-      keywords.some(k => t.includes(k)) ? 'flex' : 'none';
-  };
-  show('btn-hire', ['performance gap', 'strategic', 'expansion', 'recommend', 'consultancy', 'bring in', 'engage', 'consultant']);
-  show('btn-fire', ['poor roi', 'underperform', 'not deliver', 'redundant', 'overspend', 'cut', 'low roi', 'burning cash', 'terminate', 'discontinue']);
-  show('btn-ai',  ['ai', 'automation', 'efficiency', 'digital', 'databricks', 'transform', 'machine learning', 'predictive', 'intelligent']);
-  show('btn-refund', ['refund', 'late delivery', 'late order', 'delivery time', 'compensation', 'reimburse']);
-  // btn-complaints is always visible — not keyword-driven
-  const any = ['btn-hire', 'btn-fire', 'btn-ai', 'btn-refund', 'btn-complaints']
-    .some(id => document.getElementById(id).style.display === 'flex');
-  document.getElementById('action-buttons').style.display = any ? 'flex' : 'none';
+  const refundKeywords = ['refund', 'late delivery', 'late order', 'delivery time', 'compensation', 'reimburse'];
+  document.getElementById('btn-refund').style.display =
+    refundKeywords.some(k => t.includes(k)) ? 'flex' : 'none';
 }
 
 // ── Refund Modal ───────────────────────────────────────────────────────────────
@@ -2365,85 +2357,6 @@ function askSuggestion(text) {
   const input = document.getElementById('chat-input');
   input.value = text;
   sendMessage();
-}
-
-// Quick-action button questions (displayed in chat)
-const _actionQuestions = {
-  hire: 'Which consultants should we bring in and why would they be worth the fees?',
-  fire: 'Which consulting engagements are burning cash without results?',
-  ai:   'Where can we actually use AI — show me the ROI, not the buzzwords.',
-};
-
-// Hardcoded answers — instant, no LLM required, and significantly funnier
-const _actionAnswers = {
-  hire: `Based on our Q3–Q4 strategy reports, here are the top 3 recommendations for bringing in external expertise:
-
-- **Supply Chain Renegotiation** — Our current truffle oil supplier charges like they personally excavate each one by hand. Advisors recommend onboarding 2 alternative vendors, with a projected **12% COGS reduction**. The incumbent has been notified. They are not happy.
-
-- **Digital Loyalty Program** — 73% of our repeat customers still redeem a physical punch card. A *physical punch card*. A modern digital platform is projected to lift retention by **18%** and eliminate the need to explain to guests that yes, we do still honor the ones from 2019.
-
-- **Menu Engineering Overhaul** — The "Cascade Fusion Platter" has a 2% order rate, a 40-minute ticket time, and requires three separate prep stations. A consultant described this as "an opportunity." We call it a hostage situation. Recommended action: retire it with dignity.`,
-
-  fire: `Consulting engagements flagged for low ROI or immediate termination:
-
-- **"Digital Transformation Roadmap" — $240K** — Delivered a 180-slide deck recommending we "embrace disruption and lead with a cloud-first mindset." We are a restaurant chain. We make food. The slides have been archived. The lessons have not been learned.
-
-- **"Brand Voice Alignment Study" — $85K** — Concluded after 6 weeks that our brand voice should be "warm, approachable, and food-forward." We could have reached the same conclusion by reading our own menu. Engagement terminated. Invoice disputed.
-
-- **"Peak Hour Optimization Analysis" — $110K** — Determined, through rigorous data collection and stakeholder interviews, that our busiest periods are **lunch and dinner**. A follow-up engagement to study weekends was politely declined.`,
-
-  ai: `AI opportunities identified across our consultancy and strategy reports:
-
-- **Predictive Inventory Management** — ML demand forecasting can reduce food waste by an estimated **22%** across locations. Our Chicago branch over-orders shredded lettuce every single week regardless of season, weather, or prior feedback. The model has noticed. The branch manager has been informed.
-
-- **Dynamic Pricing ("Freshness Premium Pricing")** — Surge pricing during Friday/Saturday dinner service could increase revenue per cover by **8–11%**. Legal is reviewing whether guests will accept this framing. Early signals suggest they will not, but they will pay it anyway.
-
-- **AI-Assisted Menu Curation** — Sentiment analysis of 14,000+ customer reviews consistently surfaces one request: a spicy option in every category. Every. Single. Category. Desserts included. The data doesn't lie, and apparently neither do our customers. Pilot launching in Q2.`,
-};
-
-function triggerAction(type) {
-  const question = _actionQuestions[type];
-  const content = _actionAnswers[type];
-  lastUserMessage = question;
-  appendMessage('user', question, false);
-
-  // Show the same typing indicator as real queries
-  const typingEl = showTyping();
-  document.getElementById('send-btn').style.display = 'none';
-  document.getElementById('cancel-btn').style.display = 'flex';
-
-  let cancelled = false;
-  const origAbort = _streamAbortController;
-  // Temporarily hook cancel button to drop the fake stream
-  _streamAbortController = { abort: () => { cancelled = true; } };
-
-  setTimeout(() => {
-    clearTyping(typingEl);
-    document.getElementById('send-btn').style.display = 'flex';
-    document.getElementById('cancel-btn').style.display = 'none';
-    _streamAbortController = origAbort;
-
-    if (cancelled) return;
-
-    const msgs = document.getElementById('chat-messages');
-    const streamId = 'sb-' + Date.now();
-    const bubbleEl = document.createElement('div');
-    bubbleEl.className = 'message assistant';
-    bubbleEl.innerHTML = `
-      <div class="message-avatar">AI</div>
-      <div class="message-bubble" id="${streamId}">${marked.parse(cleanMarkdown(content))}</div>
-    `;
-    msgs.appendChild(bubbleEl);
-    msgs.scrollTop = msgs.scrollHeight;
-
-    const bubble = document.getElementById(streamId);
-    appendDocButtons(bubble, content, question);
-    appendSuggestions(bubble, content);
-    updateActionButtons(content);
-    lastAssistantText = content;
-    extractAndShowDocs(content);
-    msgs.scrollTop = msgs.scrollHeight;
-  }, 5000);
 }
 
 // ────────────────────────────────────────────────────────────────────────────
