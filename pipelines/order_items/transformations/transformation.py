@@ -71,7 +71,12 @@ def silver_order_items():
                F.col("item.name").alias("item_name"),
                F.col("item.price"),
                F.col("item.qty"),
-               "extended_price"
+               "extended_price",
+               # Customer address projected from the bronze body so the
+               # ABAC PII column mask (caspers_mask_pii) has a real PII
+               # column to bind to.  Tagged `caspers_pii=address` by
+               # stages/environment_helpers.ipynb cell 11.
+               F.col("body_obj.customer_addr").alias("customer_addr"),
            )
     )
     return df
