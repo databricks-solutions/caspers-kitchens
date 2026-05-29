@@ -1,20 +1,27 @@
 """
-Lakebase (PostgreSQL) connection management with automatic token refresh.
+Lakebase (PostgreSQL) connection management with automatic token refresh
+and a ``psycopg_pool.ConnectionPool`` so chat traffic doesn't churn a fresh
+TCP+TLS handshake on every request.
 
-Uses Databricks short-lived credentials (~1h), refreshed via a background
-thread to support long-lived app processes.
+Connection strategy:
 
-Refresh strategy:
+- Resolve ``host`` and the current Postgres user once at startup.
+- Mint a fresh per-endpoint credential on every NEW psycopg connection via
+  a ``psycopg.Connection`` subclass whose ``connect()`` injects the password.
+  Tokens are short-lived (~1h); the pool's ``check`` hook (the
+  ``pool_pre_ping`` equivalent for psycopg-pool) recycles stale connections
+  before they're handed to a request, and ``max_idle`` evicts pooled
+  connections that have outlived their token cleanly.
+- A background thread refreshes the in-process token snapshot every ~48 min
+  so the connection factory always has a recent credential cached when the
+  pool needs to mint a brand-new socket (cold start, scale-out, or after
+  ``check`` discarded a stale connection).
 
-- Steady state: refresh every ``TOKEN_REFRESH_INTERVAL`` seconds (~48 min),
-  well before the 60-min credential expiry.
-- On refresh failure: retry on an exponential backoff capped at
-  ``TOKEN_RETRY_MAX`` seconds.  Connections that race a failed refresh keep
-  using the previous (still-valid) token from ``_conn_str`` until the
-  retry succeeds.
-- ``get_conn()`` callers always pull the latest snapshot of ``_conn_str``
-  under ``_token_lock`` so an in-flight refresh cannot hand a half-built
-  connection string to a request.
+This mirrors the proven pattern in ``apps/refund-manager/app/db.py`` (which
+uses SQLAlchemy's ``do_connect`` hook for the same effect).  We use psycopg-
+pool directly here because ``main.py`` consumes connections via raw psycopg
+``with get_conn() as conn:`` blocks rather than SQLAlchemy sessions, so a
+SQLAlchemy migration would touch every call site.
 """
 
 import os
@@ -24,22 +31,37 @@ import threading
 from contextlib import contextmanager
 
 import psycopg
+from psycopg_pool import ConnectionPool
 from databricks.sdk import WorkspaceClient
 
 log = logging.getLogger("caspers_ops_dashboard.db")
 
-_w: WorkspaceClient | None = None
-_conn_str: str | None = None
-_token_lock = threading.Lock()
-_current_token: str | None = None
-_token_expiry: float = 0.0
-
-ENDPOINT_PATH = os.environ.get("LAKEBASE_ENDPOINT_PATH", "")  # e.g. projects/{id}/branches/production/endpoints/primary
+ENDPOINT_PATH = os.environ.get("LAKEBASE_ENDPOINT_PATH", "")
 DB_NAME = os.environ.get("LAKEBASE_DATABASE_NAME", "databricks_postgres")
 
-TOKEN_REFRESH_INTERVAL = 2900  # ~48 min between successful refreshes
-TOKEN_RETRY_BASE = 30          # first retry wait after a failure
-TOKEN_RETRY_MAX = 600          # cap retry waits at 10 min
+# Pool sizing — tuned for a single uvicorn worker with chat + session CRUD
+# under modest demo load.  ``min_size=2`` keeps two warm connections so the
+# first chat message after an idle period doesn't pay the TCP+TLS cost,
+# ``max_size=10`` is well below Lakebase's per-endpoint cap, and ``max_idle``
+# evicts pooled connections that have outlived their token (1h) cleanly.
+POOL_MIN_SIZE = 2
+POOL_MAX_SIZE = 10
+POOL_MAX_IDLE_S = 1800            # 30 min — recycle well before the 1h token expiry
+POOL_CHECKOUT_TIMEOUT_S = 10.0    # max wait for a pooled connection
+POOL_OPEN_TIMEOUT_S = 30.0        # max wait when the pool is opened at startup
+
+# Background token refresh — keeps `_current_token` warm so the connection
+# factory always has a recent credential when minting new sockets.
+TOKEN_REFRESH_INTERVAL = 2900     # ~48 min between successful refreshes
+TOKEN_RETRY_BASE = 30             # first retry wait after a failure
+TOKEN_RETRY_MAX = 600             # cap retry waits at 10 min
+
+_w: WorkspaceClient | None = None
+_token_lock = threading.Lock()
+_current_token: str | None = None
+_host: str | None = None
+_user: str | None = None
+_pool: ConnectionPool | None = None
 
 
 def _workspace_client() -> WorkspaceClient:
@@ -49,43 +71,37 @@ def _workspace_client() -> WorkspaceClient:
     return _w
 
 
-def _get_token() -> tuple[str, str, str]:
-    """Return (host, user, fresh_token) using Lakebase Autoscale API."""
+def _mint_token() -> str:
+    """Mint a fresh per-endpoint credential."""
+    w = _workspace_client()
+    cred = w.postgres.generate_database_credential(endpoint=ENDPOINT_PATH)
+    return cred.token
+
+
+def _resolve_host_and_user() -> tuple[str, str]:
     w = _workspace_client()
     ep = w.postgres.get_endpoint(name=ENDPOINT_PATH)
-    host = ep.status.hosts.host
-    user = w.current_user.me().user_name
-    cred = w.postgres.generate_database_credential(endpoint=ENDPOINT_PATH)
-    return host, user, cred.token
+    return ep.status.hosts.host, w.current_user.me().user_name
 
 
 def _refresh_token() -> bool:
-    """Best-effort refresh.  Returns True on success, False on any failure.
-
-    A failure leaves the previous ``_conn_str`` in place so existing
-    requests can keep using the still-valid token.
-    """
-    global _current_token, _token_expiry, _conn_str
+    """Best-effort token refresh — keeps a fresh password in `_current_token`
+    so the connection factory hands out valid credentials on new connections.
+    Returns True on success, False on any failure."""
+    global _current_token
     try:
-        host, user, token = _get_token()
+        tok = _mint_token()
     except Exception as e:
         log.error(f"Lakebase token refresh failed: {type(e).__name__}: {e}")
         return False
     with _token_lock:
-        _current_token = token
-        _token_expiry = time.time() + TOKEN_REFRESH_INTERVAL
-        _conn_str = (
-            f"host={host} dbname={DB_NAME} user={user} "
-            f"password={token} sslmode=require"
-        )
+        _current_token = tok
     log.info("Lakebase token refreshed")
     return True
 
 
 def _token_refresher() -> None:
-    """Background loop.  Sleeps ``TOKEN_REFRESH_INTERVAL`` between successes,
-    and falls back to exponential backoff (capped at ``TOKEN_RETRY_MAX``)
-    after a failure so a brief Databricks API outage doesn't wedge the app."""
+    """Background loop with exponential backoff on failures."""
     retry_wait = TOKEN_RETRY_BASE
     while True:
         if _refresh_token():
@@ -94,40 +110,125 @@ def _token_refresher() -> None:
         else:
             log.warning(
                 f"Lakebase token refresh failed; retrying in {retry_wait}s "
-                f"(connections continue using previous token until then)"
+                f"(pooled connections continue using their existing tokens until then)"
             )
             time.sleep(retry_wait)
             retry_wait = min(retry_wait * 2, TOKEN_RETRY_MAX)
 
 
+def _current_password() -> str:
+    """Snapshot the freshest token under the lock.  Falls back to a brand-new
+    mint if the background refresher hasn't populated `_current_token` yet
+    (cold start) so the pool's first connection doesn't block forever."""
+    with _token_lock:
+        tok = _current_token
+    if tok:
+        return tok
+    return _mint_token()
+
+
+class _TokenInjectingConnection(psycopg.Connection):
+    """psycopg ``Connection`` subclass that injects a fresh Lakebase token
+    on every new connection.
+
+    The pool calls ``cls.connect(conninfo, **kwargs)`` whenever it needs to
+    mint a brand-new socket (cold start, scale-out, or after the ``check``
+    hook discarded a stale one).  We inject the current password here —
+    rather than baking it into ``conninfo`` — so a stale token never lives
+    in the pool's connection string and every new connection sees a current
+    one without us having to recycle the entire pool on token refresh.
+    """
+
+    @classmethod
+    def connect(cls, conninfo: str = "", **kwargs):
+        kwargs.setdefault("password", _current_password())
+        return super().connect(conninfo, **kwargs)
+
+
+def _check_connection(conn: psycopg.Connection) -> None:
+    """psycopg-pool ``check`` hook = ``pool_pre_ping`` equivalent.  Runs on
+    each connection borrow; if the cheap ping fails (e.g. token expired,
+    server closed the socket), the pool will discard the connection and
+    open a new one via ``_TokenInjectingConnection.connect()``, which picks
+    up a fresh token."""
+    conn.execute("SELECT 1")
+
+
+def _build_conninfo() -> str:
+    """psycopg connection string.  Password is intentionally absent — the
+    connection-factory subclass injects a fresh one per new connection."""
+    return (
+        f"host={_host} port=5432 dbname={DB_NAME} user={_user} "
+        f"sslmode=require"
+    )
+
+
 def init_db() -> None:
-    """Initialize connection and start background refresher. Call at app startup."""
+    """Resolve host/user, kick off the background refresher, open the pool.
+    Idempotent — safe to call multiple times during reload."""
+    global _host, _user, _pool
+
     if not ENDPOINT_PATH:
         log.warning("LAKEBASE_ENDPOINT_PATH not set — DB features disabled")
         return
-    _refresh_token()
-    t = threading.Thread(target=_token_refresher, daemon=True, name="lakebase-token-refresher")
-    t.start()
-    if not _conn_str:
-        log.warning("Lakebase token unavailable at startup — DB features disabled until token refresh succeeds")
+    if _pool is not None:
         return
+
+    try:
+        _host, _user = _resolve_host_and_user()
+    except Exception as e:
+        log.error(f"Could not resolve Lakebase host/user — DB features disabled: {e}")
+        return
+
+    # Prime the token cache before opening the pool so the very first
+    # `_TokenInjectingConnection.connect()` call doesn't have to mint
+    # synchronously inside the pool's open path.
+    _refresh_token()
+
+    t = threading.Thread(
+        target=_token_refresher, daemon=True, name="lakebase-token-refresher"
+    )
+    t.start()
+
+    try:
+        _pool = ConnectionPool(
+            conninfo=_build_conninfo(),
+            min_size=POOL_MIN_SIZE,
+            max_size=POOL_MAX_SIZE,
+            max_idle=POOL_MAX_IDLE_S,
+            timeout=POOL_OPEN_TIMEOUT_S,
+            connection_class=_TokenInjectingConnection,
+            check=_check_connection,
+            open=True,
+        )
+    except Exception as e:
+        log.error(f"Lakebase pool could not be opened — DB features disabled: {e}")
+        _pool = None
+        return
+
     _ensure_schema()
-
-
-def _conn_string() -> str:
-    # Snapshot under the lock so a concurrent refresh can't hand us a
-    # half-updated connection string.
-    with _token_lock:
-        cs = _conn_str
-    if not cs:
-        raise RuntimeError("Database not initialized. LAKEBASE_ENDPOINT_PATH may be missing.")
-    return cs
+    log.info(
+        f"Lakebase pool opened (min={POOL_MIN_SIZE}, max={POOL_MAX_SIZE}, "
+        f"max_idle={POOL_MAX_IDLE_S}s)"
+    )
 
 
 @contextmanager
 def get_conn():
-    """Context manager yielding a psycopg connection."""
-    with psycopg.connect(_conn_string()) as conn:
+    """Context manager yielding a pooled psycopg connection.
+
+    Drop-in replacement for the old ``psycopg.connect()`` per call — the
+    pool's ``check`` hook recycles stale connections automatically before
+    handing them out, and new connections get a freshly-minted password
+    via ``_TokenInjectingConnection.connect()``.
+    """
+    if _pool is None:
+        raise RuntimeError(
+            "Database not initialized. LAKEBASE_ENDPOINT_PATH may be missing, "
+            "or init_db() failed at startup — check the app logs for the "
+            "underlying error."
+        )
+    with _pool.connection(timeout=POOL_CHECKOUT_TIMEOUT_S) as conn:
         yield conn
 
 

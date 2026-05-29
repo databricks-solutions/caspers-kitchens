@@ -17,9 +17,11 @@ Routes:
 import os
 import re
 import json
+import time
 import uuid
 import logging
 import asyncio
+import threading
 from pathlib import Path
 from typing import AsyncIterator
 
@@ -98,9 +100,60 @@ def index():
 
 
 # ─── Tech Info ────────────────────────────────────────────────────────────────
+#
+# `/api/tech-info` is called once per page load by every browser viewing
+# the app.  Each call makes 4-6 SDK round-trips (Lakebase endpoint, project
+# list, workspace metadata, MLflow experiment search, app deployment lookup)
+# that take ~0.5-1.5 s warm and ~3-5 s cold.  The values it returns —
+# Lakebase host, supervisor tile_id, dashboard IDs, etc. — are deploy-time
+# constants that don't change for the lifetime of the app process.
+#
+# A short TTL keeps page-load latency snappy without making the dashboard
+# completely stale during a redeploy (after a `bundle deploy` the new
+# values land within `_TECH_INFO_TTL_S`).  60 s is the same TTL as the
+# revenue cache and a comfortable upper bound on how long an audience will
+# stare at a stale debug footer during a demo.
+
+_TECH_INFO_TTL_S = 60
+_tech_info_cache: dict = {"data": None, "ts": 0.0}
+_tech_info_lock = threading.Lock()
+
 
 @app.get("/api/tech-info")
 def tech_info():
+    """Workspace + deployment metadata, served from a 60 s TTL cache.
+
+    Coalesced under a lock so a thundering herd of page loads after a cold
+    start hits the SDK at most once per TTL window.
+    """
+    now = time.time()
+    cached = _tech_info_cache["data"]
+    if cached is not None and (now - _tech_info_cache["ts"]) < _TECH_INFO_TTL_S:
+        return cached
+
+    with _tech_info_lock:
+        cached = _tech_info_cache["data"]
+        if cached is not None and (time.time() - _tech_info_cache["ts"]) < _TECH_INFO_TTL_S:
+            return cached
+        try:
+            data = _compute_tech_info()
+        except Exception as e:
+            # On hard failure, hand back the previous cached snapshot rather
+            # than 500-ing the whole page.  The debug footer becomes briefly
+            # stale; everything else keeps rendering.
+            log.error(f"tech_info compute failed: {e}")
+            if cached is not None:
+                log.warning("returning stale tech_info cache after refresh failure")
+                return cached
+            raise
+        _tech_info_cache["data"] = data
+        _tech_info_cache["ts"] = time.time()
+        return data
+
+
+def _compute_tech_info() -> dict:
+    """Underlying SDK-heavy implementation.  Kept separate from the route so
+    the TTL cache wrapper can stay focused on the cache logic."""
     w = _ws
     host = _sdk_config.host or ""
     me = w.current_user.me()
@@ -687,38 +740,66 @@ async def chat(req: ChatRequest):
 
 
 # ─── Revenue Data ─────────────────────────────────────────────────────────────
+#
+# Both `/api/revenue` (chart) and `/api/locations` (map) need the same
+# per-location aggregates.  They are fetched in parallel by the frontend on
+# every page load.  Two compounding problems used to make this slow:
+#   1. Each endpoint independently hit the warehouse with the same SQL —
+#      the locations route called revenue() inline.  Two warm queries per
+#      page load (~4-8 s total) for identical data.
+#   2. The SQL itself anti-joined two `SELECT DISTINCT` scans over 30 days
+#      of raw `lakeflow.all_events` to derive cancellation counts (no gold
+#      table covered the delivered/cancelled side).  That CTE alone was
+#      ~1.8 s of every query.
+#
+# Fixes (all permanent / survive `bundle destroy` → `deploy`):
+#   * The pipeline now publishes `gold_location_order_status_daily`
+#     (see pipelines/order_items/transformations/transformation.py) which
+#     pre-aggregates created/delivered/cancelled per location per day.
+#     The SQL below reads only gold tables — no `all_events` scan.
+#   * A thread-safe in-process TTL cache (`_REVENUE_TTL_S`) sits in front
+#     of the SQL.  `/api/locations` reuses the cached result via
+#     `_get_revenue_cached()`, so the warehouse is hit at most once per
+#     TTL window even under concurrent /api/revenue + /api/locations load.
+#   * On query failure we serve the previous cached snapshot (if any) so
+#     a transient warehouse hiccup doesn't flap the dashboard.  When even
+#     the cache is empty, the route raises 503 — by design, the frontend
+#     must NEVER silently show fabricated numbers during a live demo, so
+#     the old "_mock_revenue() fallback" was removed deliberately.
 
-@app.get("/api/revenue")
-def revenue():
-    """Revenue summary by location from Lakeflow all_events."""
-    if not WAREHOUSE_ID:
-        return _mock_revenue()
+_REVENUE_TTL_S = 60  # 30-day aggregates change very slowly; 60s is safe.
+_revenue_cache: dict = {"data": None, "ts": 0.0}
+_revenue_lock = threading.Lock()
 
+
+def _fetch_revenue_from_warehouse() -> list[dict]:
+    """Execute the revenue SQL against the ops warehouse.  Heavy: ~0.5-2 s warm.
+
+    Returns a list of dicts with revenue, revenue_prev, avg_order_value,
+    total_orders, completed_orders, cancelled_orders, complaints, and
+    cancel_rate_pct keyed by location.  Raises on any failure — the caller
+    (`_get_revenue_cached`) is responsible for the stale-cache fallback.
+    """
+    from databricks import sql as dbsql
+    # databricks-sql-connector expects `credentials_provider` to be a
+    # zero-arg callable that returns a *header factory* — itself a zero-arg
+    # callable that returns the Authorization header dict. Passing a dict
+    # directly (or a one-shot snapshot of `_sdk_config.token`) crashes the
+    # connector with `'dict' object is not callable` and breaks every
+    # OAuth-M2M refresh. `_sdk_config.authenticate` is the SDK's bound
+    # method that returns a fresh `{"Authorization": "Bearer …"}` each
+    # call, so handing it off as the header factory gets us auto-refresh.
+    conn = dbsql.connect(
+        server_hostname=_sdk_config.host.replace("https://", ""),
+        http_path=f"/sql/1.0/warehouses/{WAREHOUSE_ID}",
+        credentials_provider=lambda: _sdk_config.authenticate,
+    )
     try:
-        from databricks import sql as dbsql
-        # databricks-sql-connector expects `credentials_provider` to be a
-        # zero-arg callable that returns a *header factory* — itself a zero-arg
-        # callable that returns the Authorization header dict. Passing a dict
-        # directly (or a one-shot snapshot of `_sdk_config.token`) crashes the
-        # connector with `'dict' object is not callable` and breaks every
-        # OAuth-M2M refresh. `_sdk_config.authenticate` is the SDK's bound
-        # method that returns a fresh `{"Authorization": "Bearer …"}` each
-        # call, so handing it off as the header factory gets us auto-refresh.
-        conn = dbsql.connect(
-            server_hostname=_sdk_config.host.replace("https://", ""),
-            http_path=f"/sql/1.0/warehouses/{WAREHOUSE_ID}",
-            credentials_provider=lambda: _sdk_config.authenticate,
-        )
         cursor = conn.cursor()
-
-        # Use pre-aggregated Gold tables — 10-100x faster than scanning all_events
-        # gold_location_sales_hourly: pre-computed orders + revenue per location per hour
-        # gold_order_header: one row per order with pre-computed order_revenue
-        # cancel_stats: derived from `lakeflow.all_events`.  The event stream
-        # has no explicit cancellation event — a cancelled order is an
-        # `order_created` with no matching `delivered`.  Anti-join over the
-        # last 30 days gives us per-location cancel counts that drive the
-        # location map's risk_level coloring (high/medium/low).
+        # All four CTEs read from pre-aggregated gold tables.  The old
+        # anti-join over `all_events` is gone — see
+        # `gold_location_order_status_daily` in the order_items pipeline
+        # for how created/delivered/cancelled is now materialised.
         cursor.execute(f"""
             WITH current_period AS (
                 SELECT
@@ -746,28 +827,14 @@ def revenue():
                 WHERE order_day >= current_date() - INTERVAL 30 DAYS
                 GROUP BY location_id
             ),
-            created_orders AS (
-                SELECT DISTINCT
-                    CAST(location_id AS STRING) AS location_id,
-                    order_id
-                FROM {CATALOG}.lakeflow.all_events
-                WHERE event_type = 'order_created'
-                  AND ts >= current_timestamp() - INTERVAL 30 DAYS
-            ),
-            delivered_orders AS (
-                SELECT DISTINCT order_id
-                FROM {CATALOG}.lakeflow.all_events
-                WHERE event_type = 'delivered'
-                  AND ts >= current_timestamp() - INTERVAL 30 DAYS
-            ),
             cancel_stats AS (
                 SELECT
-                    c.location_id,
-                    COUNT(*) AS created_total,
-                    SUM(CASE WHEN d.order_id IS NULL THEN 1 ELSE 0 END) AS cancelled_orders
-                FROM created_orders c
-                LEFT JOIN delivered_orders d USING (order_id)
-                GROUP BY c.location_id
+                    CAST(location_id AS STRING) AS location_id,
+                    SUM(created_count)   AS created_total,
+                    SUM(cancelled_count) AS cancelled_orders
+                FROM {CATALOG}.lakeflow.gold_location_order_status_daily
+                WHERE day >= current_date() - INTERVAL 30 DAYS
+                GROUP BY location_id
             )
             SELECT
                 l.name            AS location,
@@ -794,48 +861,95 @@ def revenue():
         rows = cursor.fetchall()
         cols = [d[0] for d in cursor.description]
         cursor.close()
-        conn.close()
         return [dict(zip(cols, r)) for r in rows]
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
+
+
+def _get_revenue_cached() -> list[dict]:
+    """Return revenue rows from the TTL cache, refreshing if stale.
+
+    Falls back to the previous cached snapshot on warehouse failure (avoids
+    flapping the dashboard during a transient outage).  Raises ``RuntimeError``
+    when the cache is empty AND the live fetch fails — the route layer turns
+    that into a 503 so the dashboard surfaces "revenue unavailable" instead
+    of silently demoing fabricated numbers.
+    """
+    if not WAREHOUSE_ID:
+        raise RuntimeError(
+            "WAREHOUSE_ID env var is not set — the ops-dashboard app needs a "
+            "SQL warehouse to compute revenue.  Check the bundle's "
+            "operational_app stage and the app.yaml that it writes."
+        )
+
+    now = time.time()
+    cached = _revenue_cache["data"]
+    if cached is not None and (now - _revenue_cache["ts"]) < _REVENUE_TTL_S:
+        return cached
+
+    # Coalesce concurrent refreshers so the warehouse is hit at most once
+    # per TTL window even under simultaneous /api/revenue + /api/locations.
+    with _revenue_lock:
+        # Re-check under the lock — another thread may have refreshed.
+        cached = _revenue_cache["data"]
+        if cached is not None and (time.time() - _revenue_cache["ts"]) < _REVENUE_TTL_S:
+            return cached
+        try:
+            data = _fetch_revenue_from_warehouse()
+            _revenue_cache["data"] = data
+            _revenue_cache["ts"] = time.time()
+            return data
+        except Exception as e:
+            log.error(f"revenue query failed: {e}")
+            if cached is not None:
+                log.warning(
+                    "returning stale revenue cache after refresh failure "
+                    "(this is safer than mock data — but the next deploy "
+                    "should investigate why the warehouse query failed)"
+                )
+                return cached
+            # No cache to fall back on.  Raise so /api/revenue returns 503
+            # rather than silently rendering fabricated numbers — the latter
+            # is a worse demo failure mode than a visible "unavailable"
+            # banner, because the audience would never know the numbers are
+            # fake.
+            raise
+
+
+@app.get("/api/revenue")
+def revenue():
+    """Revenue summary by location, served from a 60 s TTL cache.
+
+    Returns the data list on success.  On hard failure (warehouse not
+    configured, query failed, AND no cached snapshot to fall back on) we
+    return a 503 with a structured ``{"error": ..., "detail": ...}`` body
+    so the frontend can render an explicit "revenue unavailable" banner
+    rather than fall back to hardcoded mock numbers.
+    """
+    try:
+        return _get_revenue_cached()
     except Exception as e:
-        log.error(f"revenue query: {e}")
-        return _mock_revenue()
-
-
-def _mock_revenue():
-    return [
-        {"location": "San Francisco", "location_id": 1,
-         "revenue": 189420, "revenue_prev": 174300, "avg_order_value": 41.97,
-         "total_orders": 4820, "completed_orders": 4512, "cancelled_orders": 308,
-         "complaints": 142, "cancel_rate_pct": 6.4},
-        {"location": "Silicon Valley", "location_id": 2,
-         "revenue": 152680, "revenue_prev": 148900, "avg_order_value": 40.39,
-         "total_orders": 3960, "completed_orders": 3780, "cancelled_orders": 180,
-         "complaints": 98, "cancel_rate_pct": 4.5},
-        {"location": "Bellevue", "location_id": 3,
-         "revenue": 121430, "revenue_prev": 118200, "avg_order_value": 39.04,
-         "total_orders": 3210, "completed_orders": 3110, "cancelled_orders": 100,
-         "complaints": 61, "cancel_rate_pct": 3.1},
-        {"location": "Chicago", "location_id": 4,
-         "revenue": 198740, "revenue_prev": 221500, "avg_order_value": 40.64,
-         "total_orders": 5540, "completed_orders": 4890, "cancelled_orders": 650,
-         "complaints": 312, "cancel_rate_pct": 11.7},
-        {"location": "London", "location_id": 5,
-         "revenue": 174200, "revenue_prev": 158800, "avg_order_value": 42.80,
-         "total_orders": 4310, "completed_orders": 4180, "cancelled_orders": 130,
-         "complaints": 88, "cancel_rate_pct": 3.0},
-        {"location": "Munich", "location_id": 6,
-         "revenue": 118500, "revenue_prev": 109200, "avg_order_value": 43.50,
-         "total_orders": 2980, "completed_orders": 2890, "cancelled_orders": 90,
-         "complaints": 55, "cancel_rate_pct": 3.0},
-        {"location": "Amsterdam", "location_id": 7,
-         "revenue": 98400, "revenue_prev": 81900, "avg_order_value": 44.10,
-         "total_orders": 2420, "completed_orders": 2360, "cancelled_orders": 60,
-         "complaints": 40, "cancel_rate_pct": 2.5},
-        {"location": "Vianen", "location_id": 8,
-         "revenue": 52100, "revenue_prev": 50800, "avg_order_value": 38.90,
-         "total_orders": 1390, "completed_orders": 1340, "cancelled_orders": 50,
-         "complaints": 22, "cancel_rate_pct": 3.6},
-    ]
+        # Per the comment in `_get_revenue_cached()`, raising-not-mocking
+        # is intentional — fail visibly instead of silently demoing
+        # fabricated revenue figures.
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "error": "revenue_unavailable",
+                "message": (
+                    "Revenue analytics are temporarily unavailable.  This is "
+                    "usually a transient SQL warehouse hiccup; retry in a "
+                    "few seconds.  Persistent failures point to the gold "
+                    "tables (caspers.lakeflow.gold_location_sales_hourly, "
+                    "gold_order_header, gold_location_order_status_daily) "
+                    "not having materialised yet."
+                ),
+                "underlying": f"{type(e).__name__}: {e}",
+            },
+        ) from e
 
 
 # ─── Quick Actions (direct KA call, server-side cache) ───────────────────────
@@ -918,6 +1032,14 @@ def quick_action(action_type: str):
 
 class RefundRequest(BaseModel):
     order_id: str
+    # Optional context surfaced from the upstream complaint-agent triage. When
+    # present, the refund agent's system prompt allows it to ratify a goodwill
+    # credit even on a non-late order. When absent, the agent falls back to its
+    # SLA-only behavior (the standalone "Process Refund" action-bar button).
+    complaint_text: str | None = None
+    complaint_category: str | None = None
+    complaint_rationale: str | None = None
+    suggest_credit: float | None = None
 
 
 class ComplaintRequest(BaseModel):
@@ -935,15 +1057,40 @@ def _call_agent_endpoint(endpoint_name: str, payload: dict) -> dict:
     return resp.json()
 
 
+def _build_refund_user_message(req: "RefundRequest") -> str:
+    """Compose the user message sent to the refund agent.
+
+    Without complaint context: just the bare order_id (preserves original
+    standalone-button behavior). With context: a short labelled block the agent
+    can recognize per its system prompt to optionally ratify a goodwill credit.
+    """
+    if not (req.complaint_text or req.complaint_category or req.suggest_credit):
+        return req.order_id
+    lines = [f"Order ID: {req.order_id}"]
+    if req.complaint_text:
+        lines.append(f'Customer complaint: "{req.complaint_text}"')
+    if req.complaint_category:
+        lines.append(f"Complaint category: {req.complaint_category}")
+    if req.suggest_credit is not None:
+        try:
+            lines.append(f"Complaint agent suggested credit: ${float(req.suggest_credit):.2f}")
+        except (TypeError, ValueError):
+            pass
+    if req.complaint_rationale:
+        lines.append(f"Complaint agent rationale: {req.complaint_rationale}")
+    return "\n".join(lines)
+
+
 @app.post("/api/refund")
 def refund(req: RefundRequest):
     """Call the refund agent for a given order_id and return a structured decision."""
     if not REFUND_AGENT_ENDPOINT:
         raise HTTPException(status_code=503, detail="Refund agent endpoint not configured.")
     try:
+        user_msg = _build_refund_user_message(req)
         data = _call_agent_endpoint(
             REFUND_AGENT_ENDPOINT,
-            {"messages": [{"role": "user", "content": req.order_id}]},
+            {"messages": [{"role": "user", "content": user_msg}]},
         )
         # Extract the last assistant message from the ChatAgent response
         messages = data.get("messages") or []
@@ -1219,9 +1366,12 @@ def locations():
          "lat": 51.9839, "lng": 5.0905, "address": "Voorstraat 78, 4131 LW Vianen, Netherlands"},
     ]
 
-    # Merge with revenue data for health indicators
+    # Merge with revenue data for health indicators.  Reads from the same
+    # TTL cache that backs /api/revenue, so the warehouse is hit at most
+    # once per cache window even though the frontend fetches both endpoints
+    # in parallel on every page load.
     try:
-        rev_data = {r["location_id"]: r for r in revenue()}
+        rev_data = {r["location_id"]: r for r in _get_revenue_cached()}
     except Exception:
         rev_data = {}
 

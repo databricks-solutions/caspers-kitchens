@@ -245,6 +245,22 @@ body { background: var(--bg-primary); color: var(--text-primary); display: flex;
 .metric-value.warning { color: var(--warning); }
 .metric-sub { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
 
+/* Surfaced when /api/revenue returns 503.  Deliberately understated styling —
+   we want the audience to see "data unavailable" without it looking like the
+   entire app has died.  Pairs with the empty metric-row + empty chart so the
+   page layout stays stable. */
+.data-error {
+  margin: 4px 0 10px 0;
+  padding: 8px 12px;
+  background: color-mix(in srgb, var(--warning) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--text-primary);
+}
+.data-error-title { font-weight: 600; margin-bottom: 2px; }
+.data-error-body  { color: var(--text-secondary); font-size: 11px; }
+
 .chart-container {
   flex: 1; min-height: 0; position: relative;
 }
@@ -1059,6 +1075,17 @@ body { background: var(--bg-primary); color: var(--text-primary); display: flex;
           </div>
           <div class="metric-row" id="metric-row">
             <!-- populated by renderMetrics() from /api/revenue -->
+          </div>
+          <!-- Shown when /api/revenue returns 503.  We intentionally do NOT
+               fall back to fabricated numbers — a visible "unavailable"
+               banner is far safer than silently demoing fake data. -->
+          <div id="revenue-error" class="data-error" style="display:none;">
+            <div class="data-error-title">
+              <span>⚠</span> Revenue analytics temporarily unavailable
+            </div>
+            <div class="data-error-body" id="revenue-error-body">
+              Retry in a few seconds, or check the SQL warehouse status.
+            </div>
           </div>
           <div class="chart-container">
             <canvas id="revenue-chart"></canvas>
@@ -1962,19 +1989,27 @@ function updateActionButtons(text) {
 
 // ── Refund Modal ───────────────────────────────────────────────────────────────
 
-function openRefundModal(prefillOrderId) {
+// Optional complaint context surfaced from the complaint-list card. When set,
+// it's forwarded to /api/refund so the refund agent can ratify a goodwill
+// credit on otherwise-on-time orders. The standalone "Process Refund" button in
+// the action bar leaves this null, preserving the original SLA-only behavior.
+let _refundComplaintCtx = null;
+
+function openRefundModal(prefillOrderId, complaintCtx) {
   const modal = document.getElementById('refund-modal');
   modal.style.display = 'flex';
   document.getElementById('refund-order-id').value = prefillOrderId || '';
   document.getElementById('refund-result').className = 'refund-result';
   document.getElementById('refund-result').innerHTML = '';
   document.getElementById('refund-submit-btn').disabled = false;
+  _refundComplaintCtx = complaintCtx || null;
   setTimeout(() => document.getElementById('refund-order-id').focus(), 50);
 }
 
 function closeRefundModal(e) {
   if (e && e.target !== document.getElementById('refund-modal')) return;
   document.getElementById('refund-modal').style.display = 'none';
+  _refundComplaintCtx = null;
 }
 
 async function submitRefund() {
@@ -1988,10 +2023,20 @@ async function submitRefund() {
   resultEl.innerHTML = '<div style="color:var(--text-muted);font-size:12px;">Calling refund agent…</div>';
   resultEl.className = 'refund-result visible';
   try {
+    const body = {order_id: orderId};
+    const ctx = _refundComplaintCtx;
+    if (ctx) {
+      // Forward complaint context so the refund agent can consider the
+      // upstream complaint-agent triage alongside its SLA-based reasoning.
+      if (ctx.customer_response) body.complaint_text     = ctx.customer_response;
+      if (ctx.category)          body.complaint_category = ctx.category;
+      if (ctx.rationale)         body.complaint_rationale = ctx.rationale;
+      if (ctx.suggest_credit)    body.suggest_credit     = Number(ctx.suggest_credit);
+    }
     const res = await fetch('/api/refund', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({order_id: orderId}),
+      body: JSON.stringify(body),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({detail: res.statusText}));
@@ -2076,7 +2121,7 @@ function _renderComplaintRows(decisions, uid) {
     const key = `${uid}-${i}`;
     const creditLabel = d.suggest_credit ? `<span style="color:var(--gold);font-size:11px;flex-shrink:0;margin-left:8px;">$${Number(d.suggest_credit).toFixed(2)}</span>` : '';
     const refundBtn = (!d.escalate && d.suggest_credit && d.order_id)
-      ? `<button class="complaint-refund-btn" onclick="event.stopPropagation();openRefundModal('${escHtml(d.order_id)}')">💳 Process Refund for $${Number(d.suggest_credit).toFixed(2)}</button>`
+      ? `<button class="complaint-refund-btn" onclick="event.stopPropagation();openRefundModal('${escHtml(d.order_id)}', window._complaintDecisions && window._complaintDecisions[${i}])">💳 Process Refund for $${Number(d.suggest_credit).toFixed(2)}</button>`
       : '';
     const detailTs       = d.ts            ? `<div><span class="complaint-detail-label">Time</span><br>${escHtml(d.ts)}</div>` : '';
     const detailOrderId  = d.order_id      ? `<div><span class="complaint-detail-label">Order ID</span><br>${escHtml(d.order_id)}</div>` : '';
@@ -2562,12 +2607,47 @@ function viewDoc(i) {
 // ────────────────────────────────────────────────────────────────────────────
 // `_lastRevenueData` is declared near the top of the module so setTheme()
 // can read it without hitting a temporal-dead-zone error at page load.
+//
+// On 503 the frontend deliberately does NOT fall back to fabricated demo
+// numbers — we show an explicit "Revenue analytics unavailable" banner so
+// the audience never sees fake figures presented as real.  The audience
+// noticing a banner is much less painful than the audience NOT noticing
+// fake numbers and asking pointed follow-up questions about them.
 async function loadRevenue() {
+  const errBox  = document.getElementById('revenue-error');
+  const errBody = document.getElementById('revenue-error-body');
   try {
     const res = await fetch('/api/revenue');
+    if (!res.ok) {
+      // Surface the backend's structured error message (503 from
+      // /api/revenue when the warehouse fetch fails and there's no
+      // cached snapshot to fall back on).
+      let detail = '';
+      try {
+        const body = await res.json();
+        detail = (body && body.detail && body.detail.message) ||
+                 (body && body.detail) || `HTTP ${res.status}`;
+      } catch (_) {
+        detail = `HTTP ${res.status}`;
+      }
+      _lastRevenueData = [];
+      if (errBox) {
+        errBox.style.display = 'block';
+        if (errBody) errBody.textContent = String(detail);
+      }
+      renderMetrics(_lastRevenueData);
+      renderRevenueChart(_lastRevenueData);
+      return;
+    }
     _lastRevenueData = await res.json();
+    if (errBox) errBox.style.display = 'none';
   } catch (e) {
-    _lastRevenueData = _mockRevenue();
+    // Network-level failure (offline, app down, etc.) — same UX treatment.
+    _lastRevenueData = [];
+    if (errBox) {
+      errBox.style.display = 'block';
+      if (errBody) errBody.textContent = 'Could not reach the dashboard backend. Check your connection and refresh.';
+    }
   }
   renderMetrics(_lastRevenueData);
   renderRevenueChart(_lastRevenueData);
@@ -2611,20 +2691,9 @@ function mountOpsFullDashboardIframe() {
   empty.style.display  = 'none';
 }
 
-function _mockRevenue() {
-  return [
-    // US
-    {location:'San Francisco',  revenue:189420, revenue_prev:174300, avg_order_value:41.97, total_orders:4820, completed_orders:4512, cancelled_orders:308, complaints:142, cancel_rate_pct:6.4},
-    {location:'Silicon Valley', revenue:152680, revenue_prev:148900, avg_order_value:40.39, total_orders:3960, completed_orders:3780, cancelled_orders:180, complaints:98,  cancel_rate_pct:4.5},
-    {location:'Bellevue',       revenue:121430, revenue_prev:118200, avg_order_value:39.04, total_orders:3210, completed_orders:3110, cancelled_orders:100, complaints:61,  cancel_rate_pct:3.1},
-    {location:'Chicago',        revenue:198740, revenue_prev:221500, avg_order_value:40.64, total_orders:5540, completed_orders:4890, cancelled_orders:650, complaints:312, cancel_rate_pct:11.7},
-    // EMEA
-    {location:'London',         revenue:174200, revenue_prev:158800, avg_order_value:42.80, total_orders:4310, completed_orders:4180, cancelled_orders:130, complaints:88,  cancel_rate_pct:3.0},
-    {location:'Munich',         revenue:118500, revenue_prev:109200, avg_order_value:43.50, total_orders:2980, completed_orders:2890, cancelled_orders:90,  complaints:55,  cancel_rate_pct:3.0},
-    {location:'Amsterdam',      revenue:98400,  revenue_prev:81900,  avg_order_value:44.10, total_orders:2420, completed_orders:2360, cancelled_orders:60,  complaints:40,  cancel_rate_pct:2.5},
-    {location:'Vianen',         revenue:52100,  revenue_prev:50800,  avg_order_value:38.90, total_orders:1390, completed_orders:1340, cancelled_orders:50,  complaints:22,  cancel_rate_pct:3.6},
-  ];
-}
+// _mockRevenue() was deliberately removed — see the comment on loadRevenue()
+// above.  The dashboard now shows an explicit "unavailable" banner rather
+// than substituting fabricated numbers when /api/revenue 503s.
 
 function fmt$(n) {
   if (n >= 1_000_000) return '$' + (n/1_000_000).toFixed(2) + 'M';
@@ -2639,6 +2708,20 @@ function fmtTrend(curr, prev) {
 }
 
 function renderMetrics(data) {
+  const row = document.getElementById('metric-row');
+  if (!row) return;
+  // Empty `data` happens when /api/revenue 503'd — paint placeholder cards
+  // so the layout stays stable and the "unavailable" banner above isn't
+  // floating in a void.
+  if (!Array.isArray(data) || data.length === 0) {
+    const ph = `<div class="metric-card">
+      <div class="metric-label">—</div>
+      <div class="metric-value" style="color:var(--text-muted);">—</div>
+      <div class="metric-sub">data unavailable</div>
+    </div>`;
+    row.innerHTML = ph.repeat(4);
+    return;
+  }
   const totalRevenue = data.reduce((s, d) => s + (d.revenue || 0), 0);
   const totalRevenuePrev = data.reduce((s, d) => s + (d.revenue_prev || 0), 0);
   const avgOrderValue = data.reduce((s, d) => s + (d.avg_order_value || 0), 0) / data.length;
@@ -2671,8 +2754,19 @@ function renderMetrics(data) {
 }
 
 function renderRevenueChart(data) {
-  const ctx = document.getElementById('revenue-chart').getContext('2d');
+  const canvas = document.getElementById('revenue-chart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
   if (revenueChart) revenueChart.destroy();
+  // Empty `data` happens when /api/revenue 503'd — clear the canvas and
+  // bail so we don't render a chart of zeros that the audience might
+  // misread as "real data showing zero revenue".  The error banner above
+  // already explains what happened.
+  if (!Array.isArray(data) || data.length === 0) {
+    revenueChart = null;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    return;
+  }
 
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
   const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
