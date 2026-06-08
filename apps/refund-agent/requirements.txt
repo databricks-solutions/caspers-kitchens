@@ -1,0 +1,10 @@
+mlflow[databricks]>=3.6.0
+databricks-sdk>=0.81.0
+databricks-langchain
+langgraph>=0.3.5,<0.4.0
+langchain-core
+unitycatalog-ai[databricks]
+openai
+pydantic>=2
+fastapi
+uvicorn[standard]

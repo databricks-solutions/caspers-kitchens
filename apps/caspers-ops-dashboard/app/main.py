@@ -50,8 +50,10 @@ APP_NAME             = os.environ.get("DATABRICKS_APP_NAME", "").strip() or "ops
 SUPERVISOR_ENDPOINT       = os.environ.get("SUPERVISOR_ENDPOINT", "")
 SUPERVISOR_TILE_ID        = os.environ.get("SUPERVISOR_TILE_ID", "")          # written by operational_lakebase stage
 SUPERVISOR_MLFLOW_EXP_ID  = os.environ.get("SUPERVISOR_MLFLOW_EXPERIMENT_ID", "")  # written by operational_lakebase stage
-REFUND_AGENT_ENDPOINT     = os.environ.get("REFUND_AGENT_ENDPOINT", "")
-COMPLAINT_AGENT_ENDPOINT  = os.environ.get("COMPLAINT_AGENT_ENDPOINT", "")
+REFUND_AGENT_APP_NAME     = os.environ.get("REFUND_AGENT_APP_NAME", "")
+REFUND_AGENT_APP_URL      = os.environ.get("REFUND_AGENT_APP_URL", "")
+COMPLAINT_AGENT_APP_NAME  = os.environ.get("COMPLAINT_AGENT_APP_NAME", "")
+COMPLAINT_AGENT_APP_URL   = os.environ.get("COMPLAINT_AGENT_APP_URL", "")
 REFUND_MANAGER_APP_URL    = os.environ.get("REFUND_MANAGER_APP_URL", "")
 SUPPORT_CONSOLE_APP_URL   = os.environ.get("SUPPORT_CONSOLE_APP_URL", "")
 LAKEBASE_INSTANCE    = os.environ.get("LAKEBASE_ENDPOINT_PATH", "")   # non-empty = DB enabled
@@ -315,8 +317,10 @@ def _compute_tech_info() -> dict:
         "warehouse_id": WAREHOUSE_ID,
         "db_enabled": bool(LAKEBASE_INSTANCE),
         "supervisor_enabled": bool(SUPERVISOR_ENDPOINT),
-        "refund_agent_endpoint": REFUND_AGENT_ENDPOINT,
-        "complaint_agent_endpoint": COMPLAINT_AGENT_ENDPOINT,
+        "refund_agent_app_name": REFUND_AGENT_APP_NAME,
+        "refund_agent_app_url": REFUND_AGENT_APP_URL,
+        "complaint_agent_app_name": COMPLAINT_AGENT_APP_NAME,
+        "complaint_agent_app_url": COMPLAINT_AGENT_APP_URL,
         "refund_manager_app_url": REFUND_MANAGER_APP_URL,
         "support_console_app_url": SUPPORT_CONSOLE_APP_URL,
         "mlflow_experiment_id": mlflow_experiment_id,
@@ -1047,14 +1051,57 @@ class ComplaintRequest(BaseModel):
     order_id: str = ""
 
 
-def _call_agent_endpoint(endpoint_name: str, payload: dict) -> dict:
-    """Call a model serving endpoint (ChatAgent or ResponsesAgent) and return the parsed response body."""
-    url = f"{(_sdk_config.host or '').rstrip('/')}/serving-endpoints/{endpoint_name}/invocations"
+def _agent_app_url(app_name: str, configured_url: str) -> str:
+    if configured_url:
+        return configured_url.rstrip("/")
+    if app_name:
+        app_info = _ws.apps.get(app_name)
+        url = getattr(app_info, "url", "") or ""
+        if url:
+            return url.rstrip("/")
+    return ""
+
+
+def _call_agent_app(app_name: str, configured_url: str, payload: dict) -> dict:
+    """Call a DAIS custom agent Databricks App via MLflow AgentServer /responses."""
+    base_url = _agent_app_url(app_name, configured_url)
+    if not base_url:
+        raise HTTPException(status_code=503, detail=f"Agent app {app_name or '(unknown)'} not configured.")
+    url = f"{base_url}/responses"
     headers = {"Content-Type": "application/json"}
     headers.update(_sdk_config.authenticate())
     resp = httpx.post(url, headers=headers, json=payload, timeout=120.0)
     resp.raise_for_status()
     return resp.json()
+
+
+def _extract_agent_output_text(data: dict) -> str:
+    output_text = data.get("output_text")
+    if isinstance(output_text, str) and output_text:
+        return output_text
+
+    output = data.get("output") or []
+    if isinstance(output, dict):
+        output = [output]
+    for out in output:
+        if not isinstance(out, dict):
+            continue
+        content = out.get("content")
+        if isinstance(content, str) and content:
+            return content
+        if isinstance(content, dict):
+            content = [content]
+        if isinstance(content, list):
+            for part in content:
+                if isinstance(part, dict):
+                    text = part.get("text")
+                    if isinstance(text, str) and text:
+                        return text
+
+    choices = data.get("choices") or []
+    if choices:
+        return (choices[0].get("message") or {}).get("content", "")
+    return ""
 
 
 def _build_refund_user_message(req: "RefundRequest") -> str:
@@ -1084,52 +1131,42 @@ def _build_refund_user_message(req: "RefundRequest") -> str:
 @app.post("/api/refund")
 def refund(req: RefundRequest):
     """Call the refund agent for a given order_id and return a structured decision."""
-    if not REFUND_AGENT_ENDPOINT:
-        raise HTTPException(status_code=503, detail="Refund agent endpoint not configured.")
+    if not (REFUND_AGENT_APP_NAME or REFUND_AGENT_APP_URL):
+        raise HTTPException(status_code=503, detail="Refund agent app not configured.")
     try:
         user_msg = _build_refund_user_message(req)
-        data = _call_agent_endpoint(
-            REFUND_AGENT_ENDPOINT,
-            {"messages": [{"role": "user", "content": user_msg}]},
+        data = _call_agent_app(
+            REFUND_AGENT_APP_NAME,
+            REFUND_AGENT_APP_URL,
+            {"input": [{"role": "user", "content": user_msg}]},
         )
-        # Extract the last assistant message from the ChatAgent response
-        messages = data.get("messages") or []
-        for msg in reversed(messages):
-            role = msg.get("role", "")
-            content = msg.get("content", "")
-            if role == "assistant" and content:
-                # Robustly extract a JSON object from the assistant message:
-                # the agent's prompt asks for raw JSON, but LLMs often wrap it in
-                # ```json … ``` fences or sprinkle commentary around it. Try a
-                # bare json.loads first, then fall back to the first {...} match.
-                cleaned = content.strip()
-                if cleaned.startswith("```"):
-                    # strip markdown code fence (```json … ``` or ``` … ```)
-                    cleaned = cleaned.strip("`")
-                    if cleaned.lower().startswith("json"):
-                        cleaned = cleaned[4:]
-                    cleaned = cleaned.strip()
-                decision = None
+        content = _extract_agent_output_text(data)
+        if not content:
+            raise HTTPException(status_code=502, detail="No output in refund agent response.")
+        cleaned = content.strip()
+        if cleaned.startswith("```"):
+            cleaned = cleaned.strip("`")
+            if cleaned.lower().startswith("json"):
+                cleaned = cleaned[4:]
+            cleaned = cleaned.strip()
+        decision = None
+        try:
+            decision = json.loads(cleaned)
+        except Exception:
+            m = re.search(r"\{[\s\S]*\}", cleaned)
+            if m:
                 try:
-                    decision = json.loads(cleaned)
+                    decision = json.loads(m.group(0))
                 except Exception:
-                    import re as _re
-                    m = _re.search(r"\{[\s\S]*\}", cleaned)
-                    if m:
-                        try:
-                            decision = json.loads(m.group(0))
-                        except Exception:
-                            decision = None
-                if decision is not None:
-                    return {
-                        "order_id": req.order_id,
-                        "refund_usd": float(decision.get("refund_usd", 0)),
-                        "refund_class": decision.get("refund_class", "none"),
-                        "reason": decision.get("reason", ""),
-                    }
-                # Last-resort fallback: surface raw text so the UI can show something.
-                return {"order_id": req.order_id, "raw": content}
-        raise HTTPException(status_code=502, detail="No assistant message in refund agent response.")
+                    decision = None
+        if decision is not None:
+            return {
+                "order_id": req.order_id,
+                "refund_usd": float(decision.get("refund_usd", 0)),
+                "refund_class": decision.get("refund_class", "none"),
+                "reason": decision.get("reason", ""),
+            }
+        return {"order_id": req.order_id, "raw": content}
     except HTTPException:
         raise
     except Exception as e:
@@ -1140,25 +1177,18 @@ def refund(req: RefundRequest):
 @app.post("/api/complaint")
 def complaint(req: ComplaintRequest):
     """Call the complaint agent for a raw complaint text and return a structured classification."""
-    if not COMPLAINT_AGENT_ENDPOINT:
-        raise HTTPException(status_code=503, detail="Complaint agent endpoint not configured.")
+    if not (COMPLAINT_AGENT_APP_NAME or COMPLAINT_AGENT_APP_URL):
+        raise HTTPException(status_code=503, detail="Complaint agent app not configured.")
     content = req.complaint_text
     if req.order_id:
         content = f"{content} (Order ID: {req.order_id})"
     try:
-        data = _call_agent_endpoint(
-            COMPLAINT_AGENT_ENDPOINT,
+        data = _call_agent_app(
+            COMPLAINT_AGENT_APP_NAME,
+            COMPLAINT_AGENT_APP_URL,
             {"input": [{"role": "user", "content": content}]},
         )
-        # ResponsesAgent returns output list or choices
-        output_text = ""
-        for out in data.get("output", []):
-            for part in (out.get("content") or []):
-                output_text += part.get("text", "")
-        if not output_text:
-            choices = data.get("choices") or []
-            if choices:
-                output_text = (choices[0].get("message") or {}).get("content", "")
+        output_text = _extract_agent_output_text(data)
         if output_text:
             try:
                 result = json.loads(output_text)
@@ -1276,14 +1306,14 @@ def list_agents():
                         "url": url, "id": tile_id})
 
     _CUSTOM_AGENTS = [
-        {"name": "Refund Agent",    "icon": "💳", "endpoint": REFUND_AGENT_ENDPOINT},
-        {"name": "Complaint Agent", "icon": "📬", "endpoint": COMPLAINT_AGENT_ENDPOINT},
+        {"name": "Refund Agent", "icon": "💳", "app_name": REFUND_AGENT_APP_NAME, "app_url": REFUND_AGENT_APP_URL},
+        {"name": "Complaint Agent", "icon": "📬", "app_name": COMPLAINT_AGENT_APP_NAME, "app_url": COMPLAINT_AGENT_APP_URL},
     ]
     for ca in _CUSTOM_AGENTS:
-        ep = ca["endpoint"]
-        url = f"{host}/ml/endpoints/{ep}" if ep and host else ""
+        app_name = ca["app_name"]
+        url = ca["app_url"] or (f"{host}/apps/{app_name}" if app_name and host else "")
         agents.append({"name": ca["name"], "icon": ca["icon"], "type": "agent",
-                        "url": url, "id": ep})
+                        "url": url, "id": app_name})
 
     return agents
 

@@ -1,0 +1,12 @@
+command:
+  - python
+  - start_server.py
+env:
+  - name: DATABRICKS_CATALOG
+    value: caspersdev
+  - name: LLM_MODEL
+    value: databricks-claude-sonnet-4-5
+  - name: MLFLOW_TRACKING_URI
+    value: databricks
+  - name: MLFLOW_REGISTRY_URI
+    value: databricks-uc
