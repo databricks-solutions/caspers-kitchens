@@ -145,8 +145,6 @@ targets:
             #     --params "CATALOG=oleksandra,SKIP_EVAL=false"
             - name: SKIP_EVAL
               default: "true"
-            - name: REFUND_AGENT_ENDPOINT_NAME
-              default: ${var.catalog}_refund_agent
             - name: SIMULATOR_SCHEMA
               default: simulator
             - name: START_DAY
@@ -209,11 +207,10 @@ targets:
                 notebook_path: ${workspace.root_path}/stages/refund_evaluation
 
             # Refund_Recommender_Stream calls w.jobs.run_now() on the
-            # streaming inference job whose UDF queries the Refund agent
-            # serving endpoint.  The endpoint must exist and be READY before
-            # the stream's first batch fires — without the explicit
-            # Refund_Recommender_Agent edge the two tasks race and the
-            # stream can hit a missing endpoint.
+            # streaming inference job whose UDF queries the Refund agent App.
+            # The App must exist before the stream's first batch fires —
+            # without the explicit Refund_Recommender_Agent edge the two tasks
+            # race and the stream can hit a missing app.
             - task_key: Refund_Recommender_Stream
               depends_on:
                 - task_key: Spark_Declarative_Pipeline
@@ -274,8 +271,6 @@ targets:
             #     --params "CATALOG=oleksandra,SKIP_EVAL=false"
             - name: SKIP_EVAL
               default: "true"
-            - name: COMPLAINT_AGENT_ENDPOINT_NAME
-              default: ${var.catalog}_complaint_agent
             - name: COMPLAINT_RATE
               default: "0.15"
             - name: SIMULATOR_SCHEMA
@@ -595,10 +590,6 @@ targets:
             - name: PIPELINE_SCHEDULE_MINUTES
               default: "0"
             # Refund + complaints
-            - name: REFUND_AGENT_ENDPOINT_NAME
-              default: ${var.catalog}_refund_agent
-            - name: COMPLAINT_AGENT_ENDPOINT_NAME
-              default: ${var.catalog}_complaint_agent
             - name: COMPLAINT_RATE
               default: "0.15"
             # Operational Dashboard — Knowledge Assistant endpoints are auto-generated
@@ -676,11 +667,10 @@ targets:
                 notebook_path: ${workspace.root_path}/stages/refund_evaluation
 
             # Refund_Recommender_Stream calls w.jobs.run_now() on the
-            # streaming inference job whose UDF queries the Refund agent
-            # serving endpoint.  The endpoint must exist and be READY before
-            # the stream's first batch fires — without the explicit
-            # Refund_Recommender_Agent edge the two tasks race and the
-            # stream can hit a missing endpoint.
+            # streaming inference job whose UDF queries the Refund agent App.
+            # The App must exist before the stream's first batch fires —
+            # without the explicit Refund_Recommender_Agent edge the two tasks
+            # race and the stream can hit a missing app.
             - task_key: Refund_Recommender_Stream
               depends_on:
                 - task_key: Spark_Declarative_Pipeline

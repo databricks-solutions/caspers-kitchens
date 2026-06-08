@@ -1,0 +1,8 @@
+mlflow[databricks]>=3.6.0
+databricks-sdk>=0.81.0
+dspy-ai
+unitycatalog-openai[databricks]
+openai
+pydantic>=2
+fastapi
+uvicorn[standard]

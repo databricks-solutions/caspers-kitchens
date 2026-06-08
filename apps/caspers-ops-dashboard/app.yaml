@@ -47,10 +47,14 @@ env:
   # #page= fragment and the user sees the dashboard's default landing page.
   - name: OPS_DASHBOARD_PAGE
     value: ''
-  # Custom agent endpoints — populated by operational_app stage from CATALOG
-  - name: REFUND_AGENT_ENDPOINT
+  # Custom agent Apps — populated by operational_app stage from CATALOG
+  - name: REFUND_AGENT_APP_NAME
     value: ''
-  - name: COMPLAINT_AGENT_ENDPOINT
+  - name: REFUND_AGENT_APP_URL
+    value: ''
+  - name: COMPLAINT_AGENT_APP_NAME
+    value: ''
+  - name: COMPLAINT_AGENT_APP_URL
     value: ''
   - name: REFUND_MANAGER_APP_URL
     value: ''
