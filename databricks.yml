@@ -185,6 +185,29 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/refunder_agent
 
+            # Refund_Setup builds the curated eval dataset and registers it in
+            # UC at {CATALOG}.evaluations.refund_agent_eval_dataset.  Always
+            # runs (not gated by SKIP_EVAL) so the dataset is visible in
+            # Catalog Explorer after every deploy, even when Refund_Evaluation
+            # is skipped.  Built inline by the demo notebook, eval is run by Refund_Evaluation / Complaint_Evaluation.
+            - task_key: Refund_Setup
+              max_retries: 0
+              depends_on:
+                - task_key: Refund_Recommender_Agent
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/refund_setup
+
+            # Refund_Evaluation runs the deployed agent against the UC-managed
+            # eval dataset registered by Refund_Setup.  Gated by SKIP_EVAL=true
+            # (default), so this task shows up as "skipped" in the DAG unless a
+            # user opts in via --params "SKIP_EVAL=false".  See stages/refund_evaluation.
+            - task_key: Refund_Evaluation
+              max_retries: 0
+              depends_on:
+                - task_key: Refund_Setup
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/refund_evaluation
+
             # Refund_Recommender_Stream calls w.jobs.run_now() on the
             # streaming inference job whose UDF queries the Refund agent
             # serving endpoint.  The endpoint must exist and be READY before
@@ -287,6 +310,29 @@ targets:
                 - task_key: Spark_Declarative_Pipeline
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/complaint_agent
+
+            # Complaint_Setup builds the curated eval dataset and registers it
+            # in UC at {CATALOG}.evaluations.complaint_agent_eval_dataset.
+            # Always runs (not gated by SKIP_EVAL) so the dataset is visible in
+            # Catalog Explorer after every deploy, even when Complaint_Evaluation
+            # is skipped.  Built inline by the demo notebook, eval is run by Refund_Evaluation / Complaint_Evaluation.
+            - task_key: Complaint_Setup
+              max_retries: 0
+              depends_on:
+                - task_key: Complaint_Agent
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/complaint_setup
+
+            # Complaint_Evaluation runs the deployed agent against the UC-managed
+            # eval dataset registered by Complaint_Setup.  Gated by SKIP_EVAL=true
+            # (default), so this task shows up as "skipped" in the DAG unless a
+            # user opts in via --params "SKIP_EVAL=false".  See stages/complaint_evaluation.
+            - task_key: Complaint_Evaluation
+              max_retries: 0
+              depends_on:
+                - task_key: Complaint_Setup
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/complaint_evaluation
 
             - task_key: Complaint_Generator_Stream
               depends_on:
@@ -606,6 +652,29 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/refunder_agent
 
+            # Refund_Setup builds the curated eval dataset and registers it in
+            # UC at {CATALOG}.evaluations.refund_agent_eval_dataset.  Always
+            # runs (not gated by SKIP_EVAL) so the dataset is visible in
+            # Catalog Explorer after every deploy, even when Refund_Evaluation
+            # is skipped.  Built inline by the demo notebook, eval is run by Refund_Evaluation / Complaint_Evaluation.
+            - task_key: Refund_Setup
+              max_retries: 0
+              depends_on:
+                - task_key: Refund_Recommender_Agent
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/refund_setup
+
+            # Refund_Evaluation runs the deployed agent against the UC-managed
+            # eval dataset registered by Refund_Setup.  Gated by SKIP_EVAL=true
+            # (default), so this task shows up as "skipped" in the DAG unless a
+            # user opts in via --params "SKIP_EVAL=false".  See stages/refund_evaluation.
+            - task_key: Refund_Evaluation
+              max_retries: 0
+              depends_on:
+                - task_key: Refund_Setup
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/refund_evaluation
+
             # Refund_Recommender_Stream calls w.jobs.run_now() on the
             # streaming inference job whose UDF queries the Refund agent
             # serving endpoint.  The endpoint must exist and be READY before
@@ -647,6 +716,29 @@ targets:
                 - task_key: Refund_Recommender_Agent
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/complaint_agent
+
+            # Complaint_Setup builds the curated eval dataset and registers it
+            # in UC at {CATALOG}.evaluations.complaint_agent_eval_dataset.
+            # Always runs (not gated by SKIP_EVAL) so the dataset is visible in
+            # Catalog Explorer after every deploy, even when Complaint_Evaluation
+            # is skipped.  Built inline by the demo notebook, eval is run by Refund_Evaluation / Complaint_Evaluation.
+            - task_key: Complaint_Setup
+              max_retries: 0
+              depends_on:
+                - task_key: Complaint_Agent
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/complaint_setup
+
+            # Complaint_Evaluation runs the deployed agent against the UC-managed
+            # eval dataset registered by Complaint_Setup.  Gated by SKIP_EVAL=true
+            # (default), so this task shows up as "skipped" in the DAG unless a
+            # user opts in via --params "SKIP_EVAL=false".  See stages/complaint_evaluation.
+            - task_key: Complaint_Evaluation
+              max_retries: 0
+              depends_on:
+                - task_key: Complaint_Setup
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/complaint_evaluation
 
             - task_key: Complaint_Generator_Stream
               depends_on:
@@ -729,9 +821,23 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/operational_readiness_check
 
+            # Single consolidated evaluation task for managed Agent Bricks
+            # (Supervisor + 6 KAs).  evaluation.ipynb does:
+            #   1. Build the UC-managed supervisor eval dataset inline
+            #   2. Run mlflow.genai.evaluate() against the supervisor
+            #   3. Register production scorers (Scorer.register + .start) on
+            #      /Serving/{SUPERVISOR_ENDPOINT}
+            #   4. Loop over KAs from uc_state, warmup each one, and register
+            #      production scorers on /Serving/{ka_endpoint}
+            # Everything lands in the managed /Serving/{endpoint} experiments
+            # Databricks creates per endpoint — no /Shared/_dev or _prod split.
+            # Refund + Complaint custom agents have their own stage evaluation
+            # notebooks; they're not managed services, so they keep the
+            # /Shared/{cat}_{refund,complaint}_agent_{dev,prod} convention.
             - task_key: Evaluation
               max_retries: 0
               depends_on:
                 - task_key: Readiness_Check
+                - task_key: Knowledge_Agents
               notebook_task:
                 notebook_path: ${workspace.root_path}/demos/operational-dashboard-demo/evaluation

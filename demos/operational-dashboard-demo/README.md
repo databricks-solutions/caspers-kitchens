@@ -183,7 +183,7 @@ Operational Supervisor (Multi-Agent Supervisor)
 5. Show the trace-derived dataset and the production→eval flywheel
 6. Every AI decision is now auditable
 
-### Important: run mlflow_setup notebook to setup mlflow scorers
+### Important: run evaluation notebook to setup mlflow scorers (one-shot eval + continuous production scorers for SA + 6 KAs)
 ### We're using SA which is a managed agent which means it's impossible to get sessions from the messages from the app. If you want to demonstrate sessions, create a few from SA directly, those are captured 
 
 ---

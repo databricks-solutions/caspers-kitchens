@@ -1507,7 +1507,10 @@ function updateChatLabel(title) {
 function clearChat() {
   document.getElementById('chat-messages').innerHTML = '';
   renderWelcome();
-  document.getElementById('action-buttons').style.display = 'none';
+  // Only hide the conditional refund button. The other 4 (briefing / risk /
+  // board / complaints) are always-visible by HTML default; the container
+  // must stay display:flex.
+  document.getElementById('btn-refund').style.display = 'none';
   referencedDocs = [];
   renderDocList();
 }
