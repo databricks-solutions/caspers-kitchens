@@ -633,6 +633,40 @@ Use full redeploy instead if:
   - Ensure it's plumbed through all layers
   - Check `databricks.yml` parameters, stage parameter parsing, and implementation usage
 
+#### 5a. `--var catalog` vs `--params CATALOG` drift
+- **Why fragile**: Two separate dials use a catalog name and they can disagree.
+  - `bundle deploy --var catalog=X` → resolves `${var.catalog}` at deploy
+    time.  Bakes `X` into every DABs-managed resource name (e.g. the `all`
+    target's `caspers_ops_warehouse` becomes `X-ops-warehouse`), every
+    AI/BI dashboard name, every dashboard `dataset_catalog`, and every job
+    parameter `default: ${var.catalog}...` (incl. `CATALOG`,
+    `REFUND_AGENT_ENDPOINT_NAME`, `COMPLAINT_AGENT_ENDPOINT_NAME`,
+    `OPS_WAREHOUSE_NAME`, `SUPERVISOR_ENDPOINT_NAME`).
+  - `bundle run caspers --params "CATALOG=Y"` → overrides ONLY the
+    run-time `CATALOG` widget value inside stage notebooks.  Cannot rename
+    anything DABs already created.
+- **Symptom when they disagree**: stages that reconstruct a DABs-managed
+  resource name from the run-time `CATALOG` widget fail to find it.
+  Example: deploying with the default and then running
+  `--params CATALOG=mycatalog` against the `all` target makes
+  `stages/operational_app.ipynb` fail with
+  `RuntimeError: Warehouse 'mycatalog-ops-warehouse' not found` because
+  DABs created `caspersdev-ops-warehouse`.
+- **Best practice**:
+  - When in doubt, pass the same catalog to both:
+    `bundle deploy -t <target> --var catalog=X` then
+    `bundle run caspers --params "CATALOG=X"`.
+  - When adding a stage that needs the name of a DABs-managed resource,
+    do NOT reconstruct it from the `CATALOG` widget.  Add a dedicated job
+    parameter with a `${var.catalog}-...` default in `databricks.yml`
+    (this is how `OPS_WAREHOUSE_NAME`, `REFUND_AGENT_ENDPOINT_NAME` and
+    `COMPLAINT_AGENT_ENDPOINT_NAME` are wired), then read that parameter
+    via `dbutils.widgets.get(...)` in the stage.  The deploy-time value
+    rides through the job parameter into the run-time widget, so the two
+    dials physically cannot disagree.
+  - The long comment in `stages/operational_app.ipynb` cell 8 (the
+    `_agent_ep_name` helper) is the canonical example of this pattern.
+
 ### 6. Resource Dependencies
 - **Why fragile**: Stages create resources that others depend on (endpoints, tables, etc.)
 - **When touching**: Creation/deletion order, stage dependencies

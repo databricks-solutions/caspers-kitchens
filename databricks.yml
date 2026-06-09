@@ -601,11 +601,47 @@ targets:
               default: ${var.catalog}_complaint_agent
             - name: COMPLAINT_RATE
               default: "0.15"
+            # Unity AI Gateway (v2 Beta) endpoint name.  When set, the
+            # Refund + Complaint agents route their internal LLM calls
+            # through this gateway instead of the foundation-model
+            # endpoint named by LLM_MODEL — so every agent LLM call
+            # gets PII guardrails, inference-table audit, usage
+            # tracking and rate limits applied centrally.
+            #
+            # This parameter is only declared on the `all` target —
+            # `default` and `complaints` keep using direct foundation-
+            # model endpoints (no gateway routing).
+            #
+            # The endpoint must be created and configured manually in
+            # the Databricks UI before deploy: AI Gateway → Create
+            # Unity AI Gateway Endpoint → enable Guardrails (PII =
+            # Block, Safety, Jailbreak) + Inference Tables + Usage
+            # Tracking + Rate Limits.  See the "Unity AI Gateway"
+            # section of demos/dais2026-runbooks/SETUP.ipynb for the
+            # full step-by-step.
+            #
+            # Leave empty to keep the agents on direct foundation-model
+            # endpoints (legacy behaviour).
+            - name: AI_GATEWAY_ENDPOINT_NAME
+              default: ""
             # Operational Dashboard — Knowledge Assistant endpoints are auto-generated
             # by the KA v2.1 API and resolved from uc_state by downstream stages.
             # Operational Dashboard — Multi-Agent Supervisor endpoint (user-supplied)
             - name: SUPERVISOR_ENDPOINT_NAME
               default: ${var.catalog}_operational_supervisor
+            # Ops warehouse name.  Resolved from `${var.catalog}` at DEPLOY
+            # time and baked into the job-parameter default, so the run-time
+            # value carries the deploy-time catalog even if `--params CATALOG`
+            # disagrees with `--var catalog`.  This is the same pattern used
+            # by REFUND_AGENT_ENDPOINT_NAME / COMPLAINT_AGENT_ENDPOINT_NAME
+            # above (see the rationale comment in stages/operational_app.ipynb
+            # cell 8) and exists for the same reason: the warehouse is owned
+            # by DABs (resources.sql_warehouses.caspers_ops_warehouse above)
+            # so its name is frozen at deploy time, and reconstructing it
+            # from the run-time CATALOG widget would fail whenever the two
+            # dials disagree.
+            - name: OPS_WAREHOUSE_NAME
+              default: ${var.catalog}-ops-warehouse
 
           tasks:
             # ─── Data foundation ──────────────────────────────────────────────
