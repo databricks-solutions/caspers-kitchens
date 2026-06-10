@@ -1076,32 +1076,11 @@ def _call_agent_app(app_name: str, configured_url: str, payload: dict) -> dict:
 
 
 def _extract_agent_output_text(data: dict) -> str:
-    output_text = data.get("output_text")
-    if isinstance(output_text, str) and output_text:
-        return output_text
-
-    output = data.get("output") or []
-    if isinstance(output, dict):
-        output = [output]
-    for out in output:
-        if not isinstance(out, dict):
-            continue
-        content = out.get("content")
-        if isinstance(content, str) and content:
-            return content
-        if isinstance(content, dict):
-            content = [content]
-        if isinstance(content, list):
-            for part in content:
-                if isinstance(part, dict):
-                    text = part.get("text")
-                    if isinstance(text, str) and text:
-                        return text
-
-    choices = data.get("choices") or []
-    if choices:
-        return (choices[0].get("message") or {}).get("content", "")
-    return ""
+    try:
+        text = data["output"][0]["content"][0]["text"]
+    except (KeyError, IndexError, TypeError):
+        return ""
+    return text if isinstance(text, str) else ""
 
 
 def _build_refund_user_message(req: "RefundRequest") -> str:

@@ -6,7 +6,7 @@ import hashlib
 import json
 import os
 import re
-from typing import Any, Iterable
+from typing import Any
 
 import requests
 from databricks.sdk import WorkspaceClient
@@ -30,12 +30,26 @@ def _safe_app_name(value: str) -> str:
     return f"{prefix}-{digest}"
 
 
+def resolve_agent_app_name(param_value: str, catalog: str, role: str) -> str:
+    """Resolve an agent App name.
+
+    Prefers the deploy-time-baked job-param value (e.g. REFUND_AGENT_APP_NAME)
+    so the name carries the deploy-time catalog even when `--params CATALOG`
+    disagrees with `--var catalog`.  Falls back to deriving
+    `<role>-agent-<catalog>` for standalone-notebook runs where the param is
+    absent.  Always sanitised to the Databricks Apps name rules (idempotent,
+    so passing an already-resolved name back through is safe).
+    """
+    raw = (param_value or "").strip() or f"{role}-agent-{catalog}"
+    return _safe_app_name(raw)
+
+
 def refund_agent_app_name(catalog: str) -> str:
-    return _safe_app_name(f"refund-agent-{catalog}")
+    return resolve_agent_app_name("", catalog, "refund")
 
 
 def complaint_agent_app_name(catalog: str) -> str:
-    return _safe_app_name(f"complaint-agent-{catalog}")
+    return resolve_agent_app_name("", catalog, "complaint")
 
 
 def get_notebook_token(dbutils: Any) -> str:
@@ -166,20 +180,13 @@ def extract_response_text(response: Any) -> str:
     if not isinstance(response, dict):
         raise TypeError(f"Unsupported response type: {type(response).__name__}")
 
-    direct = response.get("output_text")
-    if isinstance(direct, str) and direct:
-        return direct
-
-    for item in _iter_response_items(response.get("output", [])):
-        content = item.get("content")
-        if isinstance(content, str) and content:
-            return content
-        for content_item in _iter_response_items(content or []):
-            text = content_item.get("text")
-            if isinstance(text, str) and text:
-                return text
-
-    raise ValueError(f"Could not extract output text from response keys: {sorted(response.keys())}")
+    try:
+        text = response["output"][0]["content"][0]["text"]
+    except (KeyError, IndexError, TypeError) as exc:
+        raise ValueError(f"Unexpected Responses API shape: {sorted(response.keys())}") from exc
+    if not isinstance(text, str) or not text:
+        raise ValueError("Responses API output text is empty")
+    return text
 
 
 def call_agent_app_text(**kwargs: Any) -> str:
@@ -213,12 +220,3 @@ def gateway_chat_probe(
         timeout=timeout,
     )
     response.raise_for_status()
-
-
-def _iter_response_items(value: Any) -> Iterable[dict[str, Any]]:
-    if isinstance(value, dict):
-        yield value
-    elif isinstance(value, list):
-        for item in value:
-            if isinstance(item, dict):
-                yield item

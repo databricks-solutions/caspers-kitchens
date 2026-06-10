@@ -23,9 +23,12 @@ sync:
     - .claude/**
     - .databricks/**
     - .venv/**
+    - "**/.venv/**"
     - .bundle/**
     - __pycache__/**
+    - "**/__pycache__/**"
     - "*.pyc"
+    - "**/*.pyc"
     # Repo content we never want shipped
     - ./data/universe/**
     - images/**
@@ -597,6 +600,45 @@ targets:
             # Operational Dashboard — Multi-Agent Supervisor endpoint (user-supplied)
             - name: SUPERVISOR_ENDPOINT_NAME
               default: ${var.catalog}_operational_supervisor
+            # Unity AI Gateway endpoint name.  DISTINCT from LLM_MODEL above:
+            # LLM_MODEL is the foundation model the generators / support agent
+            # call directly; AI_GATEWAY_ENDPOINT_NAME is the governed gateway
+            # route the Refund + Complaint App agents send every LLM call
+            # through (gateway-always-on, no model-serving fallback) so PII
+            # guardrails / inference tables / usage tracking apply centrally.
+            # Sent verbatim as the request `model` to
+            # <host>/ai-gateway/mlflow/v1.  The v2 Beta gateway is UI-created
+            # only and CAN_QUERY must be granted to each agent App's SP by hand
+            # — see the runbook.  Default matches the historical value so
+            # existing deploys keep working; override with
+            # `--params AI_GATEWAY_ENDPOINT_NAME=<your-governed-endpoint>`.
+            - name: AI_GATEWAY_ENDPOINT_NAME
+              default: databricks-claude-sonnet-4-5
+            # Names that MUST carry the deploy-time catalog, not the run-time
+            # one.  These resources are created by `bundle deploy` using
+            # `${var.catalog}` (`--var catalog`), but CATALOG above is
+            # overridable at run time (`--params CATALOG=...`).  Reconstructing
+            # the names from the run-time CATALOG widget breaks the moment the
+            # two dials disagree — the deploy created `<deploy-catalog>-...`
+            # while the stage looks for `<run-catalog>-...`.  Baking the name
+            # into the param DEFAULT freezes it at deploy time.  Stages read
+            # these params, with the legacy reconstruction kept as a fallback.
+            #
+            # Ops warehouse — DABs-managed
+            # (resources.sql_warehouses.caspers_ops_warehouse).
+            - name: OPS_WAREHOUSE_NAME
+              default: ${var.catalog}-ops-warehouse
+            # Agent App names — the Refund + Complaint agents are deployed as
+            # Databricks Apps (apps/refund-agent, apps/complaint-agent), not
+            # Model Serving endpoints.  Consumers (ops dashboard, stream jobs,
+            # eval stages) reach them by App name via utils/agent_app_client.py.
+            # NOTE: App names are capped at 30 chars and sanitised by
+            # `_safe_app_name`; for long catalogs the stage re-sanitises this
+            # value, so the param and helper agree for normal catalogs.
+            - name: REFUND_AGENT_APP_NAME
+              default: refund-agent-${var.catalog}
+            - name: COMPLAINT_AGENT_APP_NAME
+              default: complaint-agent-${var.catalog}
 
           tasks:
             # ─── Data foundation ──────────────────────────────────────────────

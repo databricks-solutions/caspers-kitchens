@@ -1,4 +1,6 @@
+import json
 import os
+import re
 import uuid
 import warnings
 from typing import Literal, Optional
@@ -20,9 +22,38 @@ mlflow.set_registry_uri(os.getenv("MLFLOW_REGISTRY_URI", "databricks-uc"))
 mlflow.dspy.autolog(log_traces=True)
 
 CATALOG = os.environ["DATABRICKS_CATALOG"]
-LLM_MODEL = os.environ["LLM_MODEL"]
-HOST = (os.environ.get("DATABRICKS_HOST") or Config().host).rstrip("/")
-GATEWAY_BASE_URL = f"{HOST}/ai-gateway/mlflow/v1"
+# Unity AI Gateway endpoint that ALL of this agent's LLM calls route through.
+# Gateway-always-on: there is no model-serving fallback.  Sent verbatim as the
+# `model` field to <host>/ai-gateway/mlflow/v1, so it must name a queryable
+# gateway route (its CAN_QUERY is granted to the App SP manually — see runbook).
+# Falls back to LLM_MODEL during the migration to the dedicated
+# AI_GATEWAY_ENDPOINT_NAME param so the App works whether the deploy stage
+# injects the old or new env var.
+GATEWAY_ENDPOINT_NAME = os.environ.get("AI_GATEWAY_ENDPOINT_NAME") or os.environ["LLM_MODEL"]
+COMPLAINT_TRIAGE_PROMPT = """Decision framework:
+- Use exactly one complaint_category: delivery_delay, missing_items, food_quality, service_issue, billing, or other.
+- Use decision "suggest_credit" only when a concrete credit amount is appropriate. Otherwise use "escalate".
+- Delivery delays: if actual delivery is below P75, credit_amount should be 0.0 with low confidence; P75-P99 suggests about 15% of order total; above P99 suggests about 25%.
+- Missing items: use item prices when the claimed item appears in the order; otherwise escalate.
+- Food quality: minor issues can suggest about 20%; severe or health/safety issues should escalate urgently.
+- For suggest_credit, credit_amount and confidence are required and priority must be null.
+- For escalate, priority is required and credit_amount/confidence must be null.
+- Rationale must cite specific evidence and stay under 150 words.
+
+Return only this JSON shape:
+{"order_id":"<order_id>","complaint_category":"delivery_delay|missing_items|food_quality|service_issue|billing|other","decision":"suggest_credit|escalate","credit_amount":0.0,"confidence":"high|medium|low","priority":null,"rationale":"..."}"""
+
+
+def _workspace_host() -> str:
+    host = (os.environ.get("DATABRICKS_HOST") or Config().host or "").rstrip("/")
+    if not host:
+        raise RuntimeError("Databricks workspace host is unavailable")
+    if not host.startswith(("http://", "https://")):
+        host = f"https://{host}"
+    return host
+
+
+GATEWAY_BASE_URL = f"{_workspace_host()}/ai-gateway/mlflow/v1"
 
 
 def _auth_header() -> str:
@@ -36,28 +67,45 @@ def _token() -> str:
     return _auth_header().removeprefix("Bearer ")
 
 
-def _configure_dspy() -> None:
-    lm = dspy.LM(
-        f"openai/{LLM_MODEL}",
+def _build_lm() -> dspy.LM:
+    """Build a DSPy LM bound to the AI Gateway with a *fresh* bearer token.
+
+    Rebuilt on every request (see `_run_triage`) so a rotated OAuth M2M token
+    is picked up immediately — dspy.LM / litellm bake `api_key` in at
+    construction time and expose no callable-key hook.
+    """
+    return dspy.LM(
+        f"openai/{GATEWAY_ENDPOINT_NAME}",
         api_base=GATEWAY_BASE_URL,
         api_key=_token(),
-        max_tokens=2000,
-        num_retries=20,
+        max_tokens=1000,
+        num_retries=3,
         cache=False,
     )
-    dspy.configure(lm=lm)
 
 
 def _validate_gateway_endpoint() -> None:
     client = OpenAI(api_key=_token(), base_url=GATEWAY_BASE_URL, timeout=30)
     client.chat.completions.create(
-        model=LLM_MODEL,
+        model=GATEWAY_ENDPOINT_NAME,
         messages=[{"role": "user", "content": "Say gateway ok."}],
         max_tokens=8,
     )
 
 
 _validate_gateway_endpoint()
+
+# Configure DSPy's global settings ONCE, on the import (main) thread.  The
+# MLflow AgentServer dispatches the request handler on FastAPI worker threads,
+# and `dspy.configure()` enforces thread-affinity — only the thread that first
+# configured it may reconfigure.  Calling `dspy.configure()` from inside the
+# request handler therefore raises "dspy.settings can only be changed by the
+# thread that initially configured it" on the first request that lands on a
+# different worker thread.  We configure once here and apply a fresh-token LM
+# per request via the thread-safe `dspy.context(...)` override in
+# `_run_triage`.  This base LM is NOT what serves requests.
+dspy.configure(lm=_build_lm(), adapter=dspy.ChatAdapter(use_json_adapter_fallback=False))
+
 _uc_client = None
 
 
@@ -128,57 +176,6 @@ class ComplaintResponse(BaseModel):
         return v
 
 
-class ComplaintTriage(dspy.Signature):
-    """Analyze customer complaints for Casper's Kitchens and recommend triage actions.
-
-    Process:
-    1. Extract order_id from complaint
-    2. Use get_order_overview(order_id) for order details and items
-    3. Use get_order_timing(order_id) for delivery timing
-    4. For delays, use get_location_timings(location) for percentile benchmarks
-    5. Make data-backed decision
-
-    Decision Framework:
-
-    SUGGEST_CREDIT (with credit_amount and confidence):
-    - Delivery delays: Compare actual delivery time to location percentiles
-      * <P75: Suggest $0 credit (low confidence - on-time or minimal delay)
-      * P75-P99: Suggest 15% of order total (medium to high confidence)
-      * >P99: Suggest 25% of order total (high confidence)
-    - Missing items: Use actual item prices from order data when available
-      * Verify claimed item exists in order (affects confidence)
-      * Use real costs from order data, or estimate $8-12 per item if unavailable
-    - Food quality: 20-40% of order total based on severity
-      * Minor issues (slightly cold, minor preparation issue): 20% (medium confidence)
-      * Major issues (completely inedible, wrong preparation, health concern): 40% (high confidence)
-      * Vague complaints ("bad", "gross"): escalate instead
-
-    ESCALATE (with priority):
-    - priority="standard": Vague complaints, missing data, billing issues, service complaints
-    - priority="urgent": Legal threats, health/safety concerns, suspected fraud, abusive language
-
-    Output Requirements:
-    - For suggest_credit: credit_amount is REQUIRED and must be a number (can be 0.0 if no credit warranted), confidence is REQUIRED, priority must be null
-    - For escalate: priority is REQUIRED, credit_amount and confidence must be null
-    - complaint_category: Choose EXACTLY ONE category (the primary one)
-    - Rationale must cite specific evidence (delivery times, percentiles, item verification, order total)
-    - Rationale should be detailed but under 150 words
-    - Round credit amounts to nearest $0.50
-    - Confidence: high (strong data), medium (reasonable inference), low (weak/contradictory)
-    """
-
-    complaint: str = dspy.InputField(desc="Customer complaint text")
-    order_id: str = dspy.OutputField(desc="Extracted order ID")
-    complaint_category: str = dspy.OutputField(
-        desc="EXACTLY ONE category: delivery_delay, missing_items, food_quality, service_issue, billing, or other"
-    )
-    decision: str = dspy.OutputField(desc="EXACTLY ONE: suggest_credit or escalate")
-    credit_amount: str = dspy.OutputField(desc="If suggest_credit: a number. If escalate: null")
-    confidence: str = dspy.OutputField(desc="If suggest_credit: high, medium, or low. If escalate: null")
-    priority: str = dspy.OutputField(desc="If escalate: standard or urgent. If suggest_credit: null")
-    rationale: str = dspy.OutputField(desc="Data-focused justification citing specific evidence")
-
-
 def get_order_overview(order_id: str) -> str:
     """Get order details including items, location, and customer info."""
     result = _client().execute_function(f"{CATALOG}.ai.get_order_overview", {"oid": order_id})
@@ -197,40 +194,105 @@ def get_location_timings(location: str) -> str:
     return str(result.value)
 
 
-class ComplaintTriageModule(dspy.Module):
-    def __init__(self):
-        super().__init__()
-        self.react = dspy.ReAct(
-            signature=ComplaintTriage,
-            tools=[get_order_overview, get_order_timing, get_location_timings],
-            max_iters=10,
-        )
+_ORDER_ID_RE = re.compile(r"\border\s*id\s*[:#-]?\s*([A-Za-z0-9]{6}(?:-L\d+)?)\b", re.IGNORECASE)
+_FALLBACK_ID_RE = re.compile(r"\b[A-Z0-9]{6}(?:-L\d+)?\b")
 
-    def forward(self, complaint: str, max_retries: int = 2) -> ComplaintResponse:
-        for attempt in range(max_retries + 1):
+
+def _extract_order_id(text: str) -> str:
+    match = _ORDER_ID_RE.search(text)
+    if match:
+        return match.group(1).upper()
+    match = _FALLBACK_ID_RE.search(text.upper())
+    if match:
+        return match.group(0)
+    raise ValueError("No order_id found in complaint")
+
+
+def _extract_location(order_overview: str) -> Optional[str]:
+    match = re.search(r"['\"]location['\"]\s*[:=]\s*['\"]([^'\"]+)['\"]", order_overview)
+    if match:
+        return match.group(1)
+    for location in ("San Francisco", "Silicon Valley", "Bellevue", "Chicago"):
+        if location.lower() in order_overview.lower():
+            return location
+    return None
+
+
+def _lm_text(outputs) -> str:
+    if isinstance(outputs, str):
+        return outputs
+    if isinstance(outputs, list) and outputs:
+        first = outputs[0]
+        if isinstance(first, str):
+            return first
+        if isinstance(first, dict):
+            for key in ("text", "content", "answer", "response"):
+                if key in first and first[key]:
+                    return str(first[key])
+            return json.dumps(first)
+    return str(outputs)
+
+
+def _parse_response(text: str) -> ComplaintResponse:
+    start = text.find("{")
+    end = text.rfind("}")
+    if start < 0 or end < start:
+        raise ValueError(f"Complaint agent returned no JSON object: {text}")
+    payload = json.loads(text[start : end + 1])
+    return ComplaintResponse.model_validate(payload)
+
+
+def _triage_prompt(
+    complaint: str,
+    order_id: str,
+    order_overview: str,
+    order_timing: str,
+    location_timings: str,
+) -> str:
+    return f"""Analyze this Casper's Kitchens customer complaint and return only JSON.
+
+Customer complaint:
+{complaint}
+
+Order id:
+{order_id}
+
+Order overview from Unity Catalog:
+{order_overview}
+
+Order timing from Unity Catalog:
+{order_timing}
+
+Location delivery percentiles from Unity Catalog:
+{location_timings or "Unavailable"}
+
+{COMPLAINT_TRIAGE_PROMPT.replace("<order_id>", order_id)}"""
+
+
+def _run_triage(complaint: str) -> ComplaintResponse:
+    order_id = _extract_order_id(complaint)
+    order_overview = get_order_overview(order_id)
+    order_timing = get_order_timing(order_id)
+    location = _extract_location(order_overview)
+    location_timings = get_location_timings(location) if location else ""
+    lm = _build_lm()
+
+    prompt = _triage_prompt(complaint, order_id, order_overview, order_timing, location_timings)
+    last_text = ""
+    # `dspy.context(...)` is the thread-safe, per-request settings override —
+    # safe to call from the AgentServer worker thread, unlike `dspy.configure()`
+    # (see the module-load comment above).
+    with dspy.context(lm=lm):
+        for attempt in range(2):
+            outputs = lm(messages=[{"role": "user", "content": prompt}])
+            last_text = _lm_text(outputs)
             try:
-                result = self.react(complaint=complaint)
-                credit_amount = None
-                if result.credit_amount and result.credit_amount.lower() != "null":
-                    try:
-                        credit_amount = float(result.credit_amount)
-                    except (ValueError, TypeError):
-                        credit_amount = None
-                if result.decision == "suggest_credit" and credit_amount is None:
-                    credit_amount = 0.0
-                return ComplaintResponse(
-                    order_id=result.order_id,
-                    complaint_category=result.complaint_category,
-                    decision=result.decision,
-                    credit_amount=credit_amount,
-                    confidence=result.confidence,
-                    priority=result.priority,
-                    rationale=result.rationale,
-                )
-            except (ValidationError, ValueError):
-                if attempt >= max_retries:
-                    raise
-        raise RuntimeError("Complaint triage failed after retries")
+                return _parse_response(last_text)
+            except (json.JSONDecodeError, ValidationError, ValueError) as exc:
+                if attempt:
+                    raise ValueError(f"Invalid complaint agent JSON: {last_text}") from exc
+                prompt += f"\n\nYour previous response was invalid: {last_text}\nReturn only valid JSON with the required shape."
+    raise RuntimeError("Complaint triage failed")
 
 
 def _msg_to_dict(msg) -> dict:
@@ -254,7 +316,6 @@ def _text_output(text: str, item_id: str | None = None) -> dict:
 
 @invoke()
 def non_streaming(request: ResponsesAgentRequest) -> ResponsesAgentResponse:
-    _configure_dspy()
     complaint = None
     for msg in request.input:
         msg_dict = _msg_to_dict(msg)
@@ -264,7 +325,7 @@ def non_streaming(request: ResponsesAgentRequest) -> ResponsesAgentResponse:
     if not complaint:
         raise ValueError("No user message found in request")
 
-    result = ComplaintTriageModule()(complaint=complaint)
+    result = _run_triage(complaint)
     return ResponsesAgentResponse(
         output=[_text_output(result.model_dump_json())],
         custom_outputs=request.custom_inputs,

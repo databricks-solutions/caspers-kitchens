@@ -29,7 +29,14 @@ mlflow.set_registry_uri(os.getenv("MLFLOW_REGISTRY_URI", "databricks-uc"))
 mlflow.langchain.autolog()
 
 CATALOG = os.environ["DATABRICKS_CATALOG"]
-LLM_MODEL = os.environ["LLM_MODEL"]
+# Unity AI Gateway endpoint that ALL of this agent's LLM calls route through.
+# Gateway-always-on: there is no model-serving fallback.  Sent verbatim as the
+# `model` field to <host>/ai-gateway/mlflow/v1, so it must name a queryable
+# gateway route (its CAN_QUERY is granted to the App SP manually — see runbook).
+# Falls back to LLM_MODEL during the migration to the dedicated
+# AI_GATEWAY_ENDPOINT_NAME param so the App works whether the deploy stage
+# injects the old or new env var.
+GATEWAY_ENDPOINT_NAME = os.environ.get("AI_GATEWAY_ENDPOINT_NAME") or os.environ["LLM_MODEL"]
 PROMPT_URI = f"prompts:/{CATALOG}.prompts.refund_system@production"
 
 _FALLBACK_PROMPT = """You are RefundGPT, a CX agent responsible for refund decisions on food delivery orders.
@@ -81,15 +88,23 @@ def _auth_header() -> str:
     return header
 
 
+def _workspace_host() -> str:
+    host = (os.environ.get("DATABRICKS_HOST") or Config().host or "").rstrip("/")
+    if not host:
+        raise RuntimeError("Databricks workspace host is unavailable")
+    if not host.startswith(("http://", "https://")):
+        host = f"https://{host}"
+    return host
+
+
 def _validate_gateway_endpoint() -> None:
-    host = (os.environ.get("DATABRICKS_HOST") or Config().host).rstrip("/")
     client = OpenAI(
         api_key=_auth_header().removeprefix("Bearer "),
-        base_url=f"{host}/ai-gateway/mlflow/v1",
+        base_url=f"{_workspace_host()}/ai-gateway/mlflow/v1",
         timeout=30,
     )
     client.chat.completions.create(
-        model=LLM_MODEL,
+        model=GATEWAY_ENDPOINT_NAME,
         messages=[{"role": "user", "content": "Say gateway ok."}],
         max_tokens=8,
     )
@@ -117,6 +132,22 @@ class RefundDecision(BaseModel):
     refund_usd: float = 0.0
     refund_class: Literal["none", "partial", "full"] = "none"
     reason: str = ""
+
+
+def _parse_refund_decision(text: str) -> RefundDecision | None:
+    try:
+        return RefundDecision.model_validate_json(text)
+    except (ValidationError, ValueError, TypeError):
+        pass
+
+    start = text.find("{")
+    end = text.rfind("}")
+    if start < 0 or end < start:
+        return None
+    try:
+        return RefundDecision.model_validate_json(text[start : end + 1])
+    except (ValidationError, ValueError, TypeError):
+        return None
 
 
 @tool
@@ -184,7 +215,7 @@ def create_tool_calling_agent(
     return workflow.compile()
 
 
-LLM = ChatDatabricks(model=LLM_MODEL, use_ai_gateway=True)
+LLM = ChatDatabricks(model=GATEWAY_ENDPOINT_NAME, use_ai_gateway=True)
 AGENT: CompiledStateGraph = create_tool_calling_agent(LLM, TOOLS, SYSTEM_PROMPT)
 
 
@@ -217,11 +248,10 @@ def _run_agent(messages: list[dict]) -> str:
         role = msg.get("role") if isinstance(msg, dict) else getattr(msg, "role", None)
         content = msg.get("content", "") if isinstance(msg, dict) else getattr(msg, "content", "")
         if role == "assistant" and content:
-            try:
-                parsed = RefundDecision.model_validate_json(content)
+            parsed = _parse_refund_decision(str(content))
+            if parsed:
                 return parsed.model_dump_json()
-            except (ValidationError, ValueError, TypeError):
-                return str(content)
+            return str(content)
     raise RuntimeError("Refund agent produced no assistant message")
 
 

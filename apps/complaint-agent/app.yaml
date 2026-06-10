@@ -4,7 +4,10 @@ command:
 env:
   - name: DATABRICKS_CATALOG
     value: caspersdev
-  - name: LLM_MODEL
+  # Unity AI Gateway endpoint the agent routes every LLM call through.
+  # The deploy stage overwrites this app.yaml with the per-catalog value;
+  # this static default is for local/dev runs only.
+  - name: AI_GATEWAY_ENDPOINT_NAME
     value: databricks-claude-sonnet-4-5
   - name: MLFLOW_TRACKING_URI
     value: databricks

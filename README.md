@@ -36,11 +36,36 @@ Available targets:
 | `free` | Data generation, Lakeflow pipeline (Free Edition compatible) |
 | `all` | Everything end-to-end: refund + complaints + Operational Dashboard (3 Genies + 6 Knowledge Assistants + Multi-Agent Supervisor + Lakebase-backed FastAPI app) |
 
-Optionally specify a catalog (default: `caspersdev`):
+Optionally specify a catalog (default: `caspersdev`).  There are **two** dials
+that take a catalog name and they must agree:
+
+| Dial | When | What it controls |
+|---|---|---|
+| `bundle deploy --var catalog=<name>` | deploy time | the catalog baked into every DABs-managed resource — the `all` target's `caspers_ops_warehouse` SQL warehouse, AI/BI dashboard names, dashboard `dataset_catalog`, and the *default* value of every job parameter that uses `${var.catalog}` (including `CATALOG`, `REFUND_AGENT_APP_NAME`, `COMPLAINT_AGENT_APP_NAME`, `OPS_WAREHOUSE_NAME`, etc.) |
+| `bundle run caspers --params "CATALOG=<name>"` | run time | only the value of the `CATALOG` widget inside stage notebooks.  Cannot rename anything DABs already created. |
+
+If they disagree (e.g. `bundle deploy -t all` with the default + `bundle run
+--params CATALOG=mycatalog`), the `all` target will fail at the
+`Operational_App` stage because the warehouse DABs created (`caspersdev-ops-warehouse`)
+is not what the stage looks up (`mycatalog-ops-warehouse`).  The fix is to
+pass the same catalog to both:
 
 ```bash
+databricks bundle deploy -t all --var catalog=mycatalog
 databricks bundle run caspers --params "CATALOG=mycatalog"
 ```
+
+For targets other than `all` (no DABs-owned warehouse/dashboards),
+`--params CATALOG=mycatalog` alone usually works, but passing both keeps the
+deploy-time and run-time catalogs in sync and is the safer habit.
+
+> **Agents on the `all` target run as Databricks Apps through Unity AI
+> Gateway.** The Refund and Complaint agents are deployed as Apps
+> (`apps/refund-agent`, `apps/complaint-agent`) and route every LLM call
+> through a UI-created Unity AI Gateway endpoint (`AI_GATEWAY_ENDPOINT_NAME`).
+> The gateway and its `CAN_QUERY` grant to each agent App's service principal
+> are manual one-time setup — see step 5 of
+> `demos/dais2026-runbooks/SETUP.ipynb`.
 
 ## Clean Up
 

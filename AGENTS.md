@@ -633,6 +633,55 @@ Use full redeploy instead if:
   - Ensure it's plumbed through all layers
   - Check `databricks.yml` parameters, stage parameter parsing, and implementation usage
 
+#### 5a. `--var catalog` vs `--params CATALOG` drift
+- **Why fragile**: Two separate dials use a catalog name and they can disagree.
+  - `bundle deploy --var catalog=X` → resolves `${var.catalog}` at deploy
+    time.  Bakes `X` into every DABs-managed resource name (e.g. the `all`
+    target's `caspers_ops_warehouse` becomes `X-ops-warehouse`), every
+    AI/BI dashboard name, every dashboard `dataset_catalog`, and every job
+    parameter `default: ${var.catalog}...` (incl. `CATALOG`,
+    `REFUND_AGENT_APP_NAME`, `COMPLAINT_AGENT_APP_NAME`,
+    `OPS_WAREHOUSE_NAME`, `SUPERVISOR_ENDPOINT_NAME`).
+  - `bundle run caspers --params "CATALOG=Y"` → overrides ONLY the
+    run-time `CATALOG` widget value inside stage notebooks.  Cannot rename
+    anything DABs already created.
+- **Symptom when they disagree**: stages that reconstruct a DABs-managed
+  resource name from the run-time `CATALOG` widget fail to find it.
+  Example: deploying with the default and then running
+  `--params CATALOG=mycatalog` against the `all` target makes
+  `stages/operational_app.ipynb` fail with
+  `RuntimeError: Warehouse 'mycatalog-ops-warehouse' not found` because
+  DABs created `caspersdev-ops-warehouse`.
+- **Best practice**:
+  - When in doubt, pass the same catalog to both:
+    `bundle deploy -t <target> --var catalog=X` then
+    `bundle run caspers --params "CATALOG=X"`.
+  - When adding a stage that needs the name of a DABs-managed resource (or
+    of an agent App the agent stages deployed), do NOT reconstruct it from
+    the `CATALOG` widget.  Add a dedicated job parameter with a
+    `${var.catalog}-...` default in `databricks.yml` (this is how
+    `OPS_WAREHOUSE_NAME`, `REFUND_AGENT_APP_NAME` and
+    `COMPLAINT_AGENT_APP_NAME` are wired), then read that parameter via
+    `dbutils.widgets.get(...)` in the stage.  The deploy-time value rides
+    through the job parameter into the run-time widget, so the two dials
+    physically cannot disagree.
+  - The agent App names additionally pass through
+    `utils/agent_app_client.resolve_agent_app_name(...)`, which prefers the
+    baked param and re-sanitises to the Databricks Apps name rules; the
+    `all`-target param block in `databricks.yml` (with its
+    deploy-time-vs-run-time comment) is the canonical example of this pattern.
+
+#### 5b. Unity AI Gateway endpoint name (`AI_GATEWAY_ENDPOINT_NAME`)
+- **Distinct from `LLM_MODEL`**: `LLM_MODEL` is the foundation model the
+  generators / support agent call directly.  `AI_GATEWAY_ENDPOINT_NAME` is the
+  governed Unity AI Gateway endpoint the Refund + Complaint **App** agents send
+  every LLM call through (gateway-always-on, no model-serving fallback).  It is
+  sent verbatim as the request `model` to `<host>/ai-gateway/mlflow/v1`.
+- **Manual setup**: the v2 Beta gateway is UI-created only and has no
+  permissions API, so `CAN_QUERY` must be granted to **each agent App's service
+  principal** by hand (the App SP is not in `account users`).  See step 5 of
+  `demos/dais2026-runbooks/SETUP.ipynb`.
+
 ### 6. Resource Dependencies
 - **Why fragile**: Stages create resources that others depend on (endpoints, tables, etc.)
 - **When touching**: Creation/deletion order, stage dependencies
