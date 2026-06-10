@@ -841,6 +841,8 @@ targets:
             - task_key: Operational_App
               max_retries: 0
               depends_on:
+                - task_key: Refund_Recommender_Agent
+                - task_key: Complaint_Agent
                 - task_key: Operational_Supervisor
                 - task_key: Operational_Lakebase
               notebook_task:
