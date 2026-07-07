@@ -1,0 +1,8 @@
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+databricks-sdk>=0.81.0
+databricks-sql-connector
+psycopg[binary]==3.2.3
+psycopg-pool==3.3.1
+httpx==0.28.1
+python-multipart==0.0.20

@@ -28,26 +28,36 @@ REFUNDS_TABLE = f"{_qi(REFUNDS_SCHEMA)}.refund_decisions"
 RECS_TABLE    = f"{_qi(RECS_SCHEMA)}.pg_recommendations"
 
 # ─── Startup: ensure refunds table ────────────────────────────────────────────
-DDL = f"""
-CREATE SCHEMA IF NOT EXISTS {_qi(REFUNDS_SCHEMA)};
+# Run each DDL statement in its own transaction. Lakebase's DATABRICKS_SUPERUSER
+# role does NOT bypass per-table ownership checks (unlike a real Postgres
+# SUPERUSER), so an idempotent `CREATE INDEX IF NOT EXISTS` against a table that
+# was created by an earlier deploy's app SP raises `must be owner of table …`
+# and crashes startup. The objects already exist in that case, so we log and
+# continue. Mirrors the pattern used in apps/caspers-ops-dashboard/app/db.py.
+DDL_STATEMENTS = [
+    f"CREATE SCHEMA IF NOT EXISTS {_qi(REFUNDS_SCHEMA)}",
+    f"""CREATE TABLE IF NOT EXISTS {REFUNDS_TABLE} (
+        id BIGSERIAL PRIMARY KEY,
+        order_id TEXT NOT NULL,
+        decided_ts TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        amount_usd NUMERIC(10,2) NOT NULL CHECK (amount_usd >= 0),
+        refund_class TEXT NOT NULL CHECK (refund_class IN ('none','partial','full')),
+        reason TEXT NOT NULL,
+        decided_by TEXT,
+        source_suggestion JSONB
+    )""",
+    f"CREATE INDEX IF NOT EXISTS idx_refund_decisions_order_id ON {REFUNDS_TABLE}(order_id)",
+]
 
-CREATE TABLE IF NOT EXISTS {REFUNDS_TABLE} (
-    id BIGSERIAL PRIMARY KEY,
-    order_id TEXT NOT NULL,
-    decided_ts TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    amount_usd NUMERIC(10,2) NOT NULL CHECK (amount_usd >= 0),
-    refund_class TEXT NOT NULL CHECK (refund_class IN ('none','partial','full')),
-    reason TEXT NOT NULL,
-    decided_by TEXT,
-    source_suggestion JSONB
-);
-CREATE INDEX IF NOT EXISTS idx_refund_decisions_order_id ON {REFUNDS_TABLE}(order_id);
-"""
 
 @app.on_event("startup")
 def _startup():
-    with engine.begin() as conn:
-        conn.exec_driver_sql(DDL)
+    for stmt in DDL_STATEMENTS:
+        try:
+            with engine.begin() as conn:
+                conn.exec_driver_sql(stmt)
+        except Exception as e:
+            log.warning(f"Refunds DDL skipped (non-fatal): {e}")
 
 # ─── Static SPA ───────────────────────────────────────────────────────────────
 @app.get("/")

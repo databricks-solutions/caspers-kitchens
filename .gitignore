@@ -1,5 +1,4 @@
 .state/
-data/generator/cache/
 stages/agent.py
 
 *conf*.json
@@ -9,6 +8,7 @@ __pycache__
 .env
 .databricks
 .claude
+.cursor
 .bundle
 /.vscode/
 node_modules/

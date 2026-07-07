@@ -1,9 +1,14 @@
 """
 Canonical Dataset Generator for Casper's Kitchens
-Generates 90 days of realistic ghost kitchen event data across 4 cities.
+Generates 90 days of realistic ghost kitchen event data across all locations
+defined in canonical_dataset/locations.parquet.
 
 Uses real OpenStreetMap road networks for routing.
-Outputs compact parquet files (orders.parquet, events.parquet).
+Outputs compact parquet files (events.parquet).
+
+To extend with new locations:
+  1. Edit and run `update_locations_parquet.py` to add new rows.
+  2. Re-run this script to regenerate events.parquet for all locations.
 """
 
 import datetime as dt
@@ -11,8 +16,13 @@ import json
 import math
 import pickle
 import random
+import sys
+import time
 from pathlib import Path
 from typing import Dict, List, Tuple
+
+# Force line-buffered stdout so progress is visible when run under a pipe/CI.
+sys.stdout.reconfigure(line_buffering=True)
 
 import networkx as nx
 import numpy as np
@@ -62,6 +72,8 @@ items_df = pd.read_parquet("canonical_dataset/items.parquet")
 LOCATIONS = locations_df.to_dict('records')
 BRANDS_BY_ID = brands_df.set_index('brand_id').to_dict('index')
 ITEMS_BY_BRAND = {bid: grp.to_dict('records') for bid, grp in items_df.groupby('brand_id')}
+
+print(f"   {len(LOCATIONS)} locations: " + ", ".join(l['name'] for l in LOCATIONS))
 
 # ============================================================================
 # DEMAND PATTERNS
@@ -420,14 +432,15 @@ def generate_order(order_id: str, location: dict, day: int, minute_of_day: int) 
 # MAIN GENERATION LOOP
 # ============================================================================
 
-print(f"\n🏭 Generating {DAYS} days of orders across 4 cities...")
+print(f"\n🏭 Generating {DAYS} days of orders across {len(LOCATIONS)} cities...")
 
 all_events = []
 generated_order_ids = set()  # Track to ensure uniqueness
+_t0 = time.time()
 
 for day in range(DAYS):
-    if day % 10 == 0:
-        print(f"  Day {day}/{DAYS}...")
+    _day_start = time.time()
+    _day_events_before = len(all_events)
 
     for location in LOCATIONS:
         loc_code = location['location_code']
@@ -456,6 +469,16 @@ for day in range(DAYS):
                 events = generate_order(order_id, location, day, minute)
                 if events:
                     all_events.extend(events)
+
+    _day_elapsed = time.time() - _day_start
+    _day_events = len(all_events) - _day_events_before
+    _total_elapsed = time.time() - _t0
+    _eta_remaining = _total_elapsed / (day + 1) * (DAYS - day - 1)
+    print(
+        f"  Day {day+1:2d}/{DAYS} done in {_day_elapsed:5.1f}s "
+        f"(+{_day_events:>6,} events, total {len(all_events):>8,}; "
+        f"elapsed {_total_elapsed/60:5.1f}m, ETA {_eta_remaining/60:5.1f}m)"
+    )
 
 # Count unique orders
 unique_orders = len(set(e['order_id'] for e in all_events))

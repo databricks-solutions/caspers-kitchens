@@ -35,82 +35,6 @@
       "follow_up_status": "Routine re-inspection in 90 days"
     },
     {
-      "inspection_id": "INS-01-20240212",
-      "location_id": 1,
-      "location_name": "San Francisco",
-      "address": "1847 Market Street, San Francisco, CA 94103",
-      "jurisdiction": "San Francisco Department of Public Health",
-      "inspection_date": "2024-02-12",
-      "inspector_name": "Marcus Williams",
-      "score": 87,
-      "grade": "B",
-      "violations": [
-        {
-          "code": "V-305",
-          "severity": "minor",
-          "category": "Administrative",
-          "description": "Permit or latest inspection report not posted in public view",
-          "corrective_action": "Print and post current permit and latest inspection report in customer-visible area within 24 hours.",
-          "deadline_days": 30
-        },
-        {
-          "code": "V-306",
-          "severity": "minor",
-          "category": "Maintenance",
-          "description": "Ceiling vent above dishwashing station shows condensation buildup",
-          "corrective_action": "Schedule professional deep-cleaning of exhaust system within 7 days. Add monthly cleaning to maintenance calendar.",
-          "deadline_days": 30
-        },
-        {
-          "code": "V-303",
-          "severity": "minor",
-          "category": "Personal Hygiene",
-          "description": "Employee personal items stored in food preparation area",
-          "corrective_action": "Issue verbal warning to staff member. Retrain all kitchen staff on glove-use and hand-hygiene SOP.",
-          "deadline_days": 30
-        }
-      ],
-      "violation_count": 3,
-      "critical_count": 0,
-      "major_count": 0,
-      "minor_count": 3,
-      "follow_up_status": "Routine re-inspection in 90 days"
-    },
-    {
-      "inspection_id": "INS-01-20240318",
-      "location_id": 1,
-      "location_name": "San Francisco",
-      "address": "1847 Market Street, San Francisco, CA 94103",
-      "jurisdiction": "San Francisco Department of Public Health",
-      "inspection_date": "2024-03-18",
-      "inspector_name": "Dr. Sarah Chen",
-      "score": 96,
-      "grade": "A",
-      "violations": [
-        {
-          "code": "V-201",
-          "severity": "major",
-          "category": "Facilities",
-          "description": "Handwashing sink blocked by equipment, not accessible to staff",
-          "corrective_action": "Submit maintenance request for repair within 14 days. Restrict use of affected area until repaired.",
-          "deadline_days": 14
-        },
-        {
-          "code": "V-307",
-          "severity": "minor",
-          "category": "Chemical Safety",
-          "description": "Chemical cleaning supplies stored without labels in utility closet",
-          "corrective_action": "Label all chemical containers per OSHA requirements within 24 hours. Relocate to designated chemical storage area.",
-          "deadline_days": 30
-        }
-      ],
-      "violation_count": 2,
-      "critical_count": 0,
-      "major_count": 1,
-      "minor_count": 1,
-      "follow_up_status": "Routine re-inspection in 90 days"
-    },
-    {
       "inspection_id": "INS-02-20240115",
       "location_id": 2,
       "location_name": "Silicon Valley",
@@ -141,74 +65,6 @@
       "violation_count": 2,
       "critical_count": 0,
       "major_count": 1,
-      "minor_count": 1,
-      "follow_up_status": "Routine re-inspection in 90 days"
-    },
-    {
-      "inspection_id": "INS-02-20240212",
-      "location_id": 2,
-      "location_name": "Silicon Valley",
-      "address": "2350 El Camino Real, Santa Clara, CA 95051",
-      "jurisdiction": "Santa Clara County Environmental Health",
-      "inspection_date": "2024-02-12",
-      "inspector_name": "Marcus Williams",
-      "score": 94,
-      "grade": "A",
-      "violations": [
-        {
-          "code": "V-301",
-          "severity": "minor",
-          "category": "Facilities",
-          "description": "Floor tiles cracked or missing in food preparation area",
-          "corrective_action": "Submit maintenance request for repair within 14 days. Restrict use of affected area until repaired.",
-          "deadline_days": 30
-        },
-        {
-          "code": "V-204",
-          "severity": "major",
-          "category": "Food Labeling",
-          "description": "Date-marking missing on prepared foods held more than 24 hours",
-          "corrective_action": "Label all prepped items immediately. Implement date-label audit at start and end of each shift.",
-          "deadline_days": 14
-        },
-        {
-          "code": "V-302",
-          "severity": "minor",
-          "category": "Facilities",
-          "description": "Light fixture missing protective shield in food prep zone",
-          "corrective_action": "Submit maintenance request for repair within 14 days. Restrict use of affected area until repaired.",
-          "deadline_days": 30
-        }
-      ],
-      "violation_count": 3,
-      "critical_count": 0,
-      "major_count": 1,
-      "minor_count": 2,
-      "follow_up_status": "Routine re-inspection in 90 days"
-    },
-    {
-      "inspection_id": "INS-02-20240318",
-      "location_id": 2,
-      "location_name": "Silicon Valley",
-      "address": "2350 El Camino Real, Santa Clara, CA 95051",
-      "jurisdiction": "Santa Clara County Environmental Health",
-      "inspection_date": "2024-03-18",
-      "inspector_name": "Linda Ramirez",
-      "score": 90,
-      "grade": "A",
-      "violations": [
-        {
-          "code": "V-307",
-          "severity": "minor",
-          "category": "Chemical Safety",
-          "description": "Chemical cleaning supplies stored without labels in utility closet",
-          "corrective_action": "Label all chemical containers per OSHA requirements within 24 hours. Relocate to designated chemical storage area.",
-          "deadline_days": 30
-        }
-      ],
-      "violation_count": 1,
-      "critical_count": 0,
-      "major_count": 0,
       "minor_count": 1,
       "follow_up_status": "Routine re-inspection in 90 days"
     },
@@ -261,66 +117,6 @@
       "major_count": 4,
       "minor_count": 0,
       "follow_up_status": "Follow-up inspection scheduled within 30 days"
-    },
-    {
-      "inspection_id": "INS-03-20240212",
-      "location_id": 3,
-      "location_name": "Bellevue",
-      "address": "10456 NE 8th Street, Bellevue, WA 98004",
-      "jurisdiction": "King County Public Health",
-      "inspection_date": "2024-02-12",
-      "inspector_name": "Dr. Sarah Chen",
-      "score": 87,
-      "grade": "B",
-      "violations": [
-        {
-          "code": "V-206",
-          "severity": "major",
-          "category": "Pest Control",
-          "description": "Pest control log not up to date or pest evidence found in dry storage",
-          "corrective_action": "Contact licensed pest control service for treatment within 72 hours. Update pest control log.",
-          "deadline_days": 14
-        },
-        {
-          "code": "V-307",
-          "severity": "minor",
-          "category": "Chemical Safety",
-          "description": "Chemical cleaning supplies stored without labels in utility closet",
-          "corrective_action": "Label all chemical containers per OSHA requirements within 24 hours. Relocate to designated chemical storage area.",
-          "deadline_days": 30
-        }
-      ],
-      "violation_count": 2,
-      "critical_count": 0,
-      "major_count": 1,
-      "minor_count": 1,
-      "follow_up_status": "Routine re-inspection in 90 days"
-    },
-    {
-      "inspection_id": "INS-03-20240318",
-      "location_id": 3,
-      "location_name": "Bellevue",
-      "address": "10456 NE 8th Street, Bellevue, WA 98004",
-      "jurisdiction": "King County Public Health",
-      "inspection_date": "2024-03-18",
-      "inspector_name": "Linda Ramirez",
-      "score": 90,
-      "grade": "A",
-      "violations": [
-        {
-          "code": "V-306",
-          "severity": "minor",
-          "category": "Maintenance",
-          "description": "Ceiling vent above dishwashing station shows condensation buildup",
-          "corrective_action": "Schedule professional deep-cleaning of exhaust system within 7 days. Add monthly cleaning to maintenance calendar.",
-          "deadline_days": 30
-        }
-      ],
-      "violation_count": 1,
-      "critical_count": 0,
-      "major_count": 0,
-      "minor_count": 1,
-      "follow_up_status": "Routine re-inspection in 90 days"
     },
     {
       "inspection_id": "INS-04-20240115",
@@ -397,6 +193,284 @@
       "follow_up_status": "Re-inspection required within 10 business days"
     },
     {
+      "inspection_id": "INS-05-20240115",
+      "location_id": 5,
+      "location_name": "London",
+      "address": "14 Curtain Road, Shoreditch, London EC2A 3NH, UK",
+      "jurisdiction": "London Borough of Hackney Environmental Health",
+      "inspection_date": "2024-01-15",
+      "inspector_name": "James Nakamura",
+      "score": 87,
+      "grade": "B",
+      "violations": [
+        {
+          "code": "V-304",
+          "severity": "minor",
+          "category": "Sanitation",
+          "description": "Waste receptacle lid not self-closing or missing",
+          "corrective_action": "Deep-clean and re-sanitize surfaces. Verify sanitizer concentration. Restock supplies.",
+          "deadline_days": 30
+        },
+        {
+          "code": "V-203",
+          "severity": "major",
+          "category": "Equipment",
+          "description": "Thermometer not available or not calibrated in walk-in cooler",
+          "corrective_action": "Purchase calibrated thermometers within 48 hours. Add to weekly calibration checklist.",
+          "deadline_days": 14
+        }
+      ],
+      "violation_count": 2,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-06-20240115",
+      "location_id": 6,
+      "location_name": "Munich",
+      "address": "Leopoldstrasse 75, 80802 Munich, Germany",
+      "jurisdiction": "Landeshauptstadt Muenchen Veterinaramt",
+      "inspection_date": "2024-01-15",
+      "inspector_name": "Dr. Sarah Chen",
+      "score": 92,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-202",
+          "severity": "major",
+          "category": "Sanitation",
+          "description": "Food contact surfaces not cleaned and sanitized between uses",
+          "corrective_action": "Deep-clean and re-sanitize surfaces. Verify sanitizer concentration. Restock supplies.",
+          "deadline_days": 14
+        },
+        {
+          "code": "V-304",
+          "severity": "minor",
+          "category": "Sanitation",
+          "description": "Waste receptacle lid not self-closing or missing",
+          "corrective_action": "Deep-clean and re-sanitize surfaces. Verify sanitizer concentration. Restock supplies.",
+          "deadline_days": 30
+        },
+        {
+          "code": "V-302",
+          "severity": "minor",
+          "category": "Facilities",
+          "description": "Light fixture missing protective shield in food prep zone",
+          "corrective_action": "Submit maintenance request within 14 days. Restrict use of affected area until repaired.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 3,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 2,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-07-20240115",
+      "location_id": 7,
+      "location_name": "Amsterdam",
+      "address": "Damrak 66, 1012 LM Amsterdam, Netherlands",
+      "jurisdiction": "Gemeente Amsterdam NVWA Food Safety Authority",
+      "inspection_date": "2024-01-15",
+      "inspector_name": "James Nakamura",
+      "score": 86,
+      "grade": "B",
+      "violations": [
+        {
+          "code": "V-304",
+          "severity": "minor",
+          "category": "Sanitation",
+          "description": "Waste receptacle lid not self-closing or missing",
+          "corrective_action": "Deep-clean and re-sanitize surfaces. Verify sanitizer concentration. Restock supplies.",
+          "deadline_days": 30
+        },
+        {
+          "code": "V-206",
+          "severity": "major",
+          "category": "Pest Control",
+          "description": "Pest control log not up to date or pest evidence found in dry storage",
+          "corrective_action": "Contact licensed pest control within 72 hours. Update pest control log immediately.",
+          "deadline_days": 14
+        },
+        {
+          "code": "V-202",
+          "severity": "major",
+          "category": "Sanitation",
+          "description": "Food contact surfaces not cleaned and sanitized between uses",
+          "corrective_action": "Deep-clean and re-sanitize surfaces. Verify sanitizer concentration. Restock supplies.",
+          "deadline_days": 14
+        }
+      ],
+      "violation_count": 3,
+      "critical_count": 0,
+      "major_count": 2,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-08-20240115",
+      "location_id": 8,
+      "location_name": "Vianen",
+      "address": "Voorstraat 78, 4131 LW Vianen, Netherlands",
+      "jurisdiction": "Gemeente Vijfheerenlanden NVWA Food Safety Authority",
+      "inspection_date": "2024-01-15",
+      "inspector_name": "Patricia Okonkwo",
+      "score": 80,
+      "grade": "B",
+      "violations": [
+        {
+          "code": "V-202",
+          "severity": "major",
+          "category": "Sanitation",
+          "description": "Food contact surfaces not cleaned and sanitized between uses",
+          "corrective_action": "Deep-clean and re-sanitize surfaces. Verify sanitizer concentration. Restock supplies.",
+          "deadline_days": 14
+        },
+        {
+          "code": "V-301",
+          "severity": "minor",
+          "category": "Facilities",
+          "description": "Floor tiles cracked or missing in food preparation area",
+          "corrective_action": "Submit maintenance request within 14 days. Restrict use of affected area until repaired.",
+          "deadline_days": 30
+        },
+        {
+          "code": "V-103",
+          "severity": "critical",
+          "category": "Personal Hygiene",
+          "description": "Employee handling food without gloves after touching face/hair",
+          "corrective_action": "Issue verbal warning. Retrain all kitchen staff on glove-use and hand-hygiene SOP.",
+          "deadline_days": 3
+        }
+      ],
+      "violation_count": 3,
+      "critical_count": 1,
+      "major_count": 1,
+      "minor_count": 1,
+      "follow_up_status": "Re-inspection required within 10 business days"
+    },
+    {
+      "inspection_id": "INS-01-20240212",
+      "location_id": 1,
+      "location_name": "San Francisco",
+      "address": "1847 Market Street, San Francisco, CA 94103",
+      "jurisdiction": "San Francisco Department of Public Health",
+      "inspection_date": "2024-02-12",
+      "inspector_name": "Marcus Williams",
+      "score": 87,
+      "grade": "B",
+      "violations": [
+        {
+          "code": "V-305",
+          "severity": "minor",
+          "category": "Administrative",
+          "description": "Permit or latest inspection report not posted in public view",
+          "corrective_action": "Print and post current permit and latest inspection report in customer-visible area within 24 hours.",
+          "deadline_days": 30
+        },
+        {
+          "code": "V-306",
+          "severity": "minor",
+          "category": "Maintenance",
+          "description": "Ceiling vent above dishwashing station shows condensation buildup",
+          "corrective_action": "Schedule professional deep-cleaning of exhaust system within 7 days. Add monthly cleaning to maintenance calendar.",
+          "deadline_days": 30
+        },
+        {
+          "code": "V-303",
+          "severity": "minor",
+          "category": "Personal Hygiene",
+          "description": "Employee personal items stored in food preparation area",
+          "corrective_action": "Issue verbal warning to staff member. Retrain all kitchen staff on glove-use and hand-hygiene SOP.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 3,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 3,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-02-20240212",
+      "location_id": 2,
+      "location_name": "Silicon Valley",
+      "address": "2350 El Camino Real, Santa Clara, CA 95051",
+      "jurisdiction": "Santa Clara County Environmental Health",
+      "inspection_date": "2024-02-12",
+      "inspector_name": "Marcus Williams",
+      "score": 94,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-301",
+          "severity": "minor",
+          "category": "Facilities",
+          "description": "Floor tiles cracked or missing in food preparation area",
+          "corrective_action": "Submit maintenance request for repair within 14 days. Restrict use of affected area until repaired.",
+          "deadline_days": 30
+        },
+        {
+          "code": "V-204",
+          "severity": "major",
+          "category": "Food Labeling",
+          "description": "Date-marking missing on prepared foods held more than 24 hours",
+          "corrective_action": "Label all prepped items immediately. Implement date-label audit at start and end of each shift.",
+          "deadline_days": 14
+        },
+        {
+          "code": "V-302",
+          "severity": "minor",
+          "category": "Facilities",
+          "description": "Light fixture missing protective shield in food prep zone",
+          "corrective_action": "Submit maintenance request for repair within 14 days. Restrict use of affected area until repaired.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 3,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 2,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-03-20240212",
+      "location_id": 3,
+      "location_name": "Bellevue",
+      "address": "10456 NE 8th Street, Bellevue, WA 98004",
+      "jurisdiction": "King County Public Health",
+      "inspection_date": "2024-02-12",
+      "inspector_name": "Dr. Sarah Chen",
+      "score": 87,
+      "grade": "B",
+      "violations": [
+        {
+          "code": "V-206",
+          "severity": "major",
+          "category": "Pest Control",
+          "description": "Pest control log not up to date or pest evidence found in dry storage",
+          "corrective_action": "Contact licensed pest control service for treatment within 72 hours. Update pest control log.",
+          "deadline_days": 14
+        },
+        {
+          "code": "V-307",
+          "severity": "minor",
+          "category": "Chemical Safety",
+          "description": "Chemical cleaning supplies stored without labels in utility closet",
+          "corrective_action": "Label all chemical containers per OSHA requirements within 24 hours. Relocate to designated chemical storage area.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 2,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
       "inspection_id": "INS-04-20240212",
       "location_id": 4,
       "location_name": "Chicago",
@@ -439,6 +513,204 @@
       "follow_up_status": "Re-inspection required within 10 business days"
     },
     {
+      "inspection_id": "INS-05-20240212",
+      "location_id": 5,
+      "location_name": "London",
+      "address": "14 Curtain Road, Shoreditch, London EC2A 3NH, UK",
+      "jurisdiction": "London Borough of Hackney Environmental Health",
+      "inspection_date": "2024-02-12",
+      "inspector_name": "Klaus Weber",
+      "score": 89,
+      "grade": "B",
+      "violations": [
+        {
+          "code": "V-307",
+          "severity": "minor",
+          "category": "Chemical Safety",
+          "description": "Chemical cleaning supplies stored without labels in utility closet",
+          "corrective_action": "Label all containers per EU REACH requirements within 24 hours. Relocate to designated storage area.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-06-20240212",
+      "location_id": 6,
+      "location_name": "Munich",
+      "address": "Leopoldstrasse 75, 80802 Munich, Germany",
+      "jurisdiction": "Landeshauptstadt Muenchen Veterinaramt",
+      "inspection_date": "2024-02-12",
+      "inspector_name": "Klaus Weber",
+      "score": 90,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-307",
+          "severity": "minor",
+          "category": "Chemical Safety",
+          "description": "Chemical cleaning supplies stored without labels in utility closet",
+          "corrective_action": "Label all containers per EU REACH requirements within 24 hours. Relocate to designated storage area.",
+          "deadline_days": 30
+        },
+        {
+          "code": "V-206",
+          "severity": "major",
+          "category": "Pest Control",
+          "description": "Pest control log not up to date or pest evidence found in dry storage",
+          "corrective_action": "Contact licensed pest control within 72 hours. Update pest control log immediately.",
+          "deadline_days": 14
+        }
+      ],
+      "violation_count": 2,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-07-20240212",
+      "location_id": 7,
+      "location_name": "Amsterdam",
+      "address": "Damrak 66, 1012 LM Amsterdam, Netherlands",
+      "jurisdiction": "Gemeente Amsterdam NVWA Food Safety Authority",
+      "inspection_date": "2024-02-12",
+      "inspector_name": "Dr. Sarah Chen",
+      "score": 94,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-206",
+          "severity": "major",
+          "category": "Pest Control",
+          "description": "Pest control log not up to date or pest evidence found in dry storage",
+          "corrective_action": "Contact licensed pest control within 72 hours. Update pest control log immediately.",
+          "deadline_days": 14
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 0,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-08-20240212",
+      "location_id": 8,
+      "location_name": "Vianen",
+      "address": "Voorstraat 78, 4131 LW Vianen, Netherlands",
+      "jurisdiction": "Gemeente Vijfheerenlanden NVWA Food Safety Authority",
+      "inspection_date": "2024-02-12",
+      "inspector_name": "James Nakamura",
+      "score": 94,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-201",
+          "severity": "major",
+          "category": "Facilities",
+          "description": "Handwashing sink blocked by equipment, not accessible to staff",
+          "corrective_action": "Submit maintenance request within 14 days. Restrict use of affected area until repaired.",
+          "deadline_days": 14
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 0,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-01-20240318",
+      "location_id": 1,
+      "location_name": "San Francisco",
+      "address": "1847 Market Street, San Francisco, CA 94103",
+      "jurisdiction": "San Francisco Department of Public Health",
+      "inspection_date": "2024-03-18",
+      "inspector_name": "Dr. Sarah Chen",
+      "score": 96,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-201",
+          "severity": "major",
+          "category": "Facilities",
+          "description": "Handwashing sink blocked by equipment, not accessible to staff",
+          "corrective_action": "Submit maintenance request for repair within 14 days. Restrict use of affected area until repaired.",
+          "deadline_days": 14
+        },
+        {
+          "code": "V-307",
+          "severity": "minor",
+          "category": "Chemical Safety",
+          "description": "Chemical cleaning supplies stored without labels in utility closet",
+          "corrective_action": "Label all chemical containers per OSHA requirements within 24 hours. Relocate to designated chemical storage area.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 2,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-02-20240318",
+      "location_id": 2,
+      "location_name": "Silicon Valley",
+      "address": "2350 El Camino Real, Santa Clara, CA 95051",
+      "jurisdiction": "Santa Clara County Environmental Health",
+      "inspection_date": "2024-03-18",
+      "inspector_name": "Linda Ramirez",
+      "score": 90,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-307",
+          "severity": "minor",
+          "category": "Chemical Safety",
+          "description": "Chemical cleaning supplies stored without labels in utility closet",
+          "corrective_action": "Label all chemical containers per OSHA requirements within 24 hours. Relocate to designated chemical storage area.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-03-20240318",
+      "location_id": 3,
+      "location_name": "Bellevue",
+      "address": "10456 NE 8th Street, Bellevue, WA 98004",
+      "jurisdiction": "King County Public Health",
+      "inspection_date": "2024-03-18",
+      "inspector_name": "Linda Ramirez",
+      "score": 90,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-306",
+          "severity": "minor",
+          "category": "Maintenance",
+          "description": "Ceiling vent above dishwashing station shows condensation buildup",
+          "corrective_action": "Schedule professional deep-cleaning of exhaust system within 7 days. Add monthly cleaning to maintenance calendar.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
       "inspection_id": "INS-04-20240318",
       "location_id": 4,
       "location_name": "Chicago",
@@ -453,6 +725,1338 @@
       "critical_count": 0,
       "major_count": 0,
       "minor_count": 0,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-05-20240318",
+      "location_id": 5,
+      "location_name": "London",
+      "address": "14 Curtain Road, Shoreditch, London EC2A 3NH, UK",
+      "jurisdiction": "London Borough of Hackney Environmental Health",
+      "inspection_date": "2024-03-18",
+      "inspector_name": "Sophie Lambert",
+      "score": 97,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-303",
+          "severity": "minor",
+          "category": "Personal Hygiene",
+          "description": "Employee personal items stored in food preparation area",
+          "corrective_action": "Issue verbal warning. Retrain all kitchen staff on glove-use and hand-hygiene SOP.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-06-20240318",
+      "location_id": 6,
+      "location_name": "Munich",
+      "address": "Leopoldstrasse 75, 80802 Munich, Germany",
+      "jurisdiction": "Landeshauptstadt Muenchen Veterinaramt",
+      "inspection_date": "2024-03-18",
+      "inspector_name": "James Nakamura",
+      "score": 93,
+      "grade": "A",
+      "violations": [],
+      "violation_count": 0,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 0,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-07-20240318",
+      "location_id": 7,
+      "location_name": "Amsterdam",
+      "address": "Damrak 66, 1012 LM Amsterdam, Netherlands",
+      "jurisdiction": "Gemeente Amsterdam NVWA Food Safety Authority",
+      "inspection_date": "2024-03-18",
+      "inspector_name": "James Nakamura",
+      "score": 95,
+      "grade": "A",
+      "violations": [],
+      "violation_count": 0,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 0,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-08-20240318",
+      "location_id": 8,
+      "location_name": "Vianen",
+      "address": "Voorstraat 78, 4131 LW Vianen, Netherlands",
+      "jurisdiction": "Gemeente Vijfheerenlanden NVWA Food Safety Authority",
+      "inspection_date": "2024-03-18",
+      "inspector_name": "Annika de Vries",
+      "score": 94,
+      "grade": "A",
+      "violations": [],
+      "violation_count": 0,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 0,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-01-20240716",
+      "location_id": 1,
+      "location_name": "San Francisco",
+      "address": "1847 Market Street, San Francisco, CA 94103",
+      "jurisdiction": "San Francisco Department of Public Health",
+      "inspection_date": "2024-07-16",
+      "inspector_name": "Klaus Weber",
+      "score": 95,
+      "grade": "A",
+      "violations": [],
+      "violation_count": 0,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 0,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-02-20240716",
+      "location_id": 2,
+      "location_name": "Silicon Valley",
+      "address": "2350 El Camino Real, Santa Clara, CA 95051",
+      "jurisdiction": "Santa Clara County Environmental Health",
+      "inspection_date": "2024-07-16",
+      "inspector_name": "Sophie Lambert",
+      "score": 91,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-206",
+          "severity": "major",
+          "category": "Pest Control",
+          "description": "Pest control log not up to date or pest evidence found in dry storage",
+          "corrective_action": "Contact licensed pest control within 72 hours. Update pest control log.",
+          "deadline_days": 14
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 0,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-03-20240716",
+      "location_id": 3,
+      "location_name": "Bellevue",
+      "address": "10456 NE 8th Street, Bellevue, WA 98004",
+      "jurisdiction": "King County Public Health",
+      "inspection_date": "2024-07-16",
+      "inspector_name": "Sophie Lambert",
+      "score": 93,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-202",
+          "severity": "major",
+          "category": "Sanitation",
+          "description": "Food contact surfaces not cleaned and sanitized between uses",
+          "corrective_action": "Deep-clean and re-sanitize surfaces. Verify sanitizer concentration. Restock supplies.",
+          "deadline_days": 14
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 0,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-04-20240716",
+      "location_id": 4,
+      "location_name": "Chicago",
+      "address": "872 N. Milwaukee Avenue, Chicago, IL 60642",
+      "jurisdiction": "Chicago Department of Public Health",
+      "inspection_date": "2024-07-16",
+      "inspector_name": "Marcus Williams",
+      "score": 89,
+      "grade": "B",
+      "violations": [
+        {
+          "code": "V-201",
+          "severity": "major",
+          "category": "Facilities",
+          "description": "Handwashing sink blocked by equipment, not accessible to staff",
+          "corrective_action": "Submit maintenance request within 14 days. Restrict use of affected area until repaired.",
+          "deadline_days": 14
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 0,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-05-20240716",
+      "location_id": 5,
+      "location_name": "London",
+      "address": "14 Curtain Road, Shoreditch, London EC2A 3NH, UK",
+      "jurisdiction": "London Borough of Hackney Environmental Health",
+      "inspection_date": "2024-07-16",
+      "inspector_name": "Dr. Sarah Chen",
+      "score": 94,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-202",
+          "severity": "major",
+          "category": "Sanitation",
+          "description": "Food contact surfaces not cleaned and sanitized between uses",
+          "corrective_action": "Deep-clean and re-sanitize surfaces. Verify sanitizer concentration. Restock supplies.",
+          "deadline_days": 14
+        },
+        {
+          "code": "V-301",
+          "severity": "minor",
+          "category": "Facilities",
+          "description": "Floor tiles cracked or missing in food preparation area",
+          "corrective_action": "Submit maintenance request within 14 days. Restrict use of affected area until repaired.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 2,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-06-20240716",
+      "location_id": 6,
+      "location_name": "Munich",
+      "address": "Leopoldstrasse 75, 80802 Munich, Germany",
+      "jurisdiction": "Landeshauptstadt Muenchen Veterinaramt",
+      "inspection_date": "2024-07-16",
+      "inspector_name": "Annika de Vries",
+      "score": 98,
+      "grade": "A",
+      "violations": [],
+      "violation_count": 0,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 0,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-07-20240716",
+      "location_id": 7,
+      "location_name": "Amsterdam",
+      "address": "Damrak 66, 1012 LM Amsterdam, Netherlands",
+      "jurisdiction": "Gemeente Amsterdam NVWA Food Safety Authority",
+      "inspection_date": "2024-07-16",
+      "inspector_name": "James Nakamura",
+      "score": 96,
+      "grade": "A",
+      "violations": [],
+      "violation_count": 0,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 0,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-08-20240716",
+      "location_id": 8,
+      "location_name": "Vianen",
+      "address": "Voorstraat 78, 4131 LW Vianen, Netherlands",
+      "jurisdiction": "Gemeente Vijfheerenlanden NVWA Food Safety Authority",
+      "inspection_date": "2024-07-16",
+      "inspector_name": "James Nakamura",
+      "score": 92,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-306",
+          "severity": "minor",
+          "category": "Maintenance",
+          "description": "Ceiling vent above dishwashing station shows condensation buildup",
+          "corrective_action": "Schedule professional deep-cleaning within 7 days. Add monthly cleaning to calendar.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-01-20241112",
+      "location_id": 1,
+      "location_name": "San Francisco",
+      "address": "1847 Market Street, San Francisco, CA 94103",
+      "jurisdiction": "San Francisco Department of Public Health",
+      "inspection_date": "2024-11-12",
+      "inspector_name": "Dr. Sarah Chen",
+      "score": 92,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-206",
+          "severity": "major",
+          "category": "Pest Control",
+          "description": "Pest control log not up to date or pest evidence found in dry storage",
+          "corrective_action": "Contact licensed pest control within 72 hours. Update pest control log.",
+          "deadline_days": 14
+        },
+        {
+          "code": "V-303",
+          "severity": "minor",
+          "category": "Personal Hygiene",
+          "description": "Employee personal items stored in food preparation area",
+          "corrective_action": "Issue verbal warning. Retrain all kitchen staff on glove-use and hand-hygiene SOP.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 2,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-02-20241112",
+      "location_id": 2,
+      "location_name": "Silicon Valley",
+      "address": "2350 El Camino Real, Santa Clara, CA 95051",
+      "jurisdiction": "Santa Clara County Environmental Health",
+      "inspection_date": "2024-11-12",
+      "inspector_name": "Annika de Vries",
+      "score": 96,
+      "grade": "A",
+      "violations": [],
+      "violation_count": 0,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 0,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-03-20241112",
+      "location_id": 3,
+      "location_name": "Bellevue",
+      "address": "10456 NE 8th Street, Bellevue, WA 98004",
+      "jurisdiction": "King County Public Health",
+      "inspection_date": "2024-11-12",
+      "inspector_name": "James Nakamura",
+      "score": 92,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-202",
+          "severity": "major",
+          "category": "Sanitation",
+          "description": "Food contact surfaces not cleaned and sanitized between uses",
+          "corrective_action": "Deep-clean and re-sanitize surfaces. Verify sanitizer concentration. Restock supplies.",
+          "deadline_days": 14
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 0,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-04-20241112",
+      "location_id": 4,
+      "location_name": "Chicago",
+      "address": "872 N. Milwaukee Avenue, Chicago, IL 60642",
+      "jurisdiction": "Chicago Department of Public Health",
+      "inspection_date": "2024-11-12",
+      "inspector_name": "Patricia Okonkwo",
+      "score": 92,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-202",
+          "severity": "major",
+          "category": "Sanitation",
+          "description": "Food contact surfaces not cleaned and sanitized between uses",
+          "corrective_action": "Deep-clean and re-sanitize surfaces. Verify sanitizer concentration. Restock supplies.",
+          "deadline_days": 14
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 0,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-05-20241112",
+      "location_id": 5,
+      "location_name": "London",
+      "address": "14 Curtain Road, Shoreditch, London EC2A 3NH, UK",
+      "jurisdiction": "London Borough of Hackney Environmental Health",
+      "inspection_date": "2024-11-12",
+      "inspector_name": "Klaus Weber",
+      "score": 98,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-202",
+          "severity": "major",
+          "category": "Sanitation",
+          "description": "Food contact surfaces not cleaned and sanitized between uses",
+          "corrective_action": "Deep-clean and re-sanitize surfaces. Verify sanitizer concentration. Restock supplies.",
+          "deadline_days": 14
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 0,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-06-20241112",
+      "location_id": 6,
+      "location_name": "Munich",
+      "address": "Leopoldstrasse 75, 80802 Munich, Germany",
+      "jurisdiction": "Landeshauptstadt Muenchen Veterinaramt",
+      "inspection_date": "2024-11-12",
+      "inspector_name": "Patricia Okonkwo",
+      "score": 95,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-304",
+          "severity": "minor",
+          "category": "Sanitation",
+          "description": "Waste receptacle lid not self-closing or missing",
+          "corrective_action": "Deep-clean and re-sanitize surfaces. Verify sanitizer concentration. Restock supplies.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-07-20241112",
+      "location_id": 7,
+      "location_name": "Amsterdam",
+      "address": "Damrak 66, 1012 LM Amsterdam, Netherlands",
+      "jurisdiction": "Gemeente Amsterdam NVWA Food Safety Authority",
+      "inspection_date": "2024-11-12",
+      "inspector_name": "Klaus Weber",
+      "score": 96,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-303",
+          "severity": "minor",
+          "category": "Personal Hygiene",
+          "description": "Employee personal items stored in food preparation area",
+          "corrective_action": "Issue verbal warning. Retrain all kitchen staff on glove-use and hand-hygiene SOP.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-08-20241112",
+      "location_id": 8,
+      "location_name": "Vianen",
+      "address": "Voorstraat 78, 4131 LW Vianen, Netherlands",
+      "jurisdiction": "Gemeente Vijfheerenlanden NVWA Food Safety Authority",
+      "inspection_date": "2024-11-12",
+      "inspector_name": "Sophie Lambert",
+      "score": 93,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-307",
+          "severity": "minor",
+          "category": "Chemical Safety",
+          "description": "Chemical cleaning supplies stored without labels in utility closet",
+          "corrective_action": "Label all chemical containers per OSHA requirements within 24 hours. Relocate to designated area.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-01-20250318",
+      "location_id": 1,
+      "location_name": "San Francisco",
+      "address": "1847 Market Street, San Francisco, CA 94103",
+      "jurisdiction": "San Francisco Department of Public Health",
+      "inspection_date": "2025-03-18",
+      "inspector_name": "David Kowalski",
+      "score": 96,
+      "grade": "A",
+      "violations": [],
+      "violation_count": 0,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 0,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-02-20250318",
+      "location_id": 2,
+      "location_name": "Silicon Valley",
+      "address": "2350 El Camino Real, Santa Clara, CA 95051",
+      "jurisdiction": "Santa Clara County Environmental Health",
+      "inspection_date": "2025-03-18",
+      "inspector_name": "James Nakamura",
+      "score": 93,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-206",
+          "severity": "major",
+          "category": "Pest Control",
+          "description": "Pest control log not up to date or pest evidence found in dry storage",
+          "corrective_action": "Contact licensed pest control within 72 hours. Update pest control log.",
+          "deadline_days": 14
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 0,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-03-20250318",
+      "location_id": 3,
+      "location_name": "Bellevue",
+      "address": "10456 NE 8th Street, Bellevue, WA 98004",
+      "jurisdiction": "King County Public Health",
+      "inspection_date": "2025-03-18",
+      "inspector_name": "David Kowalski",
+      "score": 92,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-203",
+          "severity": "major",
+          "category": "Equipment",
+          "description": "Thermometer not available or not calibrated in walk-in cooler",
+          "corrective_action": "Purchase calibrated thermometers within 48 hours. Add to weekly calibration checklist.",
+          "deadline_days": 14
+        },
+        {
+          "code": "V-205",
+          "severity": "major",
+          "category": "Maintenance",
+          "description": "Grease buildup on exhaust hood and filters above cooking stations",
+          "corrective_action": "Schedule professional deep-cleaning within 7 days. Add monthly cleaning to calendar.",
+          "deadline_days": 14
+        }
+      ],
+      "violation_count": 2,
+      "critical_count": 0,
+      "major_count": 2,
+      "minor_count": 0,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-04-20250318",
+      "location_id": 4,
+      "location_name": "Chicago",
+      "address": "872 N. Milwaukee Avenue, Chicago, IL 60642",
+      "jurisdiction": "Chicago Department of Public Health",
+      "inspection_date": "2025-03-18",
+      "inspector_name": "Patricia Okonkwo",
+      "score": 86,
+      "grade": "B",
+      "violations": [
+        {
+          "code": "V-202",
+          "severity": "major",
+          "category": "Sanitation",
+          "description": "Food contact surfaces not cleaned and sanitized between uses",
+          "corrective_action": "Deep-clean and re-sanitize surfaces. Verify sanitizer concentration. Restock supplies.",
+          "deadline_days": 14
+        },
+        {
+          "code": "V-303",
+          "severity": "minor",
+          "category": "Personal Hygiene",
+          "description": "Employee personal items stored in food preparation area",
+          "corrective_action": "Issue verbal warning. Retrain all kitchen staff on glove-use and hand-hygiene SOP.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 2,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-05-20250318",
+      "location_id": 5,
+      "location_name": "London",
+      "address": "14 Curtain Road, Shoreditch, London EC2A 3NH, UK",
+      "jurisdiction": "London Borough of Hackney Environmental Health",
+      "inspection_date": "2025-03-18",
+      "inspector_name": "Patricia Okonkwo",
+      "score": 97,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-304",
+          "severity": "minor",
+          "category": "Sanitation",
+          "description": "Waste receptacle lid not self-closing or missing",
+          "corrective_action": "Deep-clean and re-sanitize surfaces. Verify sanitizer concentration. Restock supplies.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-06-20250318",
+      "location_id": 6,
+      "location_name": "Munich",
+      "address": "Leopoldstrasse 75, 80802 Munich, Germany",
+      "jurisdiction": "Landeshauptstadt Muenchen Veterinaramt",
+      "inspection_date": "2025-03-18",
+      "inspector_name": "Annika de Vries",
+      "score": 95,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-306",
+          "severity": "minor",
+          "category": "Maintenance",
+          "description": "Ceiling vent above dishwashing station shows condensation buildup",
+          "corrective_action": "Schedule professional deep-cleaning within 7 days. Add monthly cleaning to calendar.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-07-20250318",
+      "location_id": 7,
+      "location_name": "Amsterdam",
+      "address": "Damrak 66, 1012 LM Amsterdam, Netherlands",
+      "jurisdiction": "Gemeente Amsterdam NVWA Food Safety Authority",
+      "inspection_date": "2025-03-18",
+      "inspector_name": "Annika de Vries",
+      "score": 97,
+      "grade": "A",
+      "violations": [],
+      "violation_count": 0,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 0,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-08-20250318",
+      "location_id": 8,
+      "location_name": "Vianen",
+      "address": "Voorstraat 78, 4131 LW Vianen, Netherlands",
+      "jurisdiction": "Gemeente Vijfheerenlanden NVWA Food Safety Authority",
+      "inspection_date": "2025-03-18",
+      "inspector_name": "James Nakamura",
+      "score": 95,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-303",
+          "severity": "minor",
+          "category": "Personal Hygiene",
+          "description": "Employee personal items stored in food preparation area",
+          "corrective_action": "Issue verbal warning. Retrain all kitchen staff on glove-use and hand-hygiene SOP.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-01-20250715",
+      "location_id": 1,
+      "location_name": "San Francisco",
+      "address": "1847 Market Street, San Francisco, CA 94103",
+      "jurisdiction": "San Francisco Department of Public Health",
+      "inspection_date": "2025-07-15",
+      "inspector_name": "Sophie Lambert",
+      "score": 92,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-303",
+          "severity": "minor",
+          "category": "Personal Hygiene",
+          "description": "Employee personal items stored in food preparation area",
+          "corrective_action": "Issue verbal warning. Retrain all kitchen staff on glove-use and hand-hygiene SOP.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-02-20250715",
+      "location_id": 2,
+      "location_name": "Silicon Valley",
+      "address": "2350 El Camino Real, Santa Clara, CA 95051",
+      "jurisdiction": "Santa Clara County Environmental Health",
+      "inspection_date": "2025-07-15",
+      "inspector_name": "James Nakamura",
+      "score": 91,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-204",
+          "severity": "major",
+          "category": "Food Labeling",
+          "description": "Date-marking missing on prepared foods held more than 24 hours",
+          "corrective_action": "Label all prepped items immediately. Implement date-label audit each shift.",
+          "deadline_days": 14
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 0,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-03-20250715",
+      "location_id": 3,
+      "location_name": "Bellevue",
+      "address": "10456 NE 8th Street, Bellevue, WA 98004",
+      "jurisdiction": "King County Public Health",
+      "inspection_date": "2025-07-15",
+      "inspector_name": "Klaus Weber",
+      "score": 91,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-305",
+          "severity": "minor",
+          "category": "Administrative",
+          "description": "Permit or latest inspection report not posted in public view",
+          "corrective_action": "Post current permit and latest inspection report in customer-visible area within 24 hours.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-04-20250715",
+      "location_id": 4,
+      "location_name": "Chicago",
+      "address": "872 N. Milwaukee Avenue, Chicago, IL 60642",
+      "jurisdiction": "Chicago Department of Public Health",
+      "inspection_date": "2025-07-15",
+      "inspector_name": "Marcus Williams",
+      "score": 80,
+      "grade": "B",
+      "violations": [
+        {
+          "code": "V-103",
+          "severity": "critical",
+          "category": "Personal Hygiene",
+          "description": "Employee handling food without gloves after touching face/hair",
+          "corrective_action": "Issue verbal warning. Retrain all kitchen staff on glove-use and hand-hygiene SOP.",
+          "deadline_days": 3
+        },
+        {
+          "code": "V-205",
+          "severity": "major",
+          "category": "Maintenance",
+          "description": "Grease buildup on exhaust hood and filters above cooking stations",
+          "corrective_action": "Schedule professional deep-cleaning within 7 days. Add monthly cleaning to calendar.",
+          "deadline_days": 14
+        },
+        {
+          "code": "V-101",
+          "severity": "critical",
+          "category": "Temperature Control",
+          "description": "Food held at improper temperature (outside 41F-135F range)",
+          "corrective_action": "Immediately discard affected food. Recalibrate holding equipment. Retrain on HACCP temperature logs.",
+          "deadline_days": 3
+        }
+      ],
+      "violation_count": 3,
+      "critical_count": 2,
+      "major_count": 1,
+      "minor_count": 0,
+      "follow_up_status": "Re-inspection required within 10 business days"
+    },
+    {
+      "inspection_id": "INS-05-20250715",
+      "location_id": 5,
+      "location_name": "London",
+      "address": "14 Curtain Road, Shoreditch, London EC2A 3NH, UK",
+      "jurisdiction": "London Borough of Hackney Environmental Health",
+      "inspection_date": "2025-07-15",
+      "inspector_name": "Patricia Okonkwo",
+      "score": 97,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-204",
+          "severity": "major",
+          "category": "Food Labeling",
+          "description": "Date-marking missing on prepared foods held more than 24 hours",
+          "corrective_action": "Label all prepped items immediately. Implement date-label audit each shift.",
+          "deadline_days": 14
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 0,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-06-20250715",
+      "location_id": 6,
+      "location_name": "Munich",
+      "address": "Leopoldstrasse 75, 80802 Munich, Germany",
+      "jurisdiction": "Landeshauptstadt Muenchen Veterinaramt",
+      "inspection_date": "2025-07-15",
+      "inspector_name": "David Kowalski",
+      "score": 95,
+      "grade": "A",
+      "violations": [],
+      "violation_count": 0,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 0,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-07-20250715",
+      "location_id": 7,
+      "location_name": "Amsterdam",
+      "address": "Damrak 66, 1012 LM Amsterdam, Netherlands",
+      "jurisdiction": "Gemeente Amsterdam NVWA Food Safety Authority",
+      "inspection_date": "2025-07-15",
+      "inspector_name": "David Kowalski",
+      "score": 97,
+      "grade": "A",
+      "violations": [],
+      "violation_count": 0,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 0,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-08-20250715",
+      "location_id": 8,
+      "location_name": "Vianen",
+      "address": "Voorstraat 78, 4131 LW Vianen, Netherlands",
+      "jurisdiction": "Gemeente Vijfheerenlanden NVWA Food Safety Authority",
+      "inspection_date": "2025-07-15",
+      "inspector_name": "James Nakamura",
+      "score": 93,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-301",
+          "severity": "minor",
+          "category": "Facilities",
+          "description": "Floor tiles cracked or missing in food preparation area",
+          "corrective_action": "Submit maintenance request within 14 days. Restrict use of affected area until repaired.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-01-20251110",
+      "location_id": 1,
+      "location_name": "San Francisco",
+      "address": "1847 Market Street, San Francisco, CA 94103",
+      "jurisdiction": "San Francisco Department of Public Health",
+      "inspection_date": "2025-11-10",
+      "inspector_name": "Patricia Okonkwo",
+      "score": 97,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-307",
+          "severity": "minor",
+          "category": "Chemical Safety",
+          "description": "Chemical cleaning supplies stored without labels in utility closet",
+          "corrective_action": "Label all chemical containers per OSHA requirements within 24 hours. Relocate to designated area.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-02-20251110",
+      "location_id": 2,
+      "location_name": "Silicon Valley",
+      "address": "2350 El Camino Real, Santa Clara, CA 95051",
+      "jurisdiction": "Santa Clara County Environmental Health",
+      "inspection_date": "2025-11-10",
+      "inspector_name": "Sophie Lambert",
+      "score": 94,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-204",
+          "severity": "major",
+          "category": "Food Labeling",
+          "description": "Date-marking missing on prepared foods held more than 24 hours",
+          "corrective_action": "Label all prepped items immediately. Implement date-label audit each shift.",
+          "deadline_days": 14
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 0,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-03-20251110",
+      "location_id": 3,
+      "location_name": "Bellevue",
+      "address": "10456 NE 8th Street, Bellevue, WA 98004",
+      "jurisdiction": "King County Public Health",
+      "inspection_date": "2025-11-10",
+      "inspector_name": "David Kowalski",
+      "score": 91,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-201",
+          "severity": "major",
+          "category": "Facilities",
+          "description": "Handwashing sink blocked by equipment, not accessible to staff",
+          "corrective_action": "Submit maintenance request within 14 days. Restrict use of affected area until repaired.",
+          "deadline_days": 14
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 0,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-04-20251110",
+      "location_id": 4,
+      "location_name": "Chicago",
+      "address": "872 N. Milwaukee Avenue, Chicago, IL 60642",
+      "jurisdiction": "Chicago Department of Public Health",
+      "inspection_date": "2025-11-10",
+      "inspector_name": "Klaus Weber",
+      "score": 92,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-206",
+          "severity": "major",
+          "category": "Pest Control",
+          "description": "Pest control log not up to date or pest evidence found in dry storage",
+          "corrective_action": "Contact licensed pest control within 72 hours. Update pest control log.",
+          "deadline_days": 14
+        },
+        {
+          "code": "V-303",
+          "severity": "minor",
+          "category": "Personal Hygiene",
+          "description": "Employee personal items stored in food preparation area",
+          "corrective_action": "Issue verbal warning. Retrain all kitchen staff on glove-use and hand-hygiene SOP.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 2,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-05-20251110",
+      "location_id": 5,
+      "location_name": "London",
+      "address": "14 Curtain Road, Shoreditch, London EC2A 3NH, UK",
+      "jurisdiction": "London Borough of Hackney Environmental Health",
+      "inspection_date": "2025-11-10",
+      "inspector_name": "Patricia Okonkwo",
+      "score": 96,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-202",
+          "severity": "major",
+          "category": "Sanitation",
+          "description": "Food contact surfaces not cleaned and sanitized between uses",
+          "corrective_action": "Deep-clean and re-sanitize surfaces. Verify sanitizer concentration. Restock supplies.",
+          "deadline_days": 14
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 0,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-06-20251110",
+      "location_id": 6,
+      "location_name": "Munich",
+      "address": "Leopoldstrasse 75, 80802 Munich, Germany",
+      "jurisdiction": "Landeshauptstadt Muenchen Veterinaramt",
+      "inspection_date": "2025-11-10",
+      "inspector_name": "Sophie Lambert",
+      "score": 98,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-304",
+          "severity": "minor",
+          "category": "Sanitation",
+          "description": "Waste receptacle lid not self-closing or missing",
+          "corrective_action": "Deep-clean and re-sanitize surfaces. Verify sanitizer concentration. Restock supplies.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-07-20251110",
+      "location_id": 7,
+      "location_name": "Amsterdam",
+      "address": "Damrak 66, 1012 LM Amsterdam, Netherlands",
+      "jurisdiction": "Gemeente Amsterdam NVWA Food Safety Authority",
+      "inspection_date": "2025-11-10",
+      "inspector_name": "David Kowalski",
+      "score": 97,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-206",
+          "severity": "major",
+          "category": "Pest Control",
+          "description": "Pest control log not up to date or pest evidence found in dry storage",
+          "corrective_action": "Contact licensed pest control within 72 hours. Update pest control log.",
+          "deadline_days": 14
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 0,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-08-20251110",
+      "location_id": 8,
+      "location_name": "Vianen",
+      "address": "Voorstraat 78, 4131 LW Vianen, Netherlands",
+      "jurisdiction": "Gemeente Vijfheerenlanden NVWA Food Safety Authority",
+      "inspection_date": "2025-11-10",
+      "inspector_name": "Patricia Okonkwo",
+      "score": 93,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-304",
+          "severity": "minor",
+          "category": "Sanitation",
+          "description": "Waste receptacle lid not self-closing or missing",
+          "corrective_action": "Deep-clean and re-sanitize surfaces. Verify sanitizer concentration. Restock supplies.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-01-20260120",
+      "location_id": 1,
+      "location_name": "San Francisco",
+      "address": "1847 Market Street, San Francisco, CA 94103",
+      "jurisdiction": "San Francisco Department of Public Health",
+      "inspection_date": "2026-01-20",
+      "inspector_name": "James Nakamura",
+      "score": 93,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-206",
+          "severity": "major",
+          "category": "Pest Control",
+          "description": "Pest control log not up to date or pest evidence found in dry storage",
+          "corrective_action": "Contact licensed pest control within 72 hours. Update pest control log.",
+          "deadline_days": 14
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 0,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-02-20260120",
+      "location_id": 2,
+      "location_name": "Silicon Valley",
+      "address": "2350 El Camino Real, Santa Clara, CA 95051",
+      "jurisdiction": "Santa Clara County Environmental Health",
+      "inspection_date": "2026-01-20",
+      "inspector_name": "Annika de Vries",
+      "score": 93,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-305",
+          "severity": "minor",
+          "category": "Administrative",
+          "description": "Permit or latest inspection report not posted in public view",
+          "corrective_action": "Post current permit and latest inspection report in customer-visible area within 24 hours.",
+          "deadline_days": 30
+        },
+        {
+          "code": "V-203",
+          "severity": "major",
+          "category": "Equipment",
+          "description": "Thermometer not available or not calibrated in walk-in cooler",
+          "corrective_action": "Purchase calibrated thermometers within 48 hours. Add to weekly calibration checklist.",
+          "deadline_days": 14
+        }
+      ],
+      "violation_count": 2,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-03-20260120",
+      "location_id": 3,
+      "location_name": "Bellevue",
+      "address": "10456 NE 8th Street, Bellevue, WA 98004",
+      "jurisdiction": "King County Public Health",
+      "inspection_date": "2026-01-20",
+      "inspector_name": "Linda Ramirez",
+      "score": 90,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-203",
+          "severity": "major",
+          "category": "Equipment",
+          "description": "Thermometer not available or not calibrated in walk-in cooler",
+          "corrective_action": "Purchase calibrated thermometers within 48 hours. Add to weekly calibration checklist.",
+          "deadline_days": 14
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 0,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-04-20260120",
+      "location_id": 4,
+      "location_name": "Chicago",
+      "address": "872 N. Milwaukee Avenue, Chicago, IL 60642",
+      "jurisdiction": "Chicago Department of Public Health",
+      "inspection_date": "2026-01-20",
+      "inspector_name": "Marcus Williams",
+      "score": 87,
+      "grade": "B",
+      "violations": [
+        {
+          "code": "V-201",
+          "severity": "major",
+          "category": "Facilities",
+          "description": "Handwashing sink blocked by equipment, not accessible to staff",
+          "corrective_action": "Submit maintenance request within 14 days. Restrict use of affected area until repaired.",
+          "deadline_days": 14
+        },
+        {
+          "code": "V-307",
+          "severity": "minor",
+          "category": "Chemical Safety",
+          "description": "Chemical cleaning supplies stored without labels in utility closet",
+          "corrective_action": "Label all chemical containers per OSHA requirements within 24 hours. Relocate to designated area.",
+          "deadline_days": 30
+        },
+        {
+          "code": "V-304",
+          "severity": "minor",
+          "category": "Sanitation",
+          "description": "Waste receptacle lid not self-closing or missing",
+          "corrective_action": "Deep-clean and re-sanitize surfaces. Verify sanitizer concentration. Restock supplies.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 3,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 2,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-05-20260120",
+      "location_id": 5,
+      "location_name": "London",
+      "address": "14 Curtain Road, Shoreditch, London EC2A 3NH, UK",
+      "jurisdiction": "London Borough of Hackney Environmental Health",
+      "inspection_date": "2026-01-20",
+      "inspector_name": "Linda Ramirez",
+      "score": 99,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-307",
+          "severity": "minor",
+          "category": "Chemical Safety",
+          "description": "Chemical cleaning supplies stored without labels in utility closet",
+          "corrective_action": "Label all chemical containers per OSHA requirements within 24 hours. Relocate to designated area.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-06-20260120",
+      "location_id": 6,
+      "location_name": "Munich",
+      "address": "Leopoldstrasse 75, 80802 Munich, Germany",
+      "jurisdiction": "Landeshauptstadt Muenchen Veterinaramt",
+      "inspection_date": "2026-01-20",
+      "inspector_name": "Linda Ramirez",
+      "score": 96,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-304",
+          "severity": "minor",
+          "category": "Sanitation",
+          "description": "Waste receptacle lid not self-closing or missing",
+          "corrective_action": "Deep-clean and re-sanitize surfaces. Verify sanitizer concentration. Restock supplies.",
+          "deadline_days": 30
+        }
+      ],
+      "violation_count": 1,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 1,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-07-20260120",
+      "location_id": 7,
+      "location_name": "Amsterdam",
+      "address": "Damrak 66, 1012 LM Amsterdam, Netherlands",
+      "jurisdiction": "Gemeente Amsterdam NVWA Food Safety Authority",
+      "inspection_date": "2026-01-20",
+      "inspector_name": "Sophie Lambert",
+      "score": 95,
+      "grade": "A",
+      "violations": [],
+      "violation_count": 0,
+      "critical_count": 0,
+      "major_count": 0,
+      "minor_count": 0,
+      "follow_up_status": "Routine re-inspection in 90 days"
+    },
+    {
+      "inspection_id": "INS-08-20260120",
+      "location_id": 8,
+      "location_name": "Vianen",
+      "address": "Voorstraat 78, 4131 LW Vianen, Netherlands",
+      "jurisdiction": "Gemeente Vijfheerenlanden NVWA Food Safety Authority",
+      "inspection_date": "2026-01-20",
+      "inspector_name": "Annika de Vries",
+      "score": 94,
+      "grade": "A",
+      "violations": [
+        {
+          "code": "V-306",
+          "severity": "minor",
+          "category": "Maintenance",
+          "description": "Ceiling vent above dishwashing station shows condensation buildup",
+          "corrective_action": "Schedule professional deep-cleaning within 7 days. Add monthly cleaning to calendar.",
+          "deadline_days": 30
+        },
+        {
+          "code": "V-205",
+          "severity": "major",
+          "category": "Maintenance",
+          "description": "Grease buildup on exhaust hood and filters above cooking stations",
+          "corrective_action": "Schedule professional deep-cleaning within 7 days. Add monthly cleaning to calendar.",
+          "deadline_days": 14
+        }
+      ],
+      "violation_count": 2,
+      "critical_count": 0,
+      "major_count": 1,
+      "minor_count": 1,
       "follow_up_status": "Routine re-inspection in 90 days"
     }
   ],
@@ -480,6 +2084,30 @@
       "name": "Chicago",
       "address": "872 N. Milwaukee Avenue, Chicago, IL 60642",
       "jurisdiction": "Chicago Department of Public Health"
+    },
+    {
+      "location_id": 5,
+      "name": "London",
+      "address": "14 Curtain Road, Shoreditch, London EC2A 3NH, UK",
+      "jurisdiction": "London Borough of Hackney Environmental Health"
+    },
+    {
+      "location_id": 6,
+      "name": "Munich",
+      "address": "Leopoldstrasse 75, 80802 Munich, Germany",
+      "jurisdiction": "Landeshauptstadt Muenchen Veterinaramt"
+    },
+    {
+      "location_id": 7,
+      "name": "Amsterdam",
+      "address": "Damrak 66, 1012 LM Amsterdam, Netherlands",
+      "jurisdiction": "Gemeente Amsterdam NVWA Food Safety Authority"
+    },
+    {
+      "location_id": 8,
+      "name": "Vianen",
+      "address": "Voorstraat 78, 4131 LW Vianen, Netherlands",
+      "jurisdiction": "Gemeente Vijfheerenlanden NVWA Food Safety Authority"
     }
   ]
 }

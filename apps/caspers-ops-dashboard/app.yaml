@@ -1,0 +1,56 @@
+command:
+  - uvicorn
+  - app.main:app
+env:
+  - name: LAKEBASE_ENDPOINT_PATH
+    value: ''
+  - name: LAKEBASE_DATABASE_NAME
+    value: 'caspers-ops'
+  - name: DATABRICKS_CATALOG
+    value: ''
+  - name: SUPERVISOR_ENDPOINT
+    value: ''
+  - name: SUPERVISOR_TILE_ID
+    value: ''
+  - name: SUPERVISOR_MLFLOW_EXPERIMENT_ID
+    value: ''
+  - name: GENIE_ID_REVENUE
+    value: ''
+  - name: GENIE_ID_OPS
+    value: ''
+  - name: GENIE_ID_MENU
+    value: ''
+  - name: KA_ID_INSPECTION
+    value: ''
+  - name: KA_ID_MENU
+    value: ''
+  - name: KA_ID_LEGAL
+    value: ''
+  - name: KA_ID_REGULATORY
+    value: ''
+  - name: KA_ID_AUDITS
+    value: ''
+  - name: KA_ID_CONSULTANCY
+    value: ''
+  - name: DATABRICKS_WAREHOUSE_ID
+    value: ''
+  # Operations dashboard is published in two variants — light + dark —
+  # because Databricks embedded dashboards always render in light mode
+  # regardless of the `?theme=` URL param.  The frontend swaps the iframe
+  # src between these two IDs when the user toggles the app theme.  The
+  # stage writes both runtime values; OPS_DASHBOARD_ID is the light variant.
+  - name: OPS_DASHBOARD_ID
+    value: ''
+  - name: OPS_DASHBOARD_ID_DARK
+    value: ''
+  # Multi-page dashboard — leave empty so the iframe URL doesn't append a
+  # #page= fragment and the user sees the dashboard's default landing page.
+  - name: OPS_DASHBOARD_PAGE
+    value: ''
+  # Custom agent endpoints — populated by operational_app stage from CATALOG
+  - name: REFUND_AGENT_ENDPOINT
+    value: ''
+  - name: COMPLAINT_AGENT_ENDPOINT
+    value: ''
+  - name: REFUND_MANAGER_APP_URL
+    value: ''

@@ -1,8 +1,12 @@
 command:
-  - uvicorn 
+  - uvicorn
   - app.main:app
 env:
   - name: DATABRICKS_WAREHOUSE_ID
-    value: 'e1a2914f603fc607'
+    value: ''
   - name: DATABRICKS_CATALOG
-    value: 'cazzper'
+    value: ''
+  - name: LAKEBASE_ENDPOINT_PATH
+    value: ''
+  - name: LAKEBASE_DATABASE_NAME
+    value: ''
