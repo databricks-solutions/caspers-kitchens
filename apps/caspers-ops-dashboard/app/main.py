@@ -53,7 +53,6 @@ SUPERVISOR_MLFLOW_EXP_ID  = os.environ.get("SUPERVISOR_MLFLOW_EXPERIMENT_ID", ""
 REFUND_AGENT_ENDPOINT     = os.environ.get("REFUND_AGENT_ENDPOINT", "")
 COMPLAINT_AGENT_ENDPOINT  = os.environ.get("COMPLAINT_AGENT_ENDPOINT", "")
 REFUND_MANAGER_APP_URL    = os.environ.get("REFUND_MANAGER_APP_URL", "")
-SUPPORT_CONSOLE_APP_URL   = os.environ.get("SUPPORT_CONSOLE_APP_URL", "")
 LAKEBASE_INSTANCE    = os.environ.get("LAKEBASE_ENDPOINT_PATH", "")   # non-empty = DB enabled
 WAREHOUSE_ID         = os.environ.get("DATABRICKS_WAREHOUSE_ID", "")
 GENIE_REVENUE_ID     = os.environ.get("GENIE_ID_REVENUE", "")
@@ -266,9 +265,9 @@ def _compute_tech_info() -> dict:
                         break
             if src:
                 # src = "/Workspace/Users/{user}/caspers-kitchens-demo/apps/caspers-ops-dashboard"
-                # strip /Workspace prefix + /apps/caspers-ops-dashboard suffix → bundle root
-                bundle_root = src.replace("/Workspace", "").removesuffix("/apps/caspers-ops-dashboard")
-                nb_path = f"{bundle_root}/demos/operational-dashboard-demo/evaluation"
+                # strip /apps/caspers-ops-dashboard suffix → bundle root (keep /Workspace prefix)
+                bundle_root = src.removesuffix("/apps/caspers-ops-dashboard")
+                nb_path = f"{bundle_root}/stages/operational_evaluation"
                 eval_notebook_url = f"{host}/#workspace{nb_path}"
                 log.info(f"Eval notebook URL derived from deployment: {eval_notebook_url}")
             else:
@@ -318,7 +317,6 @@ def _compute_tech_info() -> dict:
         "refund_agent_endpoint": REFUND_AGENT_ENDPOINT,
         "complaint_agent_endpoint": COMPLAINT_AGENT_ENDPOINT,
         "refund_manager_app_url": REFUND_MANAGER_APP_URL,
-        "support_console_app_url": SUPPORT_CONSOLE_APP_URL,
         "mlflow_experiment_id": mlflow_experiment_id,
         "mlflow_experiment_url": mlflow_experiment_url,
         "eval_notebook_url": eval_notebook_url,

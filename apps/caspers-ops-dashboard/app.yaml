@@ -54,5 +54,3 @@ env:
     value: ''
   - name: REFUND_MANAGER_APP_URL
     value: ''
-  - name: SUPPORT_CONSOLE_APP_URL
-    value: ''

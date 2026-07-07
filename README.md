@@ -21,20 +21,26 @@ See the [`skill` branch](../../tree/skill) for details.
 
 ## Deploy
 
+Replace `all` and `mycatalog` with your target and catalog:
+
 ```bash
-databricks bundle deploy -t <target>
-databricks bundle run caspers
+databricks bundle deploy -t all --var catalog=mycatalog
+databricks bundle run caspers -t all --params "CATALOG=mycatalog"
 ```
+
+Use the same target for deploy and run. Omit `-t` to use `default` (refund demo only).
 
 Available targets:
 
 | Target | What it deploys |
 |--------|----------------|
-| `default` | Data generation, Lakeflow pipeline, refund agent, Lakebase + app |
-| `support` | Data generation, Lakeflow pipeline, support triage agent, Lakebase + app |
-| `complaints` | Data generation, Lakeflow pipeline, complaint agent, Lakebase |
-| `free` | Data generation, Lakeflow pipeline (Free Edition compatible) |
-| `all` | Everything end-to-end: refund + complaints + Operational Dashboard (3 Genies + 6 Knowledge Assistants + Multi-Agent Supervisor + Lakebase-backed FastAPI app) |
+| `default` | Canonical data replay, Lakeflow pipeline, refund agent + stream, Lakebase Autoscale reverse-ETL, Refund Manager app |
+| `support` | Canonical data replay, Lakeflow pipeline, support triage agent + streams, Lakebase + app |
+| `complaints` | Canonical data replay, Lakeflow pipeline, complaint agent + streams, Lakebase |
+| `free` | Canonical data replay, Lakeflow pipeline (Free Edition compatible) |
+| `all` | Full platform demo: refund + complaints paths above, document intelligence pipeline, 3 Genies + 6 Knowledge Assistants + Multi-Agent Supervisor, Operational Dashboard app (Lakebase-backed), 5 AI/BI dashboards. See [`demos/dais2026-runbooks/SETUP.ipynb`](demos/dais2026-runbooks/SETUP.ipynb) for workspace prep. |
+
+Refund and complaint evaluation tasks (`Refund_Evaluation`, `Complaint_Evaluation`) are **skipped by default** (`SKIP_EVAL=true`). Pass `--params "SKIP_EVAL=false"` to opt in. The supervisor/KA `Evaluation` task on `all` (`stages/operational_evaluation`) always runs — it is not gated by `SKIP_EVAL`.
 
 Optionally specify a catalog (default: `caspersdev`).  There are **two** dials
 that take a catalog name and they must agree:
@@ -52,7 +58,7 @@ pass the same catalog to both:
 
 ```bash
 databricks bundle deploy -t all --var catalog=mycatalog
-databricks bundle run caspers --params "CATALOG=mycatalog"
+databricks bundle run caspers -t all --params "CATALOG=mycatalog"
 ```
 
 For targets other than `all` (no DABs-owned warehouse/dashboards),
@@ -61,11 +67,29 @@ deploy-time and run-time catalogs in sync and is the safer habit.
 
 ## Clean Up
 
+Cleanup is **destructive**: it runs `destroy.ipynb`, which `DROP CATALOG … CASCADE` on the catalog you pass. It does **not** rebuild data or schemas afterward.
+
+**Catalog default:** if you omit `BUNDLE_VAR_catalog=...`, cleanup uses `caspersdev` (the bundle default) — or whatever catalog was last passed to `bundle deploy --var catalog=...` on this machine.
+
+Cleanup is a bundle **script** — use `BUNDLE_VAR_catalog=...` on the command line (not `--params CATALOG=...`, which is ignored for scripts). **`--var catalog=...` on `bundle run cleanup` does not work** — the CLI does not pass it into the script.
+
 ```bash
-# Pass the target you deployed to; --var (not --params) overrides the catalog.
-databricks bundle run cleanup -t <target> [--var catalog=<name>]
-databricks bundle destroy     -t <target>
+# 1. Delete runtime UC resources (catalog + everything in it)
+BUNDLE_VAR_catalog=mycatalog databricks bundle run cleanup -t all
+# With a non-default CLI profile, append --profile <name> at the end.
+
+# 2. Delete bundle-managed resources (job, warehouses, dashboards)
+databricks bundle destroy -t all
 ```
+
+To **rebuild** after cleanup, deploy and run the job again (deploy alone does not recreate the catalog):
+
+```bash
+databricks bundle deploy -t all --var catalog=mycatalog
+databricks bundle run caspers -t all --params "CATALOG=mycatalog"
+```
+
+The first task (`Canonical_Data`) runs `CREATE CATALOG IF NOT EXISTS` and repopulates schemas/tables.
 
 ## Blog
 

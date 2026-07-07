@@ -27,7 +27,6 @@ sync:
     - __pycache__/**
     - "*.pyc"
     # Repo content we never want shipped
-    - ./data/universe/**
     - images/**
     - docs/**
     # Per-app build artifacts (anywhere under apps/)
@@ -45,13 +44,18 @@ scripts:
     # variable overrides — NOT job task `--params`.  Supported ways to
     # specify the catalog to clean:
     #
-    #   databricks bundle run cleanup -t <target> --var catalog=mycatalog
     #   BUNDLE_VAR_catalog=mycatalog databricks bundle run cleanup -t <target>
+    #
+    # Note: `--var catalog=X` on `bundle run cleanup` does NOT propagate into
+    # this shell script (the CLI does not export BUNDLE_VAR_* to script
+    # subprocesses).  Use the inline BUNDLE_VAR_catalog= form above, or the
+    # nested `bundle validate` below falls back to the last deploy-time catalog
+    # or the default `caspersdev`.
     #
     # The `--params "CATALOG=..."` syntax (used for `bundle run caspers`)
     # is silently ignored by this script — the CLI only forwards `--params`
-    # to job tasks, never to scripts.  If you forget `--var`, the script
-    # falls back to the catalog stored in `.databricks/` from the last
+    # to job tasks, never to scripts.  If you omit BUNDLE_VAR_catalog, the
+    # script falls back to the catalog from the last `bundle deploy --var`
     # deploy (or to `var.catalog`'s default), which may not be what you
     # want.  The "Cleaning up catalog: <name>" line below is your last
     # chance to confirm before resources are deleted.
@@ -60,27 +64,25 @@ scripts:
 
       # Detect the target passed to `databricks bundle run cleanup -t <target>`
       TARGET_FLAG=""
-      if env | grep -q '^DATABRICKS_BUNDLE_TARGET='; then
+      if [ -n "$DATABRICKS_BUNDLE_TARGET" ]; then
         TARGET_FLAG="-t $DATABRICKS_BUNDLE_TARGET"
       fi
 
-      # Get fully-resolved bundle config (includes target overrides + --var)
-      RESOLVED_JSON="$(databricks bundle validate $TARGET_FLAG --output json)"
-
-      # Pull values we need (requires jq).  Resolution order for CATALOG:
-      #   1. BUNDLE_VAR_catalog env (set by `--var catalog=X`)
-      #   2. .variables.catalog.value (set by previous `bundle deploy --var ...`)
-      #   3. .variables.catalog.default (`caspersdev` per databricks.yml)
-      FILE_PATH="$(printf '%s' "$RESOLVED_JSON" | jq -r '.workspace.file_path // (.workspace.root_path + "/src")')"
-
-      CATALOG="$(printf '%s' "$RESOLVED_JSON" | jq -r '.variables.catalog.value // .variables.catalog.default')"
-      ENV_CATALOG="$(printenv BUNDLE_VAR_catalog 2>/dev/null || true)"
-      if [ -n "$ENV_CATALOG" ]; then
-        CATALOG="$ENV_CATALOG"
+      # Forward BUNDLE_VAR_catalog into nested validate.  (`bundle run --var`
+      # does not set BUNDLE_VAR_* in the script env — use
+      # `BUNDLE_VAR_catalog=X bundle run cleanup` on the command line.)
+      VAR_FLAG=""
+      if [ -n "$BUNDLE_VAR_catalog" ]; then
+        VAR_FLAG="--var catalog=$BUNDLE_VAR_catalog"
       fi
 
+      RESOLVED_JSON="$(databricks bundle validate $TARGET_FLAG $VAR_FLAG --output json)"
+
+      FILE_PATH="$(printf '%s' "$RESOLVED_JSON" | jq -r '.workspace.file_path // (.workspace.root_path + "/src")')"
+      CATALOG="$(printf '%s' "$RESOLVED_JSON" | jq -r '.variables.catalog.value // .variables.catalog.default')"
+
       echo "Cleaning up catalog: $CATALOG"
-      echo "  (override with: databricks bundle run cleanup -t <target> --var catalog=<name>)"
+      echo "  (override with: BUNDLE_VAR_catalog=<name> databricks bundle run cleanup -t <target>)"
 
       mkdir -p .bundle
       cat > .bundle/submit.json <<JSON
@@ -858,7 +860,7 @@ targets:
                 notebook_path: ${workspace.root_path}/stages/operational_readiness_check
 
             # Single consolidated evaluation task for managed Agent Bricks
-            # (Supervisor + 6 KAs).  evaluation.ipynb does:
+            # (Supervisor + 6 KAs).  operational_evaluation.ipynb does:
             #   1. Build the UC-managed supervisor eval dataset inline
             #   2. Run mlflow.genai.evaluate() against the supervisor
             #   3. Register production scorers (Scorer.register + .start) on
@@ -876,4 +878,4 @@ targets:
                 - task_key: Readiness_Check
                 - task_key: Knowledge_Agents
               notebook_task:
-                notebook_path: ${workspace.root_path}/demos/operational-dashboard-demo/evaluation
+                notebook_path: ${workspace.root_path}/stages/operational_evaluation

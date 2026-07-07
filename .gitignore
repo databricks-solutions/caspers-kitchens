@@ -1,5 +1,4 @@
 .state/
-data/generator/cache/
 stages/agent.py
 
 *conf*.json

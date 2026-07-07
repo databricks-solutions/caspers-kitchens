@@ -1023,10 +1023,6 @@ body { background: var(--bg-primary); color: var(--text-primary); display: flex;
          style="display:none; text-decoration:none;">
         <span class="icon">💳</span> Refund Manager ↗
       </a>
-      <a class="nav-item" id="nav-support-console" href="#" target="_blank" rel="noopener"
-         style="display:none; text-decoration:none;">
-        <span class="icon">🎧</span> Support Console ↗
-      </a>
     </nav>
 
     <div class="sidebar-divider"></div>
@@ -2859,11 +2855,6 @@ async function loadTechInfo() {
     if (rmLink && techInfo.refund_manager_app_url) {
       rmLink.href = techInfo.refund_manager_app_url;
       rmLink.style.display = '';
-    }
-    const scLink = document.getElementById('nav-support-console');
-    if (scLink && techInfo.support_console_app_url) {
-      scLink.href = techInfo.support_console_app_url;
-      scLink.style.display = '';
     }
   } catch (e) {
     renderTechInfo({
