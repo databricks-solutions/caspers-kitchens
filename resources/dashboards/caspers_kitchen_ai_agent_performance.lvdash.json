@@ -1,0 +1,541 @@
+{
+  "datasets": [
+    {
+      "name": "agent_requests",
+      "displayName": "Agent Requests",
+      "queryLines": [
+        "SELECT\n",
+        "  databricks_request_id,\n",
+        "  request_date,\n",
+        "  request_time,\n",
+        "  status_code,\n",
+        "  execution_duration_ms\n",
+        "FROM\n",
+        "  ai.complaint_agent_payload"
+      ],
+      "columns": [
+        {
+          "displayName": "Successful Requests",
+          "expression": "SUM(CASE WHEN `status_code` = 200 THEN 1 ELSE 0 END)"
+        }
+      ]
+    },
+    {
+      "name": "agent_decisions",
+      "displayName": "Agent Decisions",
+      "queryLines": [
+        "SELECT\n",
+        "  databricks_request_id,\n",
+        "  request_date,\n",
+        "  request_time,\n",
+        "  status_code,\n",
+        "  execution_duration_ms,\n",
+        "  get_json_object(\n",
+        "    get_json_object(response, '$.output[0].content[0].text'),\n",
+        "    '$.complaint_category'\n",
+        "  ) AS complaint_category,\n",
+        "  get_json_object(\n",
+        "    get_json_object(response, '$.output[0].content[0].text'),\n",
+        "    '$.decision'\n",
+        "  ) AS decision,\n",
+        "  CAST(\n",
+        "    get_json_object(\n",
+        "      get_json_object(response, '$.output[0].content[0].text'),\n",
+        "      '$.credit_amount'\n",
+        "    ) AS DOUBLE\n",
+        "  ) AS credit_amount,\n",
+        "  get_json_object(\n",
+        "    get_json_object(response, '$.output[0].content[0].text'),\n",
+        "    '$.confidence'\n",
+        "  ) AS confidence,\n",
+        "  get_json_object(\n",
+        "    get_json_object(response, '$.output[0].content[0].text'),\n",
+        "    '$.priority'\n",
+        "  ) AS priority\n",
+        "FROM\n",
+        "  ai.complaint_agent_payload\n",
+        "WHERE\n",
+        "  status_code = 200"
+      ],
+      "columns": [
+        {
+          "displayName": "Escalation Rate",
+          "expression": "SUM(CASE WHEN `decision` = 'escalate' THEN 1 ELSE 0 END) * 1.0 / COUNT(`databricks_request_id`)"
+        }
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "c3e54a1b",
+      "displayName": "Agent Performance",
+      "layout": [
+        {
+          "widget": {
+            "name": "header",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Complaint Agent Performance"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "total_requests",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "agent_requests",
+                  "fields": [
+                    {
+                      "name": "count(databricks_request_id)",
+                      "expression": "COUNT(`databricks_request_id`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Total Requests",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count(databricks_request_id)",
+                  "displayName": "Total Requests"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "success_rate",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "agent_requests",
+                  "fields": [
+                    {
+                      "name": "measure(Successful Requests)",
+                      "expression": "MEASURE(`Successful Requests`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Success Rate",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(Successful Requests)",
+                  "displayName": "Successful Requests"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 1,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "avg_latency",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "agent_requests",
+                  "fields": [
+                    {
+                      "name": "avg(execution_duration_ms)",
+                      "expression": "AVG(`execution_duration_ms`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Avg Latency (s)",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "avg(execution_duration_ms)",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  },
+                  "displayName": "Avg Latency (ms)"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 1,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "p95_latency",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "agent_requests",
+                  "fields": [
+                    {
+                      "name": "percentile(execution_duration_ms, percentage=0_95)",
+                      "expression": "PERCENTILE(`execution_duration_ms`, 0.95)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "P95 Latency (ms)",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "percentile(execution_duration_ms, percentage=0_95)",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact"
+                  },
+                  "displayName": "P95 Latency (ms)"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 1,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "decision_pie",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "agent_decisions",
+                  "fields": [
+                    {
+                      "name": "count(databricks_request_id)",
+                      "expression": "COUNT(`databricks_request_id`)"
+                    },
+                    {
+                      "name": "decision",
+                      "expression": "`decision`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "title": "Decision Distribution",
+                "showTitle": true
+              },
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "count(databricks_request_id)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Count"
+                },
+                "color": {
+                  "fieldName": "decision",
+                  "displayName": "Decision",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "label": {
+                  "show": true
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 4,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "confidence_bar",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "agent_decisions",
+                  "fields": [
+                    {
+                      "name": "confidence",
+                      "expression": "`confidence`"
+                    },
+                    {
+                      "name": "count(databricks_request_id)",
+                      "expression": "COUNT(`databricks_request_id`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "title": "Confidence Breakdown",
+                "showTitle": true
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "confidence",
+                  "displayName": "Confidence",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "count(databricks_request_id)",
+                  "displayName": "Request Count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 4,
+            "width": 4,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "category_bar",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "agent_decisions",
+                  "fields": [
+                    {
+                      "name": "complaint_category",
+                      "expression": "`complaint_category`"
+                    },
+                    {
+                      "name": "count(databricks_request_id)",
+                      "expression": "COUNT(`databricks_request_id`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "title": "Complaint Categories",
+                "showTitle": true
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "complaint_category",
+                  "displayName": "Category",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "count(databricks_request_id)",
+                  "displayName": "Count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 4,
+            "width": 4,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "latency_over_time",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "agent_requests",
+                  "fields": [
+                    {
+                      "name": "request_time",
+                      "expression": "`request_time`"
+                    },
+                    {
+                      "name": "avg(execution_duration_ms)",
+                      "expression": "AVG(`execution_duration_ms`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "title": "Latency Over Time",
+                "showTitle": true
+              },
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "request_time",
+                  "displayName": "Request Time",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "avg(execution_duration_ms)",
+                  "displayName": "Avg Latency (ms)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 8,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "credits_by_decision",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "agent_decisions",
+                  "fields": [
+                    {
+                      "name": "measure(Escalation Rate)",
+                      "expression": "MEASURE(`Escalation Rate`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Escalation Rate",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(Escalation Rate)",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 1
+                    }
+                  },
+                  "displayName": "Escalation Rate"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 10,
+            "width": 4,
+            "height": 6
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    },
+    "applyModeEnabled": false
+  }
+}
+

@@ -17,48 +17,79 @@ sync:
   include:
     - ./*
   exclude:
+    # Repo / tooling
     - .git/**
     - .DS_Store
     - .claude/**
     - .databricks/**
     - .venv/**
     - .bundle/**
-    - ./data/universe/**
     - __pycache__/**
     - "*.pyc"
+    # Repo content we never want shipped
     - images/**
     - docs/**
-    - apps/caspersai-terminal/node_modules/**
+    # Canonical-dataset generator caches (OSMnx road graphs + build cache).
+    # Local-only build artifacts (~160MB); the workspace stage only needs the
+    # pre-generated canonical_dataset/ parquet, not these. Shipping them makes
+    # `bundle deploy` slow and flaky (408 timeouts on the file-import API).
+    - data/canonical/cache/**
+    - "data/canonical/*.pkl"
+    # Per-app build artifacts (anywhere under apps/)
+    - apps/**/.databricks/**
+    - apps/**/node_modules/**
+    - apps/**/dist/**
+    # App-specific files
+    - apps/caspers-ops-dashboard/app.yaml
+    - apps/catastrophe-command/app.yaml
     - apps/caspersai-terminal/logs/**
     - apps/caspersai-terminal/test/**
-    - apps/supportconsolek/**/.databricks/**
-    - apps/supportconsolek/**/node_modules/**
-    - apps/supportconsolek/**/dist/**
 
 scripts:
   cleanup:
+    # Cleanup is a bundle SCRIPT (not a job task), so it accepts bundle
+    # variable overrides — NOT job task `--params`.  Supported ways to
+    # specify the catalog to clean:
+    #
+    #   BUNDLE_VAR_catalog=mycatalog databricks bundle run cleanup -t <target>
+    #
+    # Note: `--var catalog=X` on `bundle run cleanup` does NOT propagate into
+    # this shell script (the CLI does not export BUNDLE_VAR_* to script
+    # subprocesses).  Use the inline BUNDLE_VAR_catalog= form above, or the
+    # nested `bundle validate` below falls back to the last deploy-time catalog
+    # or the default `caspersdev`.
+    #
+    # The `--params "CATALOG=..."` syntax (used for `bundle run caspers`)
+    # is silently ignored by this script — the CLI only forwards `--params`
+    # to job tasks, never to scripts.  If you omit BUNDLE_VAR_catalog, the
+    # script falls back to the catalog from the last `bundle deploy --var`
+    # deploy (or to `var.catalog`'s default), which may not be what you
+    # want.  The "Cleaning up catalog: <name>" line below is your last
+    # chance to confirm before resources are deleted.
     content: |
       set -eo pipefail
 
       # Detect the target passed to `databricks bundle run cleanup -t <target>`
       TARGET_FLAG=""
-      if env | grep -q '^DATABRICKS_BUNDLE_TARGET='; then
+      if [ -n "$DATABRICKS_BUNDLE_TARGET" ]; then
         TARGET_FLAG="-t $DATABRICKS_BUNDLE_TARGET"
       fi
 
-      # Get fully-resolved bundle config (includes target overrides)
-      RESOLVED_JSON="$(databricks bundle validate $TARGET_FLAG --output json)"
-
-      # Pull values we need (requires jq)
-      FILE_PATH="$(printf '%s' "$RESOLVED_JSON" | jq -r '.workspace.file_path // (.workspace.root_path + "/src")')"
-
-      CATALOG="$(printf '%s' "$RESOLVED_JSON" | jq -r '.variables.catalog.value // .variables.catalog.default')"
-      ENV_CATALOG="$(printenv BUNDLE_VAR_catalog 2>/dev/null || true)"
-      if [ -n "$ENV_CATALOG" ]; then
-        CATALOG="$ENV_CATALOG"
+      # Forward BUNDLE_VAR_catalog into nested validate.  (`bundle run --var`
+      # does not set BUNDLE_VAR_* in the script env — use
+      # `BUNDLE_VAR_catalog=X bundle run cleanup` on the command line.)
+      VAR_FLAG=""
+      if [ -n "$BUNDLE_VAR_catalog" ]; then
+        VAR_FLAG="--var catalog=$BUNDLE_VAR_catalog"
       fi
 
+      RESOLVED_JSON="$(databricks bundle validate $TARGET_FLAG $VAR_FLAG --output json)"
+
+      FILE_PATH="$(printf '%s' "$RESOLVED_JSON" | jq -r '.workspace.file_path // (.workspace.root_path + "/src")')"
+      CATALOG="$(printf '%s' "$RESOLVED_JSON" | jq -r '.variables.catalog.value // .variables.catalog.default')"
+
       echo "Cleaning up catalog: $CATALOG"
+      echo "  (override with: BUNDLE_VAR_catalog=<name> databricks bundle run cleanup -t <target>)"
 
       mkdir -p .bundle
       cat > .bundle/submit.json <<JSON
@@ -81,6 +112,9 @@ scripts:
 
 
 targets:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # default — focused refund demo (refund recommender + reverse-ETL + manager app)
+  # ─────────────────────────────────────────────────────────────────────────────
   default:
     default: true
 
@@ -97,8 +131,29 @@ targets:
               default: ${var.catalog}
             - name: EVENTS_VOLUME
               default: events
+            # Switched off `databricks-meta-llama-3-3-70b-instruct` because it is
+            # the most heavily contended shared FMAPI endpoint in every workspace
+            # — agent eval + DSPy CoT bursts + the two `ai_gen()` generator
+            # crons + everyone else on the workspace consistently push the
+            # shared QPS bucket over its ceiling, surfacing as
+            # REQUEST_LIMIT_EXCEEDED (429) during the Refund/Complaint agent
+            # tasks even with eval concurrency pinned to 1.  Claude Sonnet 4.5
+            # has a separate per-endpoint QPS bucket, equivalent or better
+            # tool-use / structured-output quality, and is OpenAI-compatible
+            # so DSPy / `ai_gen()` / OpenAI client UDFs all keep working
+            # without code changes.  Override at run time with
+            # `--params "LLM_MODEL=..."` if you need a specific model.
             - name: LLM_MODEL
-              default: databricks-meta-llama-3-3-70b-instruct
+              default: databricks-claude-sonnet-4-5
+            # Eval is opt-in: it's a quality-measurement burst of ~30-50 LM
+            # calls in tight succession and was the dominant 429 source even
+            # with eval concurrency pinned to 1.  Deploy / register / endpoint
+            # readiness checks only burn ~1-2 calls and run fine.  Flip to
+            # "false" when you specifically want to measure agent quality:
+            #   databricks bundle run caspers -t all \
+            #     --params "CATALOG=oleksandra,SKIP_EVAL=false"
+            - name: SKIP_EVAL
+              default: "true"
             - name: REFUND_AGENT_ENDPOINT_NAME
               default: ${var.catalog}_refund_agent
             - name: SIMULATOR_SCHEMA
@@ -117,6 +172,16 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/canonical_data
 
+            # Shared Lakebase Autoscaling project.  Runs early in parallel with
+            # the data pipeline so the synced-table create downstream has its
+            # destination project ready when needed.  All Lakebase-consuming
+            # tasks depend on this stage; per-component logical databases
+            # (caspers_refund, caspers_complaint, caspers_ops) are created by
+            # their own stages inside this single project.
+            - task_key: Lakebase_Project
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/lakebase_project
+
             - task_key: Spark_Declarative_Pipeline
               depends_on:
                 - task_key: Canonical_Data
@@ -129,15 +194,46 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/refunder_agent
 
+            # Refund_Setup builds the curated eval dataset and registers it in
+            # UC at {CATALOG}.evaluations.refund_agent_eval_dataset.  Always
+            # runs (not gated by SKIP_EVAL) so the dataset is visible in
+            # Catalog Explorer after every deploy, even when Refund_Evaluation
+            # is skipped.  Built inline by the demo notebook, eval is run by Refund_Evaluation / Complaint_Evaluation.
+            - task_key: Refund_Setup
+              max_retries: 0
+              depends_on:
+                - task_key: Refund_Recommender_Agent
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/refund_setup
+
+            # Refund_Evaluation runs the deployed agent against the UC-managed
+            # eval dataset registered by Refund_Setup.  Gated by SKIP_EVAL=true
+            # (default), so this task shows up as "skipped" in the DAG unless a
+            # user opts in via --params "SKIP_EVAL=false".  See stages/refund_evaluation.
+            - task_key: Refund_Evaluation
+              max_retries: 0
+              depends_on:
+                - task_key: Refund_Setup
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/refund_evaluation
+
+            # Refund_Recommender_Stream calls w.jobs.run_now() on the
+            # streaming inference job whose UDF queries the Refund agent
+            # serving endpoint.  The endpoint must exist and be READY before
+            # the stream's first batch fires — without the explicit
+            # Refund_Recommender_Agent edge the two tasks race and the
+            # stream can hit a missing endpoint.
             - task_key: Refund_Recommender_Stream
               depends_on:
                 - task_key: Spark_Declarative_Pipeline
+                - task_key: Refund_Recommender_Agent
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/refunder_stream
 
             - task_key: Lakebase_Reverse_ETL
               depends_on:
                 - task_key: Refund_Recommender_Stream
+                - task_key: Lakebase_Project
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/lakebase
 
@@ -147,6 +243,9 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/apps
 
+  # ─────────────────────────────────────────────────────────────────────────────
+  # complaints — focused complaints demo
+  # ─────────────────────────────────────────────────────────────────────────────
   complaints:
     resources:
       jobs:
@@ -161,8 +260,29 @@ targets:
               default: ${var.catalog}
             - name: EVENTS_VOLUME
               default: events
+            # Switched off `databricks-meta-llama-3-3-70b-instruct` because it is
+            # the most heavily contended shared FMAPI endpoint in every workspace
+            # — agent eval + DSPy CoT bursts + the two `ai_gen()` generator
+            # crons + everyone else on the workspace consistently push the
+            # shared QPS bucket over its ceiling, surfacing as
+            # REQUEST_LIMIT_EXCEEDED (429) during the Refund/Complaint agent
+            # tasks even with eval concurrency pinned to 1.  Claude Sonnet 4.5
+            # has a separate per-endpoint QPS bucket, equivalent or better
+            # tool-use / structured-output quality, and is OpenAI-compatible
+            # so DSPy / `ai_gen()` / OpenAI client UDFs all keep working
+            # without code changes.  Override at run time with
+            # `--params "LLM_MODEL=..."` if you need a specific model.
             - name: LLM_MODEL
-              default: databricks-meta-llama-3-3-70b-instruct
+              default: databricks-claude-sonnet-4-5
+            # Eval is opt-in: it's a quality-measurement burst of ~30-50 LM
+            # calls in tight succession and was the dominant 429 source even
+            # with eval concurrency pinned to 1.  Deploy / register / endpoint
+            # readiness checks only burn ~1-2 calls and run fine.  Flip to
+            # "false" when you specifically want to measure agent quality:
+            #   databricks bundle run caspers -t all \
+            #     --params "CATALOG=oleksandra,SKIP_EVAL=false"
+            - name: SKIP_EVAL
+              default: "true"
             - name: COMPLAINT_AGENT_ENDPOINT_NAME
               default: ${var.catalog}_complaint_agent
             - name: COMPLAINT_RATE
@@ -183,6 +303,11 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/canonical_data
 
+            # Shared Lakebase Autoscaling project (see comment under default).
+            - task_key: Lakebase_Project
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/lakebase_project
+
             - task_key: Spark_Declarative_Pipeline
               depends_on:
                 - task_key: Canonical_Data
@@ -194,6 +319,29 @@ targets:
                 - task_key: Spark_Declarative_Pipeline
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/complaint_agent
+
+            # Complaint_Setup builds the curated eval dataset and registers it
+            # in UC at {CATALOG}.evaluations.complaint_agent_eval_dataset.
+            # Always runs (not gated by SKIP_EVAL) so the dataset is visible in
+            # Catalog Explorer after every deploy, even when Complaint_Evaluation
+            # is skipped.  Built inline by the demo notebook, eval is run by Refund_Evaluation / Complaint_Evaluation.
+            - task_key: Complaint_Setup
+              max_retries: 0
+              depends_on:
+                - task_key: Complaint_Agent
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/complaint_setup
+
+            # Complaint_Evaluation runs the deployed agent against the UC-managed
+            # eval dataset registered by Complaint_Setup.  Gated by SKIP_EVAL=true
+            # (default), so this task shows up as "skipped" in the DAG unless a
+            # user opts in via --params "SKIP_EVAL=false".  See stages/complaint_evaluation.
+            - task_key: Complaint_Evaluation
+              max_retries: 0
+              depends_on:
+                - task_key: Complaint_Setup
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/complaint_evaluation
 
             - task_key: Complaint_Generator_Stream
               depends_on:
@@ -211,9 +359,15 @@ targets:
             - task_key: Complaint_Lakebase
               depends_on:
                 - task_key: Complaint_Agent_Stream
+                - task_key: Lakebase_Project
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/complaint_lakebase
 
+  # ─────────────────────────────────────────────────────────────────────────────
+  # free — Free Edition.  Uses the workspace Serverless Starter Warehouse (no extra
+  # SQL warehouse via DABs).  Operational-dashboard path only — no refund/complaint
+  # agents, streams, Lakebase reverse-ETL, or Refund Manager app.
+  # ─────────────────────────────────────────────────────────────────────────────
   free:
     resources:
       jobs:
@@ -236,13 +390,35 @@ targets:
               default: "60.0"
             - name: SCHEDULE_MINUTES
               default: "3"
+            # -1 = Order Items Medallion Pipeline runs once (triggered, not continuous).
+            # 0 = continuous; N > 0 = triggered on a cron every N minutes.
             - name: PIPELINE_SCHEDULE_MINUTES
-              default: "3"
+              default: "-1"
+            # Operational Dashboard — Multi-Agent Supervisor endpoint
+            - name: SUPERVISOR_ENDPOINT_NAME
+              default: ${var.catalog}_operational_supervisor
+            # Free Edition ships one SQL warehouse (Serverless Starter).  Do not
+            # create a second warehouse via DABs — pass this name to stages that
+            # look up a warehouse by name (e.g. operational_app, genie_spaces).
+            - name: OPS_WAREHOUSE_NAME
+              default: Serverless Starter Warehouse
+            # Minimal ops-dashboard agent profile: 1 Genie + 1 KA (override at run time).
+            - name: GENIE_SPACE_KEYS
+              default: revenue
+            - name: KA_KEYS
+              default: inspection
 
           tasks:
+            # ─── Data foundation ──────────────────────────────────────────────
             - task_key: Canonical_Data
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/canonical_data
+
+            - task_key: Lakebase_Project
+              depends_on:
+                - task_key: Canonical_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/lakebase_project
 
             - task_key: Spark_Declarative_Pipeline
               depends_on:
@@ -250,11 +426,111 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/lakeflow
 
-  menus:
+            - task_key: Environment_Helpers
+              depends_on:
+                - task_key: Canonical_Data
+                - task_key: Document_Data
+                - task_key: Spark_Declarative_Pipeline
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/environment_helpers
+
+            # ─── Operational Dashboard: documents → menu pipeline → genie / KA / MAS / app ───
+            - task_key: Document_Data
+              max_retries: 0
+              depends_on:
+                - task_key: Canonical_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/document_data
+
+            - task_key: Menu_Pipeline
+              max_retries: 0
+              depends_on:
+                - task_key: Document_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/menu_pipeline
+
+            - task_key: Genie_Spaces
+              max_retries: 0
+              depends_on:
+                - task_key: Spark_Declarative_Pipeline
+                - task_key: Menu_Pipeline
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/genie_spaces
+
+            - task_key: Knowledge_Agents
+              max_retries: 0
+              depends_on:
+                - task_key: Document_Data
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/knowledge_agents
+
+            - task_key: Operational_Lakebase
+              max_retries: 0
+              depends_on:
+                - task_key: Canonical_Data
+                - task_key: Lakebase_Project
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/operational_lakebase
+
+            - task_key: Operational_Supervisor
+              max_retries: 0
+              depends_on:
+                - task_key: Genie_Spaces
+                - task_key: Knowledge_Agents
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/operational_supervisor
+
+            - task_key: Operational_App
+              max_retries: 0
+              depends_on:
+                - task_key: Operational_Supervisor
+                - task_key: Operational_Lakebase
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/operational_app
+
+            - task_key: Readiness_Check
+              max_retries: 0
+              depends_on:
+                - task_key: Operational_App
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/operational_readiness_check
+
+            - task_key: Evaluation
+              max_retries: 0
+              depends_on:
+                - task_key: Readiness_Check
+                - task_key: Knowledge_Agents
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/operational_evaluation
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # devconnect — standalone catastrophe command-center demo target
+  # ─────────────────────────────────────────────────────────────────────────────
+  devconnect:
+    variables:
+      catalog:
+        default: devconnect
     resources:
+      sql_warehouses:
+        caspers_devconnect_ops_warehouse:
+          name: ${var.catalog}-devconnect-ops
+          cluster_size: 2X-Small
+          min_num_clusters: 1
+          max_num_clusters: 1
+          auto_stop_mins: 60
+          enable_serverless_compute: true
+          warehouse_type: PRO
+      # AI/BI dashboard for Demo 3 (analyst view). Datasets use unqualified
+      # simulator.* tables; dataset_catalog injects ${var.catalog} at deploy.
+      dashboards:
+        catastrophe_command_center:
+          display_name: "Delivery Catastrophe Command Center (${var.catalog})"
+          file_path: ./resources/dashboards/catastrophe_command_center.lvdash.json
+          warehouse_id: ${resources.sql_warehouses.caspers_devconnect_ops_warehouse.id}
+          dataset_catalog: ${var.catalog}
       jobs:
         caspers:
-          name: "Casper's Initializer"
+          name: "Casper's Initializer - DevConnect"
           queue:
             enabled: true
           performance_target: PERFORMANCE_OPTIMIZED
@@ -264,16 +540,6 @@ targets:
               default: ${var.catalog}
             - name: EVENTS_VOLUME
               default: events
-            - name: LLM_MODEL
-              default: databricks-meta-llama-3-3-70b-instruct
-            - name: REFUND_AGENT_ENDPOINT_NAME
-              default: ${var.catalog}_refund_agent
-            - name: MENU_KNOWLEDGE_ENDPOINT_NAME
-              default: ${var.catalog}_menu_knowledge
-            - name: INSPECTION_KNOWLEDGE_ENDPOINT_NAME
-              default: ${var.catalog}_inspection_knowledge
-            - name: MENU_SUPERVISOR_ENDPOINT_NAME
-              default: ${var.catalog}_menu_supervisor
             - name: SIMULATOR_SCHEMA
               default: simulator
             - name: START_DAY
@@ -284,64 +550,95 @@ targets:
               default: "3"
             - name: PIPELINE_SCHEDULE_MINUTES
               default: "0"
+            - name: OPS_WAREHOUSE_NAME
+              default: ${var.catalog}-devconnect-ops
+            # City and catastrophe scenario are chosen at runtime in the app's
+            # config screen, so they are no longer job parameters. The
+            # Catastrophe_Command stage falls back to amsterdam / bridge_outage /
+            # seed 2026 when the widgets aren't set.
+            # Optional override for the in-app catastrophe agent's Unity AI
+            # Gateway endpoint. The endpoint name is HARDCODED in
+            # apps/catastrophe-command/app/agent.py (GATEWAY_ENDPOINT) and the
+            # gateway host is taken from the app's CLI/SDK auth at runtime, so
+            # this stays blank; set a non-empty value only to point elsewhere.
+            - name: AI_GATEWAY_ENDPOINT_NAME
+              default: ""
+            # Fallback chat model for the in-app catastrophe agent when
+            # AI_GATEWAY_ENDPOINT_NAME is unset. Empty => agent.py's built-in
+            # default (databricks-claude-sonnet-4). Set to pin a specific
+            # foundation-model serving endpoint per deploy.
+            - name: AGENT_LLM_FALLBACK
+              default: ""
+            # Historical analytics dataset (stages/catastrophe_history.ipynb).
+            # Total synthetic orders across all 13 cities and the number of days
+            # of history to generate.  Delta tables land in {CATALOG}.{SIMULATOR
+            # _SCHEMA} as catastrophe_hist_*.  Tune down for a quick deploy.
+            - name: HISTORY_TARGET_ORDERS
+              default: "2000000"
+            - name: HISTORY_DAYS
+              default: "90"
+            # DevConnect uses canonical_data for catalog + dimension tables only.
+            # Skip the event replay job (no order-items pipeline on this target).
+            - name: SKIP_EVENT_REPLAY
+              default: "true"
 
           tasks:
             - task_key: Canonical_Data
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/canonical_data
 
-            - task_key: Menu_Data
-              max_retries: 0
+            - task_key: Lakebase_Project
               depends_on:
                 - task_key: Canonical_Data
               notebook_task:
-                notebook_path: ${workspace.root_path}/stages/menu_data
+                notebook_path: ${workspace.root_path}/stages/lakebase_project
 
-            - task_key: Inspection_Data
-              max_retries: 0
+            # Generates the large historical analytics dataset (catastrophe_hist_*
+            # Delta tables).  Self-contained (kitchens derived from the registry),
+            # so it only needs the catalog/schema from Canonical_Data and runs in
+            # parallel with Lakebase_Project.
+            - task_key: Catastrophe_History
               depends_on:
                 - task_key: Canonical_Data
               notebook_task:
-                notebook_path: ${workspace.root_path}/stages/inspection_data
+                notebook_path: ${workspace.root_path}/stages/catastrophe_history
 
-            - task_key: Menu_Pipeline
-              max_retries: 0
+            # Sync catastrophe_hist_orders + catastrophe_hist_refunds into Lakebase
+            # (databricks_postgres) for devconnect runbook queries 2–6.
+            - task_key: Catastrophe_Hist_Lakebase
               depends_on:
-                - task_key: Menu_Data
-                - task_key: Inspection_Data
+                - task_key: Catastrophe_History
+                - task_key: Lakebase_Project
               notebook_task:
-                notebook_path: ${workspace.root_path}/stages/menu_pipeline
+                notebook_path: ${workspace.root_path}/stages/catastrophe_hist_lakebase
 
-            - task_key: Menu_Genie
-              max_retries: 0
+            # Rolls the catastrophe_hist_* Delta tables into a Bronze → Silver →
+            # Gold medallion in {CATALOG}.lakeflow via a serverless Lakeflow
+            # pipeline.  Needs the source tables, so it depends on
+            # Catastrophe_History; runs in parallel with Catastrophe_Command
+            # (the app does not consume the gold tables).
+            - task_key: Catastrophe_History_Pipeline
               depends_on:
-                - task_key: Menu_Pipeline
+                - task_key: Catastrophe_History
               notebook_task:
-                notebook_path: ${workspace.root_path}/stages/menu_genie
+                notebook_path: ${workspace.root_path}/stages/catastrophe_history_pipeline
 
-            - task_key: Menu_Knowledge_Agent
-              max_retries: 0
+            - task_key: Catastrophe_Command
               depends_on:
-                - task_key: Menu_Pipeline
+                - task_key: Lakebase_Project
+                - task_key: Catastrophe_History
               notebook_task:
-                notebook_path: ${workspace.root_path}/stages/menu_knowledge_agent
+                notebook_path: ${workspace.root_path}/stages/catastrophe_command
 
-            - task_key: Inspection_Knowledge_Agent
-              max_retries: 0
+            # Last: enable UC catalog-managed commits on simulator Delta tables
+            # (dimensions, catastrophe_*, catastrophe_hist_*). Skips lakeflow —
+            # DLT outputs there are views. Devconnect target only.
+            - task_key: Catalog_Commits
               depends_on:
-                - task_key: Inspection_Data
+                - task_key: Catastrophe_Command
+                - task_key: Catastrophe_History_Pipeline
               notebook_task:
-                notebook_path: ${workspace.root_path}/stages/inspection_knowledge_agent
-
-            - task_key: Menu_Supervisor
-              max_retries: 0
-              depends_on:
-                - task_key: Menu_Genie
-                - task_key: Menu_Knowledge_Agent
-                - task_key: Inspection_Knowledge_Agent
-              notebook_task:
-                notebook_path: ${workspace.root_path}/stages/menu_supervisor
-
+                notebook_path: ${workspace.root_path}/stages/catalog_commits
   support:
     resources:
       jobs:
@@ -356,8 +653,29 @@ targets:
               default: ${var.catalog}
             - name: EVENTS_VOLUME
               default: events
+            # Switched off `databricks-meta-llama-3-3-70b-instruct` because it is
+            # the most heavily contended shared FMAPI endpoint in every workspace
+            # — agent eval + DSPy CoT bursts + the two `ai_gen()` generator
+            # crons + everyone else on the workspace consistently push the
+            # shared QPS bucket over its ceiling, surfacing as
+            # REQUEST_LIMIT_EXCEEDED (429) during the Refund/Complaint agent
+            # tasks even with eval concurrency pinned to 1.  Claude Sonnet 4.5
+            # has a separate per-endpoint QPS bucket, equivalent or better
+            # tool-use / structured-output quality, and is OpenAI-compatible
+            # so DSPy / `ai_gen()` / OpenAI client UDFs all keep working
+            # without code changes.  Override at run time with
+            # `--params "LLM_MODEL=..."` if you need a specific model.
             - name: LLM_MODEL
-              default: databricks-meta-llama-3-3-70b-instruct
+              default: databricks-claude-sonnet-4-5
+            # Eval is opt-in: it's a quality-measurement burst of ~30-50 LM
+            # calls in tight succession and was the dominant 429 source even
+            # with eval concurrency pinned to 1.  Deploy / register / endpoint
+            # readiness checks only burn ~1-2 calls and run fine.  Flip to
+            # "false" when you specifically want to measure agent quality:
+            #   databricks bundle run caspers -t all \
+            #     --params "CATALOG=oleksandra,SKIP_EVAL=false"
+            - name: SKIP_EVAL
+              default: "true"
             - name: SUPPORT_AGENT_ENDPOINT_NAME
               default: ${var.catalog}_support_agent
             - name: SUPPORT_RATE
@@ -396,9 +714,14 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/support_request_agent
 
+            # Support_Request_Agent_Stream's UDF calls the Support agent
+            # serving endpoint, so the endpoint must exist and be READY
+            # before the stream's first batch fires.  Mirrors the
+            # Refund_Recommender_Stream and Complaint_Agent_Stream patterns.
             - task_key: Support_Request_Agent_Stream
               depends_on:
                 - task_key: Support_Request_Generator_Stream
+                - task_key: Support_Request_Agent
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/support_request_agent_stream
 
@@ -408,8 +731,67 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/support_lakebase
 
+  # ─────────────────────────────────────────────────────────────────────────────
+  # all — comprehensive DAIS demo: refund + complaints + Operational Dashboard
+  # ─────────────────────────────────────────────────────────────────────────────
   all:
     resources:
+      # Ops SQL warehouse.  DABs is the sole owner of this warehouse so that
+      # `bundle deploy -t all` has a stable warehouse id available for the
+      # dashboard at deploy time (no chicken-and-egg with task-run-time
+      # warehouse creation).  Config matches what `stages/operational_app.ipynb`
+      # used to create; the stage was refactored to find-only and uses this
+      # warehouse via name lookup.
+      sql_warehouses:
+        caspers_ops_warehouse:
+          name: ${var.catalog}-ops-warehouse
+          cluster_size: 2X-Small
+          min_num_clusters: 1
+          max_num_clusters: 1
+          # 60 min keeps the warehouse hot through a typical demo session.
+          # At 10 min, the ops dashboard incurred a 30-60s cold-start every
+          # time the presenter stepped away — much worse UX than the small
+          # incremental cost of an idle 2X-Small serverless warehouse.
+          auto_stop_mins: 60
+          enable_serverless_compute: true
+          warehouse_type: PRO
+      # AI/BI dashboards.  Scoped to `all` only because they query schemas
+      # that other targets do not build (complaints, food_safety, recommender,
+      # lakeflow, ai).  Datasets in each JSON are unqualified (`schema.table`)
+      # and `dataset_catalog` injects ${var.catalog} at runtime so the same
+      # JSON works in any catalog.  Both dashboards share the ops warehouse.
+      dashboards:
+        # The Operations dashboard is published in TWO variants — light and
+        # dark — because Databricks embedded dashboards always render in
+        # "light" mode (the `?theme=` URL param is ignored).  The dark
+        # variant bakes dark-palette tokens into the `light` theme slot so
+        # the iframe renders with dark colors.  The frontend swaps the
+        # iframe src when the user toggles the app theme.
+        caspers_ops:
+          display_name: "Casper's Kitchen - Operations (${var.catalog})"
+          file_path: ./resources/dashboards/caspers_kitchen_operations.lvdash.json
+          warehouse_id: ${resources.sql_warehouses.caspers_ops_warehouse.id}
+          dataset_catalog: ${var.catalog}
+        caspers_ops_dark:
+          display_name: "Casper's Kitchen - Operations - Dark (${var.catalog})"
+          file_path: ./resources/dashboards/caspers_kitchen_operations_dark.lvdash.json
+          warehouse_id: ${resources.sql_warehouses.caspers_ops_warehouse.id}
+          dataset_catalog: ${var.catalog}
+        caspers_delivery:
+          display_name: "Casper's Kitchen - Delivery Performance & SLA (${var.catalog})"
+          file_path: ./resources/dashboards/caspers_kitchen_delivery_performance.lvdash.json
+          warehouse_id: ${resources.sql_warehouses.caspers_ops_warehouse.id}
+          dataset_catalog: ${var.catalog}
+        caspers_ai_agent_performance:
+          display_name: "Casper's Kitchen - AI Agent Performance (${var.catalog})"
+          file_path: ./resources/dashboards/caspers_kitchen_ai_agent_performance.lvdash.json
+          warehouse_id: ${resources.sql_warehouses.caspers_ops_warehouse.id}
+          dataset_catalog: ${var.catalog}
+        caspers_menu_intelligence:
+          display_name: "Casper's Kitchen - Menu Intelligence & Nutrition (${var.catalog})"
+          file_path: ./resources/dashboards/caspers_kitchen_menu_intelligence.lvdash.json
+          warehouse_id: ${resources.sql_warehouses.caspers_ops_warehouse.id}
+          dataset_catalog: ${var.catalog}
       jobs:
         caspers:
           name: "Casper's Initializer"
@@ -422,20 +804,29 @@ targets:
               default: ${var.catalog}
             - name: EVENTS_VOLUME
               default: events
+            # Switched off `databricks-meta-llama-3-3-70b-instruct` because it is
+            # the most heavily contended shared FMAPI endpoint in every workspace
+            # — agent eval + DSPy CoT bursts + the two `ai_gen()` generator
+            # crons + everyone else on the workspace consistently push the
+            # shared QPS bucket over its ceiling, surfacing as
+            # REQUEST_LIMIT_EXCEEDED (429) during the Refund/Complaint agent
+            # tasks even with eval concurrency pinned to 1.  Claude Sonnet 4.5
+            # has a separate per-endpoint QPS bucket, equivalent or better
+            # tool-use / structured-output quality, and is OpenAI-compatible
+            # so DSPy / `ai_gen()` / OpenAI client UDFs all keep working
+            # without code changes.  Override at run time with
+            # `--params "LLM_MODEL=..."` if you need a specific model.
             - name: LLM_MODEL
-              default: databricks-meta-llama-3-3-70b-instruct
-            - name: REFUND_AGENT_ENDPOINT_NAME
-              default: ${var.catalog}_refund_agent
-            - name: COMPLAINT_AGENT_ENDPOINT_NAME
-              default: ${var.catalog}_complaint_agent
-            - name: COMPLAINT_RATE
-              default: "0.15"
-            - name: MENU_KNOWLEDGE_ENDPOINT_NAME
-              default: ${var.catalog}_menu_knowledge
-            - name: INSPECTION_KNOWLEDGE_ENDPOINT_NAME
-              default: ${var.catalog}_inspection_knowledge
-            - name: MENU_SUPERVISOR_ENDPOINT_NAME
-              default: ${var.catalog}_menu_supervisor
+              default: databricks-claude-sonnet-4-5
+            # Eval is opt-in: it's a quality-measurement burst of ~30-50 LM
+            # calls in tight succession and was the dominant 429 source even
+            # with eval concurrency pinned to 1.  Deploy / register / endpoint
+            # readiness checks only burn ~1-2 calls and run fine.  Flip to
+            # "false" when you specifically want to measure agent quality:
+            #   databricks bundle run caspers -t all \
+            #     --params "CATALOG=oleksandra,SKIP_EVAL=false"
+            - name: SKIP_EVAL
+              default: "true"
             - name: SIMULATOR_SCHEMA
               default: simulator
             - name: START_DAY
@@ -446,11 +837,86 @@ targets:
               default: "3"
             - name: PIPELINE_SCHEDULE_MINUTES
               default: "0"
+            # Refund + complaints
+            - name: REFUND_AGENT_ENDPOINT_NAME
+              default: ${var.catalog}_refund_agent
+            - name: COMPLAINT_AGENT_ENDPOINT_NAME
+              default: ${var.catalog}_complaint_agent
+            - name: COMPLAINT_RATE
+              default: "0.15"
+            # Unity AI Gateway (v2 Beta) endpoint name.  When set, the
+            # Refund + Complaint agents route their internal LLM calls
+            # through this gateway instead of the foundation-model
+            # endpoint named by LLM_MODEL — so every agent LLM call
+            # gets PII guardrails, inference-table audit, usage
+            # tracking and rate limits applied centrally.
+            #
+            # This parameter is only declared on the `all` target —
+            # `default` and `complaints` keep using direct foundation-
+            # model endpoints (no gateway routing).
+            #
+            # The endpoint must be created and configured manually in
+            # the Databricks UI before deploy: AI Gateway → Create
+            # Unity AI Gateway Endpoint → enable Guardrails (PII =
+            # Block, Safety, Jailbreak) + Inference Tables + Usage
+            # Tracking + Rate Limits.  See the "Unity AI Gateway"
+            # section of demos/dais2026-runbooks/SETUP.ipynb for the
+            # full step-by-step.
+            #
+            # Leave empty to keep the agents on direct foundation-model
+            # endpoints (legacy behaviour).
+            - name: AI_GATEWAY_ENDPOINT_NAME
+              default: ""
+            # Operational Dashboard — Knowledge Assistant endpoints are auto-generated
+            # by the KA v2.1 API and resolved from uc_state by downstream stages.
+            # Operational Dashboard — Multi-Agent Supervisor endpoint (user-supplied)
+            - name: SUPERVISOR_ENDPOINT_NAME
+              default: ${var.catalog}_operational_supervisor
+            # Ops warehouse name.  Resolved from `${var.catalog}` at DEPLOY
+            # time and baked into the job-parameter default, so the run-time
+            # value carries the deploy-time catalog even if `--params CATALOG`
+            # disagrees with `--var catalog`.  This is the same pattern used
+            # by REFUND_AGENT_ENDPOINT_NAME / COMPLAINT_AGENT_ENDPOINT_NAME
+            # above (see the rationale comment in stages/operational_app.ipynb
+            # cell 8) and exists for the same reason: the warehouse is owned
+            # by DABs (resources.sql_warehouses.caspers_ops_warehouse above)
+            # so its name is frozen at deploy time, and reconstructing it
+            # from the run-time CATALOG widget would fail whenever the two
+            # dials disagree.
+            - name: OPS_WAREHOUSE_NAME
+              default: ${var.catalog}-ops-warehouse
 
           tasks:
+            # ─── Data foundation ──────────────────────────────────────────────
             - task_key: Canonical_Data
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/canonical_data
+
+            # Shared Lakebase Autoscaling project.  All Lakebase-consuming tasks
+            # (Lakebase_Reverse_ETL, Complaint_Lakebase, Operational_Lakebase)
+            # depend on this.  Per-component logical databases (caspers_refund,
+            # caspers_complaint, caspers_ops) are created by their own stages
+            # inside this single project.
+            - task_key: Lakebase_Project
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/lakebase_project
+
+            # Small post-ingestion environment-population helpers (seed lookup
+            # tables, register helper UDFs, run AI SQL demos on uploaded PDFs,
+            # grant demo-user perms, ABAC tags/UDFs/policies, data-quality
+            # monitors, etc.).  Depends on Canonical_Data for the catalog/
+            # schemas, Document_Data for the food_safety PDF volume that the
+            # AI SQL cells parse, and Spark_Declarative_Pipeline so the
+            # ABAC cells can tag columns on the lakeflow.silver_*/gold_*
+            # tables that the pipeline materialises.  Add new helpers inside
+            # stages/environment_helpers.ipynb; keep each idempotent.
+            - task_key: Environment_Helpers
+              depends_on:
+                - task_key: Canonical_Data
+                - task_key: Document_Data
+                - task_key: Spark_Declarative_Pipeline
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/environment_helpers
 
             - task_key: Spark_Declarative_Pipeline
               depends_on:
@@ -458,23 +924,100 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/lakeflow
 
+            # ─── Refund recommender ───────────────────────────────────────────
             - task_key: Refund_Recommender_Agent
               depends_on:
                 - task_key: Spark_Declarative_Pipeline
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/refunder_agent
 
+            # Refund_Setup builds the curated eval dataset and registers it in
+            # UC at {CATALOG}.evaluations.refund_agent_eval_dataset.  Always
+            # runs (not gated by SKIP_EVAL) so the dataset is visible in
+            # Catalog Explorer after every deploy, even when Refund_Evaluation
+            # is skipped.  Built inline by the demo notebook, eval is run by Refund_Evaluation / Complaint_Evaluation.
+            - task_key: Refund_Setup
+              max_retries: 0
+              depends_on:
+                - task_key: Refund_Recommender_Agent
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/refund_setup
+
+            # Refund_Evaluation runs the deployed agent against the UC-managed
+            # eval dataset registered by Refund_Setup.  Gated by SKIP_EVAL=true
+            # (default), so this task shows up as "skipped" in the DAG unless a
+            # user opts in via --params "SKIP_EVAL=false".  See stages/refund_evaluation.
+            - task_key: Refund_Evaluation
+              max_retries: 0
+              depends_on:
+                - task_key: Refund_Setup
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/refund_evaluation
+
+            # Refund_Recommender_Stream calls w.jobs.run_now() on the
+            # streaming inference job whose UDF queries the Refund agent
+            # serving endpoint.  The endpoint must exist and be READY before
+            # the stream's first batch fires — without the explicit
+            # Refund_Recommender_Agent edge the two tasks race and the
+            # stream can hit a missing endpoint.
             - task_key: Refund_Recommender_Stream
               depends_on:
                 - task_key: Spark_Declarative_Pipeline
+                - task_key: Refund_Recommender_Agent
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/refunder_stream
 
+            - task_key: Lakebase_Reverse_ETL
+              depends_on:
+                - task_key: Refund_Recommender_Stream
+                - task_key: Lakebase_Project
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/lakebase
+
+            - task_key: Databricks_App_Refund_Manager
+              depends_on:
+                - task_key: Lakebase_Reverse_ETL
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/apps
+
+            # ─── Complaints stream ────────────────────────────────────────────
             - task_key: Complaint_Agent
               depends_on:
                 - task_key: Spark_Declarative_Pipeline
+                # Serialized AFTER Refund_Recommender_Agent so the two agents do
+                # not race on the workspace QPS limit for the shared pay-per-token
+                # endpoint `databricks-meta-llama-3-3-70b-instruct` during their
+                # MLflow eval steps.  Under the previous parallel layout, the
+                # combined in-flight request rate consistently triggered
+                # REQUEST_LIMIT_EXCEEDED (429) and the auto-retry hit the same
+                # ceiling, failing the whole `all` run.  Adds ~10 min wall-clock
+                # but eliminates the rate-limit flake.  See review item P1-9.
+                - task_key: Refund_Recommender_Agent
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/complaint_agent
+
+            # Complaint_Setup builds the curated eval dataset and registers it
+            # in UC at {CATALOG}.evaluations.complaint_agent_eval_dataset.
+            # Always runs (not gated by SKIP_EVAL) so the dataset is visible in
+            # Catalog Explorer after every deploy, even when Complaint_Evaluation
+            # is skipped.  Built inline by the demo notebook, eval is run by Refund_Evaluation / Complaint_Evaluation.
+            - task_key: Complaint_Setup
+              max_retries: 0
+              depends_on:
+                - task_key: Complaint_Agent
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/complaint_setup
+
+            # Complaint_Evaluation runs the deployed agent against the UC-managed
+            # eval dataset registered by Complaint_Setup.  Gated by SKIP_EVAL=true
+            # (default), so this task shows up as "skipped" in the DAG unless a
+            # user opts in via --params "SKIP_EVAL=false".  See stages/complaint_evaluation.
+            - task_key: Complaint_Evaluation
+              max_retries: 0
+              depends_on:
+                - task_key: Complaint_Setup
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/complaint_evaluation
 
             - task_key: Complaint_Generator_Stream
               depends_on:
@@ -492,62 +1035,88 @@ targets:
             - task_key: Complaint_Lakebase
               depends_on:
                 - task_key: Complaint_Agent_Stream
+                - task_key: Lakebase_Project
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/complaint_lakebase
 
-            - task_key: Lakebase_Reverse_ETL
-              depends_on:
-                - task_key: Refund_Recommender_Stream
-              notebook_task:
-                notebook_path: ${workspace.root_path}/stages/lakebase
-
-            - task_key: Databricks_App_Refund_Manager
-              depends_on:
-                - task_key: Lakebase_Reverse_ETL
-              notebook_task:
-                notebook_path: ${workspace.root_path}/stages/apps
-
-            - task_key: Menu_Data
+            # ─── Operational Dashboard: documents → menu pipeline → genie / KA / MAS / app ───
+            - task_key: Document_Data
+              max_retries: 0
               depends_on:
                 - task_key: Canonical_Data
               notebook_task:
-                notebook_path: ${workspace.root_path}/stages/menu_data
-
-            - task_key: Inspection_Data
-              depends_on:
-                - task_key: Canonical_Data
-              notebook_task:
-                notebook_path: ${workspace.root_path}/stages/inspection_data
+                notebook_path: ${workspace.root_path}/stages/document_data
 
             - task_key: Menu_Pipeline
+              max_retries: 0
               depends_on:
-                - task_key: Menu_Data
-                - task_key: Inspection_Data
+                - task_key: Document_Data
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/menu_pipeline
 
-            - task_key: Menu_Genie
+            - task_key: Genie_Spaces
+              max_retries: 0
               depends_on:
+                - task_key: Spark_Declarative_Pipeline
                 - task_key: Menu_Pipeline
               notebook_task:
-                notebook_path: ${workspace.root_path}/stages/menu_genie
+                notebook_path: ${workspace.root_path}/stages/genie_spaces
 
-            - task_key: Menu_Knowledge_Agent
+            - task_key: Knowledge_Agents
+              max_retries: 0
               depends_on:
-                - task_key: Menu_Pipeline
+                - task_key: Document_Data
               notebook_task:
-                notebook_path: ${workspace.root_path}/stages/menu_knowledge_agent
+                notebook_path: ${workspace.root_path}/stages/knowledge_agents
 
-            - task_key: Inspection_Knowledge_Agent
+            - task_key: Operational_Lakebase
+              max_retries: 0
               depends_on:
-                - task_key: Inspection_Data
+                - task_key: Canonical_Data
+                - task_key: Lakebase_Project
               notebook_task:
-                notebook_path: ${workspace.root_path}/stages/inspection_knowledge_agent
+                notebook_path: ${workspace.root_path}/stages/operational_lakebase
 
-            - task_key: Menu_Supervisor
+            - task_key: Operational_Supervisor
+              max_retries: 0
               depends_on:
-                - task_key: Menu_Genie
-                - task_key: Menu_Knowledge_Agent
-                - task_key: Inspection_Knowledge_Agent
+                - task_key: Genie_Spaces
+                - task_key: Knowledge_Agents
               notebook_task:
-                notebook_path: ${workspace.root_path}/stages/menu_supervisor
+                notebook_path: ${workspace.root_path}/stages/operational_supervisor
+
+            - task_key: Operational_App
+              max_retries: 0
+              depends_on:
+                - task_key: Operational_Supervisor
+                - task_key: Operational_Lakebase
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/operational_app
+
+            - task_key: Readiness_Check
+              max_retries: 0
+              depends_on:
+                - task_key: Operational_App
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/operational_readiness_check
+
+            # Single consolidated evaluation task for managed Agent Bricks
+            # (Supervisor + 6 KAs).  operational_evaluation.ipynb does:
+            #   1. Build the UC-managed supervisor eval dataset inline
+            #   2. Run mlflow.genai.evaluate() against the supervisor
+            #   3. Register production scorers (Scorer.register + .start) on
+            #      /Serving/{SUPERVISOR_ENDPOINT}
+            #   4. Loop over KAs from uc_state, warmup each one, and register
+            #      production scorers on /Serving/{ka_endpoint}
+            # Everything lands in the managed /Serving/{endpoint} experiments
+            # Databricks creates per endpoint — no /Shared/_dev or _prod split.
+            # Refund + Complaint custom agents have their own stage evaluation
+            # notebooks; they're not managed services, so they keep the
+            # /Shared/{cat}_{refund,complaint}_agent_{dev,prod} convention.
+            - task_key: Evaluation
+              max_retries: 0
+              depends_on:
+                - task_key: Readiness_Check
+                - task_key: Knowledge_Agents
+              notebook_task:
+                notebook_path: ${workspace.root_path}/stages/operational_evaluation

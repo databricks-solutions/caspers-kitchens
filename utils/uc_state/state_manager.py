@@ -7,8 +7,6 @@ import json
 import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
-from databricks.sdk import WorkspaceClient
-from databricks.sdk.service.catalog import CatalogInfo, SchemaInfo
 import logging
 
 logger = logging.getLogger(__name__)
@@ -16,22 +14,27 @@ logger = logging.getLogger(__name__)
 
 class UCState:
     """Unity Catalog-based state management for Databricks resources."""
-    
+
     def __init__(self, catalog: str, schema: str = "_internal_state", table: str = "resources"):
         """
         Initialize UC-State manager.
-        
+
         Args:
             catalog: The catalog name to store state in
-            schema: Schema name (default: _internal_state)  
+            schema: Schema name (default: _internal_state)
             table: Table name (default: resources)
         """
         self.catalog = catalog
         self.schema = schema
         self.table = table
         self.full_table_name = f"{catalog}.{schema}.{table}"
+        # Lazy-import the SDK so `from uc_state import add` doesn't pay the
+        # WorkspaceClient discovery cost in notebooks that only import the
+        # module (e.g. for type hints or convenience functions) without ever
+        # constructing a UCState.
+        from databricks.sdk import WorkspaceClient
         self.w = WorkspaceClient()
-        
+
         self._ensure_catalog_schema_table()
     
     def _ensure_catalog_schema_table(self):
@@ -111,7 +114,14 @@ class UCState:
         else:
             # Handle primitive types or dictionaries
             resource_data = json.dumps(resource_obj, default=str)
-        
+
+        # SQL-escape single quotes in the JSON payload before string interpolation.
+        # JSON does not escape `'`, so descriptions like "Casper's Ops Dashboard"
+        # would break the f-string-built INSERT below with PARSE_SYNTAX_ERROR
+        # ("extra input 'Ops'" etc.).  Doubling the apostrophe is the SQL-standard
+        # escape and is safe to apply unconditionally.
+        resource_data = resource_data.replace("'", "''")
+
         insert_sql = f"""
         INSERT INTO {self.full_table_name} 
         (internal_id, resource_type, resource_data, created_at)
@@ -206,7 +216,7 @@ class UCState:
     def clear_all(self, dry_run: bool = False) -> Dict[str, Dict[str, List[Dict[str, str]]]]:
         """
         Remove all resources from Databricks and clear state.
-        Deletion order: experiments → jobs → pipelines → multi_agent_supervisors → knowledge_assistants → genie_spaces → endpoints → vector_search_indexes → vector_search_endpoints → apps → warehouses → databasecatalogs → catalogs → databaseinstances
+        Deletion order: experiments → jobs → pipelines → multi_agent_supervisors → knowledge_assistants → genie_spaces → endpoints → vector_search_indexes → vector_search_endpoints → apps → warehouses → databasecatalogs → catalogs → postgres_projects → databaseinstances
         
         Args:
             dry_run: If True, only show what would be deleted without actually deleting
@@ -219,7 +229,14 @@ class UCState:
                 }
             }
         """
-        deletion_order = ['experiments', 'jobs', 'pipelines', 'multi_agent_supervisors', 'knowledge_assistants', 'genie_spaces', 'endpoints', 'vector_search_indexes', 'vector_search_endpoints', 'apps', 'warehouses', 'databasecatalogs', 'catalogs', 'databaseinstances']
+        # postgres_projects (Lakebase Autoscale) goes after apps so any app consuming
+        # a Lakebase endpoint is removed first, and adjacent to databaseinstances
+        # (legacy Lakebase Provisioned) for logical grouping.
+        # autoscale_synced_tables (Postgres synced tables created via
+        # `utils/lakebase_autoscale.py`) MUST be deleted before postgres_projects,
+        # otherwise the parent-project delete cascades and orphans the synced-table
+        # UC entries, which then fail their own UC drop on the catalog cascade.
+        deletion_order = ['experiments', 'jobs', 'pipelines', 'multi_agent_supervisors', 'knowledge_assistants', 'genie_spaces', 'endpoints', 'vector_search_indexes', 'vector_search_endpoints', 'apps', 'warehouses', 'databasecatalogs', 'catalogs', 'autoscale_synced_tables', 'postgres_projects', 'databaseinstances']
         results = {}
         
         for resource_type in deletion_order:
@@ -256,6 +273,10 @@ class UCState:
                     resource_name = resource_data.get('name') or resource_data.get('id', 'Unknown')
                 elif resource_type == 'databaseinstances':
                     resource_name = resource_data.get('name', 'Unknown')
+                elif resource_type == 'postgres_projects':
+                    resource_name = resource_data.get('name') or resource_data.get('project_id', 'Unknown')
+                elif resource_type == 'autoscale_synced_tables':
+                    resource_name = resource_data.get('synced_table_name') or resource_data.get('name', 'Unknown')
                 elif resource_type == 'databasecatalogs':
                     resource_name = resource_data if isinstance(resource_data, str) else resource_data.get('name', 'Unknown')
                 elif resource_type == 'catalogs':
@@ -316,7 +337,13 @@ class UCState:
                         agent_id = resource_data.get('agent_id')
                         endpoint_name = resource_data.get('endpoint_name')
                         if agent_id:
-                            for api_path in ["/api/2.0/knowledge-assistants", "/api/2.0/multi-agent-supervisors"]:
+                            # Try v2.1 KA first (current), then v2.0 KA (legacy, in case the
+                            # resource was created by an older deploy), then MAS.
+                            for api_path in [
+                                "/api/2.1/knowledge-assistants",
+                                "/api/2.0/knowledge-assistants",
+                                "/api/2.0/multi-agent-supervisors",
+                            ]:
                                 try:
                                     self.w.api_client.do("DELETE", f"{api_path}/{agent_id}")
                                     logger.info(f"Deleted agent {agent_id} via {api_path}")
@@ -346,6 +373,23 @@ class UCState:
                         tile_id = resource_data.get('tile_id')
                         agent_id = resource_data.get('agent_id')
                         agent_name = resource_data.get('name')
+                        # For KAs, prefer the typed v2.1 delete endpoint (DELETE /api/2.1/knowledge-assistants/{id});
+                        # for MAS, the typed endpoint is still v2.0. Fall back to the Tiles API in both cases
+                        # for legacy resources that may not be reachable through the typed paths.
+                        if resource_type == 'knowledge_assistants':
+                            typed_paths = ["/api/2.1/knowledge-assistants", "/api/2.0/knowledge-assistants"]
+                        else:
+                            typed_paths = ["/api/2.0/multi-agent-supervisors"]
+                        for ref in [tile_id, agent_id]:
+                            if ref and not deletion_successful:
+                                for typed_path in typed_paths:
+                                    try:
+                                        self.w.api_client.do("DELETE", f"{typed_path}/{ref}")
+                                        logger.info(f"Deleted {resource_type} {ref} via {typed_path}")
+                                        deletion_successful = True
+                                        break
+                                    except Exception:
+                                        pass
                         for ref in [tile_id, agent_id, agent_name]:
                             if ref and not deletion_successful:
                                 try:
@@ -355,7 +399,7 @@ class UCState:
                                 except Exception:
                                     pass
                         if not deletion_successful:
-                            error_message = f"Could not delete via /api/2.0/tiles/ with tile_id={tile_id}, agent_id={agent_id}, or name={agent_name}"
+                            error_message = f"Could not delete via typed or tiles APIs with tile_id={tile_id}, agent_id={agent_id}, or name={agent_name}"
                     
                     elif resource_type == 'apps':
                         app_name = resource_data.get('name')
@@ -383,6 +427,45 @@ class UCState:
                             deletion_successful = True
                         else:
                             error_message = "No instance name found in resource data"
+
+                    elif resource_type == 'autoscale_synced_tables':
+                        # Lakebase Autoscale synced table created via
+                        # `utils/lakebase_autoscale.create_autoscale_synced_table`.
+                        # Resource data: {synced_table_name: "<catalog>.<schema>.<table>",
+                        #                 project_id: "...", postgres_database: "..."}
+                        # Delete via the helper's DELETE; the UC table entry itself
+                        # disappears with the cascading catalog drop below.
+                        from lakebase_autoscale import delete_autoscale_synced_table  # local import; utils on sys.path
+                        synced_table_name = resource_data.get('synced_table_name') or resource_data.get('name')
+                        if synced_table_name:
+                            try:
+                                deleted = delete_autoscale_synced_table(self.w, synced_table_name)
+                                logger.info(
+                                    f"Autoscale synced table {synced_table_name}: "
+                                    f"{'deleted' if deleted else 'already gone'}"
+                                )
+                                deletion_successful = True
+                            except Exception as e:
+                                error_message = f"delete_autoscale_synced_table({synced_table_name}) failed: {e}"
+                        else:
+                            error_message = "No synced_table_name found in resource data"
+
+                    elif resource_type == 'postgres_projects':
+                        # Lakebase Autoscale project. Resource data is either:
+                        #   {project_id, name="projects/{project_id}"}  (new format from operational_lakebase)
+                        #   {name="projects/{project_id}"}              (older entries)
+                        project_resource_name = resource_data.get('name')
+                        project_id = resource_data.get('project_id')
+                        if not project_resource_name and project_id:
+                            project_resource_name = f"projects/{project_id}"
+                        if project_resource_name:
+                            # delete_project returns a DeleteProjectOperation (no .result());
+                            # purge=True performs a hard delete so the project is fully removed.
+                            self.w.postgres.delete_project(name=project_resource_name, purge=True)
+                            logger.info(f"Deleted Lakebase Autoscale project {project_resource_name}")
+                            deletion_successful = True
+                        else:
+                            error_message = "No project_id or name found in resource data"
                     
                     elif resource_type == 'databasecatalogs':
                         catalog_name = resource_data if isinstance(resource_data, str) else resource_data.get('name')

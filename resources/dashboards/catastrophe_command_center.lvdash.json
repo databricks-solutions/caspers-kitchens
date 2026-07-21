@@ -1,0 +1,1064 @@
+{
+  "datasets": [
+    {
+      "name": "today_vs_normal",
+      "displayName": "Today vs Normal",
+      "queryLines": [
+        "WITH active AS (\n",
+        "  SELECT\n",
+        "    city_id\n",
+        "  FROM\n",
+        "    simulator.demo_active_city\n",
+        "  WHERE\n",
+        "    id = 1\n",
+        "),\n",
+        "live_orders AS (\n",
+        "  SELECT\n",
+        "    order_id,\n",
+        "    session_id,\n",
+        "    city,\n",
+        "    status,\n",
+        "    kind,\n",
+        "    late_min,\n",
+        "    updated_at\n",
+        "  FROM\n",
+        "    (\n",
+        "      SELECT\n",
+        "        *,\n",
+        "        ROW_NUMBER() OVER (PARTITION BY order_id ORDER BY _sort_by DESC) AS rn\n",
+        "      FROM\n",
+        "        catastrophe_lakebase.lb_orders_history\n",
+        "    ) o\n",
+        "  WHERE\n",
+        "    rn = 1\n",
+        "    AND _pg_change_type IN ('insert', 'update_postimage')\n",
+        "),\n",
+        "latest AS (\n",
+        "  SELECT\n",
+        "    session_id,\n",
+        "    city\n",
+        "  FROM\n",
+        "    (\n",
+        "      SELECT\n",
+        "        o.session_id,\n",
+        "        o.city,\n",
+        "        ROW_NUMBER() OVER (\n",
+        "          ORDER BY\n",
+        "            CASE\n",
+        "              WHEN o.city = a.city_id THEN 0\n",
+        "              ELSE 1\n",
+        "            END,\n",
+        "            o.updated_at DESC\n",
+        "        ) AS rn\n",
+        "      FROM\n",
+        "        live_orders o\n",
+        "          CROSS JOIN active a\n",
+        "    )\n",
+        "  WHERE\n",
+        "    rn = 1\n",
+        "),\n",
+        "live AS (\n",
+        "  SELECT\n",
+        "    COUNT(*) AS orders,\n",
+        "    ROUND(\n",
+        "      100.0\n",
+        "        * AVG(\n",
+        "          CASE\n",
+        "            WHEN status = 'cancelled' THEN 1\n",
+        "            ELSE 0\n",
+        "          END\n",
+        "        ),\n",
+        "      1\n",
+        "    ) AS cancel_pct,\n",
+        "    ROUND(\n",
+        "      100.0\n",
+        "        * AVG(\n",
+        "          CASE\n",
+        "            WHEN status IN ('stuck', 'rerouted') THEN 1\n",
+        "            ELSE 0\n",
+        "          END\n",
+        "        ),\n",
+        "      1\n",
+        "    ) AS disrupted_pct,\n",
+        "    ROUND(AVG(late_min), 1) AS avg_late_min\n",
+        "  FROM\n",
+        "    live_orders\n",
+        "  WHERE\n",
+        "    session_id\n",
+        "      = (\n",
+        "        SELECT\n",
+        "          session_id\n",
+        "        FROM\n",
+        "          latest\n",
+        "      )\n",
+        "),\n",
+        "hist AS (\n",
+        "  SELECT\n",
+        "    ROUND(\n",
+        "      100.0\n",
+        "        * AVG(\n",
+        "          CASE\n",
+        "            WHEN status = 'cancelled' THEN 1\n",
+        "            ELSE 0\n",
+        "          END\n",
+        "        ),\n",
+        "      1\n",
+        "    ) AS cancel_pct,\n",
+        "    ROUND(\n",
+        "      100.0\n",
+        "        * AVG(\n",
+        "          CASE\n",
+        "            WHEN disrupted THEN 1\n",
+        "            ELSE 0\n",
+        "          END\n",
+        "        ),\n",
+        "      1\n",
+        "    ) AS disrupted_pct,\n",
+        "    ROUND(AVG(late_min), 1) AS avg_late_min\n",
+        "  FROM\n",
+        "    simulator.catastrophe_hist_orders h\n",
+        "      JOIN latest l\n",
+        "        ON h.city_id = l.city\n",
+        ")\n",
+        "SELECT\n",
+        "  'today (this run)' AS period,\n",
+        "  l.orders,\n",
+        "  l.cancel_pct,\n",
+        "  l.disrupted_pct,\n",
+        "  l.avg_late_min\n",
+        "FROM\n",
+        "  live l\n",
+        "UNION ALL\n",
+        "SELECT\n",
+        "  'normal (90-day avg)' AS period,\n",
+        "  CAST(NULL AS BIGINT),\n",
+        "  h.cancel_pct,\n",
+        "  h.disrupted_pct,\n",
+        "  h.avg_late_min\n",
+        "FROM\n",
+        "  hist h"
+      ]
+    },
+    {
+      "name": "live_status_distribution",
+      "displayName": "Live Order Status Distribution",
+      "queryLines": [
+        "WITH active AS (\n",
+        "  SELECT\n",
+        "    city_id\n",
+        "  FROM\n",
+        "    simulator.demo_active_city\n",
+        "  WHERE\n",
+        "    id = 1\n",
+        "),\n",
+        "live_orders AS (\n",
+        "  SELECT\n",
+        "    order_id,\n",
+        "    session_id,\n",
+        "    city,\n",
+        "    status,\n",
+        "    kind,\n",
+        "    late_min,\n",
+        "    updated_at\n",
+        "  FROM\n",
+        "    (\n",
+        "      SELECT\n",
+        "        *,\n",
+        "        ROW_NUMBER() OVER (PARTITION BY order_id ORDER BY _sort_by DESC) AS rn\n",
+        "      FROM\n",
+        "        catastrophe_lakebase.lb_orders_history\n",
+        "    ) o\n",
+        "  WHERE\n",
+        "    rn = 1\n",
+        "    AND _pg_change_type IN ('insert', 'update_postimage')\n",
+        "),\n",
+        "latest AS (\n",
+        "  SELECT\n",
+        "    session_id,\n",
+        "    city\n",
+        "  FROM\n",
+        "    (\n",
+        "      SELECT\n",
+        "        o.session_id,\n",
+        "        o.city,\n",
+        "        ROW_NUMBER() OVER (\n",
+        "          ORDER BY\n",
+        "            CASE\n",
+        "              WHEN o.city = a.city_id THEN 0\n",
+        "              ELSE 1\n",
+        "            END,\n",
+        "            o.updated_at DESC\n",
+        "        ) AS rn\n",
+        "      FROM\n",
+        "        live_orders o\n",
+        "          CROSS JOIN active a\n",
+        "    )\n",
+        "  WHERE\n",
+        "    rn = 1\n",
+        ")\n",
+        "SELECT\n",
+        "  status,\n",
+        "  kind,\n",
+        "  COUNT(*) AS order_count\n",
+        "FROM\n",
+        "  live_orders\n",
+        "WHERE\n",
+        "  session_id\n",
+        "    = (\n",
+        "      SELECT\n",
+        "        session_id\n",
+        "      FROM\n",
+        "        latest\n",
+        "    )\n",
+        "GROUP BY\n",
+        "  status,\n",
+        "  kind"
+      ]
+    },
+    {
+      "name": "hist_disruption_by_food",
+      "displayName": "Historical Disruption by Food Type",
+      "queryLines": [
+        "WITH active AS (\n",
+        "  SELECT\n",
+        "    city_id\n",
+        "  FROM\n",
+        "    simulator.demo_active_city\n",
+        "  WHERE\n",
+        "    id = 1\n",
+        "),\n",
+        "live_orders AS (\n",
+        "  SELECT\n",
+        "    order_id,\n",
+        "    session_id,\n",
+        "    city,\n",
+        "    status,\n",
+        "    kind,\n",
+        "    late_min,\n",
+        "    updated_at\n",
+        "  FROM\n",
+        "    (\n",
+        "      SELECT\n",
+        "        *,\n",
+        "        ROW_NUMBER() OVER (PARTITION BY order_id ORDER BY _sort_by DESC) AS rn\n",
+        "      FROM\n",
+        "        catastrophe_lakebase.lb_orders_history\n",
+        "    ) o\n",
+        "  WHERE\n",
+        "    rn = 1\n",
+        "    AND _pg_change_type IN ('insert', 'update_postimage')\n",
+        "),\n",
+        "latest AS (\n",
+        "  SELECT\n",
+        "    session_id,\n",
+        "    city\n",
+        "  FROM\n",
+        "    (\n",
+        "      SELECT\n",
+        "        o.session_id,\n",
+        "        o.city,\n",
+        "        ROW_NUMBER() OVER (\n",
+        "          ORDER BY\n",
+        "            CASE\n",
+        "              WHEN o.city = a.city_id THEN 0\n",
+        "              ELSE 1\n",
+        "            END,\n",
+        "            o.updated_at DESC\n",
+        "        ) AS rn\n",
+        "      FROM\n",
+        "        live_orders o\n",
+        "          CROSS JOIN active a\n",
+        "    )\n",
+        "  WHERE\n",
+        "    rn = 1\n",
+        ")\n",
+        "SELECT\n",
+        "  kind_label,\n",
+        "  ROUND(\n",
+        "    100.0\n",
+        "      * SUM(\n",
+        "        CASE\n",
+        "          WHEN disrupted THEN 1\n",
+        "          ELSE 0\n",
+        "        END\n",
+        "      )\n",
+        "      / COUNT(*),\n",
+        "    1\n",
+        "  ) AS disruption_rate,\n",
+        "  ROUND(\n",
+        "    100.0\n",
+        "      * SUM(\n",
+        "        CASE\n",
+        "          WHEN status = 'cancelled' THEN 1\n",
+        "          ELSE 0\n",
+        "        END\n",
+        "      )\n",
+        "      / COUNT(*),\n",
+        "    1\n",
+        "  ) AS cancel_rate,\n",
+        "  ROUND(AVG(order_value), 2) AS avg_order_value,\n",
+        "  COUNT(*) AS total_orders\n",
+        "FROM\n",
+        "  simulator.catastrophe_hist_orders h\n",
+        "    JOIN latest l\n",
+        "      ON h.city_id = l.city\n",
+        "GROUP BY\n",
+        "  kind_label"
+      ]
+    },
+    {
+      "name": "revenue_at_risk",
+      "displayName": "Revenue at Risk",
+      "queryLines": [
+        "WITH active AS (\n",
+        "  SELECT\n",
+        "    city_id\n",
+        "  FROM\n",
+        "    simulator.demo_active_city\n",
+        "  WHERE\n",
+        "    id = 1\n",
+        "),\n",
+        "live_orders AS (\n",
+        "  SELECT\n",
+        "    order_id,\n",
+        "    session_id,\n",
+        "    city,\n",
+        "    status,\n",
+        "    kind,\n",
+        "    late_min,\n",
+        "    updated_at\n",
+        "  FROM\n",
+        "    (\n",
+        "      SELECT\n",
+        "        *,\n",
+        "        ROW_NUMBER() OVER (PARTITION BY order_id ORDER BY _sort_by DESC) AS rn\n",
+        "      FROM\n",
+        "        catastrophe_lakebase.lb_orders_history\n",
+        "    ) o\n",
+        "  WHERE\n",
+        "    rn = 1\n",
+        "    AND _pg_change_type IN ('insert', 'update_postimage')\n",
+        "),\n",
+        "latest AS (\n",
+        "  SELECT\n",
+        "    session_id,\n",
+        "    city\n",
+        "  FROM\n",
+        "    (\n",
+        "      SELECT\n",
+        "        o.session_id,\n",
+        "        o.city,\n",
+        "        ROW_NUMBER() OVER (\n",
+        "          ORDER BY\n",
+        "            CASE\n",
+        "              WHEN o.city = a.city_id THEN 0\n",
+        "              ELSE 1\n",
+        "            END,\n",
+        "            o.updated_at DESC\n",
+        "        ) AS rn\n",
+        "      FROM\n",
+        "        live_orders o\n",
+        "          CROSS JOIN active a\n",
+        "    )\n",
+        "  WHERE\n",
+        "    rn = 1\n",
+        "),\n",
+        "hist_val AS (\n",
+        "  SELECT\n",
+        "    city_id,\n",
+        "    kind,\n",
+        "    ROUND(AVG(order_value), 2) AS avg_order_value\n",
+        "  FROM\n",
+        "    simulator.catastrophe_hist_orders\n",
+        "  GROUP BY\n",
+        "    city_id,\n",
+        "    kind\n",
+        "),\n",
+        "live_open AS (\n",
+        "  SELECT\n",
+        "    o.order_id,\n",
+        "    o.city,\n",
+        "    o.status,\n",
+        "    o.kind AS kind_label,\n",
+        "    CASE o.kind\n",
+        "      WHEN 'Hot food' THEN 'hot'\n",
+        "      WHEN 'Groceries' THEN 'grocery'\n",
+        "      WHEN 'Ice cream' THEN 'ice'\n",
+        "      WHEN 'Frozen' THEN 'frozen'\n",
+        "    END AS kind_code\n",
+        "  FROM\n",
+        "    live_orders o\n",
+        "  WHERE\n",
+        "    o.session_id\n",
+        "      = (\n",
+        "        SELECT\n",
+        "          session_id\n",
+        "        FROM\n",
+        "          latest\n",
+        "      )\n",
+        "    AND o.status IN ('placed', 'routing', 'enroute', 'stuck', 'late', 'rerouted')\n",
+        ")\n",
+        "SELECT\n",
+        "  lo.status,\n",
+        "  lo.kind_label AS item,\n",
+        "  COUNT(*) AS orders_at_risk,\n",
+        "  ROUND(SUM(COALESCE(h.avg_order_value, 20.00)), 2) AS est_revenue_at_risk\n",
+        "FROM\n",
+        "  live_open lo\n",
+        "    LEFT JOIN hist_val h\n",
+        "      ON h.city_id = lo.city\n",
+        "      AND h.kind = lo.kind_code\n",
+        "GROUP BY\n",
+        "  ROLLUP(lo.status, lo.kind_label)\n",
+        "ORDER BY\n",
+        "  lo.status NULLS LAST,\n",
+        "  est_revenue_at_risk DESC"
+      ]
+    },
+    {
+      "name": "hist_daily_trend",
+      "displayName": "Historical Daily Trend",
+      "queryLines": [
+        "WITH active AS (\n",
+        "  SELECT\n",
+        "    city_id\n",
+        "  FROM\n",
+        "    simulator.demo_active_city\n",
+        "  WHERE\n",
+        "    id = 1\n",
+        "),\n",
+        "live_orders AS (\n",
+        "  SELECT\n",
+        "    order_id,\n",
+        "    session_id,\n",
+        "    city,\n",
+        "    status,\n",
+        "    kind,\n",
+        "    late_min,\n",
+        "    updated_at\n",
+        "  FROM\n",
+        "    (\n",
+        "      SELECT\n",
+        "        *,\n",
+        "        ROW_NUMBER() OVER (PARTITION BY order_id ORDER BY _sort_by DESC) AS rn\n",
+        "      FROM\n",
+        "        catastrophe_lakebase.lb_orders_history\n",
+        "    ) o\n",
+        "  WHERE\n",
+        "    rn = 1\n",
+        "    AND _pg_change_type IN ('insert', 'update_postimage')\n",
+        "),\n",
+        "latest AS (\n",
+        "  SELECT\n",
+        "    session_id,\n",
+        "    city\n",
+        "  FROM\n",
+        "    (\n",
+        "      SELECT\n",
+        "        o.session_id,\n",
+        "        o.city,\n",
+        "        ROW_NUMBER() OVER (\n",
+        "          ORDER BY\n",
+        "            CASE\n",
+        "              WHEN o.city = a.city_id THEN 0\n",
+        "              ELSE 1\n",
+        "            END,\n",
+        "            o.updated_at DESC\n",
+        "        ) AS rn\n",
+        "      FROM\n",
+        "        live_orders o\n",
+        "          CROSS JOIN active a\n",
+        "    )\n",
+        "  WHERE\n",
+        "    rn = 1\n",
+        ")\n",
+        "SELECT\n",
+        "  order_date,\n",
+        "  COUNT(*) AS orders,\n",
+        "  SUM(\n",
+        "    CASE\n",
+        "      WHEN disrupted THEN 1\n",
+        "      ELSE 0\n",
+        "    END\n",
+        "  ) AS disrupted_orders,\n",
+        "  SUM(\n",
+        "    CASE\n",
+        "      WHEN status = 'cancelled' THEN 1\n",
+        "      ELSE 0\n",
+        "    END\n",
+        "  ) AS cancelled_orders,\n",
+        "  ROUND(SUM(order_value), 2) AS total_revenue,\n",
+        "  ROUND(AVG(late_min), 1) AS avg_late_min\n",
+        "FROM\n",
+        "  simulator.catastrophe_hist_orders h\n",
+        "    JOIN latest l\n",
+        "      ON h.city_id = l.city\n",
+        "GROUP BY\n",
+        "  order_date\n",
+        "ORDER BY\n",
+        "  order_date"
+      ]
+    },
+    {
+      "name": "hist_status_breakdown",
+      "displayName": "Historical Status Breakdown",
+      "queryLines": [
+        "WITH active AS (\n",
+        "  SELECT\n",
+        "    city_id\n",
+        "  FROM\n",
+        "    simulator.demo_active_city\n",
+        "  WHERE\n",
+        "    id = 1\n",
+        "),\n",
+        "live_orders AS (\n",
+        "  SELECT\n",
+        "    order_id,\n",
+        "    session_id,\n",
+        "    city,\n",
+        "    status,\n",
+        "    kind,\n",
+        "    late_min,\n",
+        "    updated_at\n",
+        "  FROM\n",
+        "    (\n",
+        "      SELECT\n",
+        "        *,\n",
+        "        ROW_NUMBER() OVER (PARTITION BY order_id ORDER BY _sort_by DESC) AS rn\n",
+        "      FROM\n",
+        "        catastrophe_lakebase.lb_orders_history\n",
+        "    ) o\n",
+        "  WHERE\n",
+        "    rn = 1\n",
+        "    AND _pg_change_type IN ('insert', 'update_postimage')\n",
+        "),\n",
+        "latest AS (\n",
+        "  SELECT\n",
+        "    session_id,\n",
+        "    city\n",
+        "  FROM\n",
+        "    (\n",
+        "      SELECT\n",
+        "        o.session_id,\n",
+        "        o.city,\n",
+        "        ROW_NUMBER() OVER (\n",
+        "          ORDER BY\n",
+        "            CASE\n",
+        "              WHEN o.city = a.city_id THEN 0\n",
+        "              ELSE 1\n",
+        "            END,\n",
+        "            o.updated_at DESC\n",
+        "        ) AS rn\n",
+        "      FROM\n",
+        "        live_orders o\n",
+        "          CROSS JOIN active a\n",
+        "    )\n",
+        "  WHERE\n",
+        "    rn = 1\n",
+        ")\n",
+        "SELECT\n",
+        "  status,\n",
+        "  kind_label,\n",
+        "  COUNT(*) AS order_count,\n",
+        "  ROUND(AVG(order_value), 2) AS avg_value,\n",
+        "  ROUND(AVG(late_min), 1) AS avg_late_min\n",
+        "FROM\n",
+        "  simulator.catastrophe_hist_orders h\n",
+        "    JOIN latest l\n",
+        "      ON h.city_id = l.city\n",
+        "GROUP BY\n",
+        "  status,\n",
+        "  kind_label\n",
+        "ORDER BY\n",
+        "  order_count DESC"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "41653abb",
+      "displayName": "Page 1",
+      "layout": [
+        {
+          "widget": {
+            "name": "header",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# \ud83d\udea8 DELIVERY CATASTROPHE COMMAND CENTER\n",
+                "### Real-time incident monitoring | Food delivery disruption response | War Room Active"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "bullet_chart",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "revenue_at_risk",
+                  "fields": [
+                    {
+                      "name": "status",
+                      "expression": "`status`"
+                    },
+                    {
+                      "name": "orders_at_risk",
+                      "expression": "SUM(`orders_at_risk`)"
+                    },
+                    {
+                      "name": "est_revenue_at_risk",
+                      "expression": "SUM(`est_revenue_at_risk`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "jsonSpec": {
+                "type": "vega-lite",
+                "spec": "{\"$schema\":\"https://vega.github.io/schema/vega-lite/v5.json\",\"width\":\"container\",\"height\":\"container\",\"data\":{\"name\":\"databricks_query\"},\"config\":{\"autosize\":{\"type\":\"fit\",\"contains\":\"padding\"},\"background\":\"#1a1a2e\",\"view\":{\"stroke\":null},\"axis\":{\"labelColor\":\"#e0e0e0\",\"titleColor\":\"#e0e0e0\",\"gridColor\":\"#333355\"},\"title\":{\"color\":\"#e0e0e0\"}},\"title\":{\"text\":\"Revenue at Risk by Status\",\"subtitle\":\"Estimated \u20ac exposure per order status\",\"color\":\"#ff6b6b\"},\"transform\":[{\"filter\":\"datum.status != null && datum.status !== ''\"}],\"layer\":[{\"mark\":{\"type\":\"bar\",\"cornerRadiusEnd\":4,\"height\":30,\"tooltip\":true},\"encoding\":{\"y\":{\"field\":\"status\",\"type\":\"nominal\",\"title\":\"Order Status\",\"sort\":\"-x\",\"axis\":{\"labelColor\":\"#e0e0e0\"}},\"x\":{\"field\":\"est_revenue_at_risk\",\"type\":\"quantitative\",\"title\":\"Est. Revenue at Risk (\u20ac)\",\"axis\":{\"labelColor\":\"#e0e0e0\"}},\"color\":{\"field\":\"status\",\"type\":\"nominal\",\"scale\":{\"domain\":[\"stuck\",\"late\",\"rerouted\",\"enroute\",\"routing\",\"placed\"],\"range\":[\"#ff0000\",\"#ff4444\",\"#ff8800\",\"#ffaa00\",\"#ffcc00\",\"#ffee55\"]},\"legend\":{\"labelColor\":\"#e0e0e0\",\"titleColor\":\"#e0e0e0\"}}}},{\"mark\":{\"type\":\"text\",\"align\":\"left\",\"dx\":5,\"color\":\"#ffffff\",\"fontSize\":11},\"encoding\":{\"y\":{\"field\":\"status\",\"type\":\"nominal\",\"sort\":\"-x\"},\"x\":{\"field\":\"est_revenue_at_risk\",\"type\":\"quantitative\"},\"text\":{\"field\":\"orders_at_risk\",\"type\":\"quantitative\",\"format\":\".0f\"}}}]}"
+              },
+              "frame": {
+                "title": "Revenue at Risk \u2014 Bullet Chart",
+                "showTitle": true
+              },
+              "widgetType": "custom-vega-viz",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "status"
+                  },
+                  {
+                    "fieldName": "orders_at_risk"
+                  },
+                  {
+                    "fieldName": "est_revenue_at_risk"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "radar_chart",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "today_vs_normal",
+                  "fields": [
+                    {
+                      "name": "period",
+                      "expression": "`period`"
+                    },
+                    {
+                      "name": "cancel_pct",
+                      "expression": "`cancel_pct`"
+                    },
+                    {
+                      "name": "disrupted_pct",
+                      "expression": "`disrupted_pct`"
+                    },
+                    {
+                      "name": "avg_late_min",
+                      "expression": "`avg_late_min`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "jsonSpec": {
+                "type": "vega-lite",
+                "spec": "{\n  \"$schema\": \"https://vega.github.io/schema/vega-lite/v5.json\",\n  \"width\": \"container\",\n  \"height\": \"container\",\n  \"data\": {\n    \"name\": \"databricks_query\"\n  },\n  \"config\": {\n    \"autosize\": {\n      \"type\": \"fit\",\n      \"contains\": \"padding\"\n    },\n    \"background\": \"#1a1a2e\",\n    \"view\": {\n      \"stroke\": null\n    },\n    \"axis\": {\n      \"labelColor\": \"#e0e0e0\",\n      \"titleColor\": \"#e0e0e0\",\n      \"gridColor\": \"#333355\"\n    },\n    \"legend\": {\n      \"labelColor\": \"#e0e0e0\",\n      \"titleColor\": \"#e0e0e0\"\n    }\n  },\n  \"title\": {\n    \"text\": \"Today vs Normal \u2014 Incident Severity\",\n    \"subtitle\": \"Red = crisis now | Blue = 90-day baseline\",\n    \"color\": \"#ff6b6b\"\n  },\n  \"transform\": [\n    {\n      \"fold\": [\n        \"cancel_pct\",\n        \"disrupted_pct\",\n        \"avg_late_min\"\n      ],\n      \"as\": [\n        \"metric\",\n        \"value\"\n      ]\n    },\n    {\n      \"calculate\": \"datum.metric === 'cancel_pct' ? 'Cancellation %' : datum.metric === 'disrupted_pct' ? 'Disruption %' : 'Avg Late (min)'\",\n      \"as\": \"metric_label\"\n    },\n    {\n      \"calculate\": \"datum.value === null ? 0 : datum.value\",\n      \"as\": \"value\"\n    }\n  ],\n  \"layer\": [\n    {\n      \"mark\": {\n        \"type\": \"line\",\n        \"interpolate\": \"linear-closed\",\n        \"strokeWidth\": 3,\n        \"point\": {\n          \"filled\": true,\n          \"size\": 80\n        }\n      },\n      \"encoding\": {\n        \"x\": {\n          \"field\": \"metric_label\",\n          \"type\": \"nominal\",\n          \"title\": null,\n          \"axis\": {\n            \"labelAngle\": 0,\n            \"labelColor\": \"#e0e0e0\"\n          }\n        },\n        \"y\": {\n          \"field\": \"value\",\n          \"type\": \"quantitative\",\n          \"title\": \"Value\",\n          \"axis\": {\n            \"labelColor\": \"#e0e0e0\",\n            \"gridColor\": \"#333355\"\n          }\n        },\n        \"color\": {\n          \"field\": \"period\",\n          \"type\": \"nominal\",\n          \"scale\": {\n            \"domain\": [\n              \"today (this run)\",\n              \"normal (90-day avg)\"\n            ],\n            \"range\": [\n              \"#ff4444\",\n              \"#4488ff\"\n            ]\n          },\n          \"title\": \"Period\"\n        },\n        \"strokeDash\": {\n          \"field\": \"period\",\n          \"type\": \"nominal\",\n          \"scale\": {\n            \"domain\": [\n              \"today (this run)\",\n              \"normal (90-day avg)\"\n            ],\n            \"range\": [\n              [\n                1\n              ],\n              [\n                8,\n                4\n              ]\n            ]\n          },\n          \"legend\": null\n        }\n      }\n    }\n  ]\n}"
+              },
+              "frame": {
+                "title": "Today vs Normal \u2014 Radar Chart",
+                "showTitle": true
+              },
+              "widgetType": "custom-vega-viz",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "period"
+                  },
+                  {
+                    "fieldName": "cancel_pct"
+                  },
+                  {
+                    "fieldName": "disrupted_pct"
+                  },
+                  {
+                    "fieldName": "avg_late_min"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "radial_chart",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "hist_disruption_by_food",
+                  "fields": [
+                    {
+                      "name": "kind_label",
+                      "expression": "`kind_label`"
+                    },
+                    {
+                      "name": "disruption_rate",
+                      "expression": "`disruption_rate`"
+                    },
+                    {
+                      "name": "avg_order_value",
+                      "expression": "`avg_order_value`"
+                    },
+                    {
+                      "name": "total_orders",
+                      "expression": "`total_orders`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "jsonSpec": {
+                "type": "vega-lite",
+                "spec": "{\"$schema\":\"https://vega.github.io/schema/vega-lite/v5.json\",\"width\":\"container\",\"height\":\"container\",\"data\":{\"name\":\"databricks_query\"},\"config\":{\"autosize\":{\"type\":\"fit\",\"contains\":\"padding\"},\"background\":\"#1a1a2e\",\"view\":{\"stroke\":null},\"legend\":{\"labelColor\":\"#e0e0e0\",\"titleColor\":\"#e0e0e0\"}},\"title\":{\"text\":\"Food Type Risk Profile\",\"subtitle\":\"Size = total orders | Angle = disruption rate | Color = avg order value\",\"color\":\"#ff6b6b\"},\"mark\":{\"type\":\"arc\",\"innerRadius\":40,\"stroke\":\"#1a1a2e\",\"strokeWidth\":2,\"tooltip\":true},\"encoding\":{\"theta\":{\"field\":\"disruption_rate\",\"type\":\"quantitative\",\"stack\":true},\"radius\":{\"field\":\"total_orders\",\"type\":\"quantitative\",\"scale\":{\"type\":\"sqrt\",\"zero\":true}},\"color\":{\"field\":\"avg_order_value\",\"type\":\"quantitative\",\"scale\":{\"scheme\":\"orangered\"},\"title\":\"Avg Order \u20ac\"},\"tooltip\":[{\"field\":\"kind_label\",\"type\":\"nominal\",\"title\":\"Food Type\"},{\"field\":\"disruption_rate\",\"type\":\"quantitative\",\"title\":\"Disruption %\"},{\"field\":\"avg_order_value\",\"type\":\"quantitative\",\"title\":\"Avg Order \u20ac\"},{\"field\":\"total_orders\",\"type\":\"quantitative\",\"title\":\"Total Orders\"}]}}"
+              },
+              "frame": {
+                "title": "Food Type Risk Profile \u2014 Radial Chart",
+                "showTitle": true
+              },
+              "widgetType": "custom-vega-viz",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "kind_label"
+                  },
+                  {
+                    "fieldName": "disruption_rate"
+                  },
+                  {
+                    "fieldName": "avg_order_value"
+                  },
+                  {
+                    "fieldName": "total_orders"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 7,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "treemap",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "live_status_distribution",
+                  "fields": [
+                    {
+                      "name": "status",
+                      "expression": "`status`"
+                    },
+                    {
+                      "name": "kind",
+                      "expression": "`kind`"
+                    },
+                    {
+                      "name": "order_count",
+                      "expression": "SUM(`order_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "jsonSpec": {
+                "type": "vega-lite",
+                "spec": "{\"$schema\":\"https://vega.github.io/schema/vega-lite/v5.json\",\"width\":\"container\",\"height\":\"container\",\"data\":{\"name\":\"databricks_query\"},\"config\":{\"autosize\":{\"type\":\"fit\",\"contains\":\"padding\"},\"background\":\"#1a1a2e\",\"view\":{\"stroke\":null},\"axis\":{\"labelColor\":\"#e0e0e0\",\"titleColor\":\"#e0e0e0\"},\"legend\":{\"labelColor\":\"#e0e0e0\",\"titleColor\":\"#e0e0e0\"}},\"title\":{\"text\":\"Live Order Status Board\",\"subtitle\":\"Order volume by status \u00d7 food type\",\"color\":\"#ff6b6b\"},\"mark\":{\"type\":\"rect\",\"tooltip\":true,\"stroke\":\"#1a1a2e\",\"strokeWidth\":2},\"encoding\":{\"x\":{\"field\":\"kind\",\"type\":\"nominal\",\"title\":\"Food Type\",\"axis\":{\"labelAngle\":-45,\"labelColor\":\"#e0e0e0\"}},\"y\":{\"field\":\"status\",\"type\":\"nominal\",\"title\":\"Status\",\"axis\":{\"labelColor\":\"#e0e0e0\"}},\"color\":{\"field\":\"order_count\",\"type\":\"quantitative\",\"scale\":{\"scheme\":\"orangered\"},\"title\":\"Order Count\"},\"size\":{\"field\":\"order_count\",\"type\":\"quantitative\"},\"tooltip\":[{\"field\":\"status\",\"type\":\"nominal\",\"title\":\"Status\"},{\"field\":\"kind\",\"type\":\"nominal\",\"title\":\"Food Type\"},{\"field\":\"order_count\",\"type\":\"quantitative\",\"title\":\"Orders\"}]}}"
+              },
+              "frame": {
+                "title": "Live Status Board \u2014 Treemap",
+                "showTitle": true
+              },
+              "widgetType": "custom-vega-viz",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "status"
+                  },
+                  {
+                    "fieldName": "kind"
+                  },
+                  {
+                    "fieldName": "order_count"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 7,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "daily_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "hist_daily_trend",
+                  "fields": [
+                    {
+                      "name": "order_date",
+                      "expression": "`order_date`"
+                    },
+                    {
+                      "name": "orders",
+                      "expression": "`orders`"
+                    },
+                    {
+                      "name": "disrupted_orders",
+                      "expression": "`disrupted_orders`"
+                    },
+                    {
+                      "name": "cancelled_orders",
+                      "expression": "`cancelled_orders`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "jsonSpec": {
+                "type": "vega-lite",
+                "spec": "{\"$schema\":\"https://vega.github.io/schema/vega-lite/v5.json\",\"width\":\"container\",\"height\":\"container\",\"data\":{\"name\":\"databricks_query\"},\"config\":{\"autosize\":{\"type\":\"fit\",\"contains\":\"padding\"},\"view\":{\"stroke\":null}},\"title\":{\"text\":\"Historical Daily Order Volume & Incidents\",\"color\":\"#ff6b6b\"},\"layer\":[{\"mark\":{\"type\":\"area\",\"interpolate\":\"monotone\",\"opacity\":0.4,\"color\":\"#4488ff\",\"tooltip\":true},\"encoding\":{\"x\":{\"field\":\"order_date\",\"type\":\"temporal\",\"title\":\"Date\"},\"y\":{\"field\":\"orders\",\"type\":\"quantitative\",\"title\":\"Orders\"}}},{\"mark\":{\"type\":\"area\",\"interpolate\":\"monotone\",\"opacity\":0.6,\"color\":\"#ff8800\",\"tooltip\":true},\"encoding\":{\"x\":{\"field\":\"order_date\",\"type\":\"temporal\"},\"y\":{\"field\":\"disrupted_orders\",\"type\":\"quantitative\"}}},{\"mark\":{\"type\":\"area\",\"interpolate\":\"monotone\",\"opacity\":0.7,\"color\":\"#ff0000\",\"tooltip\":true},\"encoding\":{\"x\":{\"field\":\"order_date\",\"type\":\"temporal\"},\"y\":{\"field\":\"cancelled_orders\",\"type\":\"quantitative\"}}}]}"
+              },
+              "version": 1,
+              "frame": {
+                "title": "Historical Daily Trend \u2014 Area Chart",
+                "showTitle": true
+              },
+              "widgetType": "custom-vega-viz",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "order_date"
+                  },
+                  {
+                    "fieldName": "orders"
+                  },
+                  {
+                    "fieldName": "disrupted_orders"
+                  },
+                  {
+                    "fieldName": "cancelled_orders"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 12,
+            "width": 12,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "hist_heatmap",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "hist_status_breakdown",
+                  "fields": [
+                    {
+                      "name": "status",
+                      "expression": "`status`"
+                    },
+                    {
+                      "name": "kind_label",
+                      "expression": "`kind_label`"
+                    },
+                    {
+                      "name": "order_count",
+                      "expression": "`order_count`"
+                    },
+                    {
+                      "name": "avg_late_min",
+                      "expression": "`avg_late_min`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "jsonSpec": {
+                "type": "vega-lite",
+                "spec": "{\"$schema\":\"https://vega.github.io/schema/vega-lite/v5.json\",\"width\":\"container\",\"height\":\"container\",\"data\":{\"name\":\"databricks_query\"},\"config\":{\"autosize\":{\"type\":\"fit\",\"contains\":\"padding\"},\"view\":{\"stroke\":null}},\"title\":{\"text\":\"Historical Order Volume Heatmap\",\"subtitle\":\"Status \u00d7 Food Type\",\"color\":\"#ff6b6b\"},\"mark\":{\"type\":\"rect\",\"tooltip\":true},\"encoding\":{\"x\":{\"field\":\"kind_label\",\"type\":\"nominal\",\"title\":\"Food Type\"},\"y\":{\"field\":\"status\",\"type\":\"nominal\",\"title\":\"Status\"},\"color\":{\"field\":\"order_count\",\"type\":\"quantitative\",\"scale\":{\"scheme\":\"orangered\"},\"title\":\"Order Count\"}}}"
+              },
+              "version": 1,
+              "frame": {
+                "title": "Historical Status \u00d7 Food Type \u2014 Heatmap",
+                "showTitle": true
+              },
+              "widgetType": "custom-vega-viz",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "status"
+                  },
+                  {
+                    "fieldName": "kind_label"
+                  },
+                  {
+                    "fieldName": "order_count"
+                  },
+                  {
+                    "fieldName": "avg_late_min"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 17,
+            "width": 12,
+            "height": 5
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "global_filters",
+      "displayName": "Global Filters",
+      "pageType": "PAGE_TYPE_GLOBAL_FILTERS",
+      "layoutVersion": "GRID_V1"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "canvasBackgroundColor": {
+        "light": "#0d1117",
+        "dark": "#0d1117"
+      },
+      "widgetBackgroundColor": {
+        "light": "#161b22",
+        "dark": "#161b22"
+      },
+      "widgetBorderColor": {
+        "light": "#30363d",
+        "dark": "#30363d"
+      },
+      "selectionColor": {
+        "light": "#ff4444",
+        "dark": "#ff4444"
+      },
+      "visualizationColors": [
+        "#ff0000",
+        "#ff4444",
+        "#ff8800",
+        "#ffaa00",
+        "#ffcc00",
+        "#4488ff",
+        "#00cc88",
+        "#aa44ff"
+      ],
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED",
+      "widgetCornerRadius": 8,
+      "widgetShadow": 20,
+      "fontSettings": {
+        "base": {
+          "fontFamily": "Space Grotesk",
+          "fontColor": {
+            "light": "#e6edf3",
+            "dark": "#e6edf3"
+          }
+        },
+        "widgetTitle": {
+          "fontColor": {
+            "light": "#ff6b6b",
+            "dark": "#ff6b6b"
+          },
+          "fontWeight": 700
+        }
+      },
+      "gridLineColor": {
+        "light": "#21262d",
+        "dark": "#21262d"
+      }
+    },
+    "applyModeEnabled": false
+  }
+}

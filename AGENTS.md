@@ -51,8 +51,11 @@ Running `databricks bundle destroy` only removes the Job definition - **all runt
 
 **Cleanup workflow**:
 ```bash
-databricks bundle run cleanup    # Delete runtime resources via uc_state
-databricks bundle destroy        # Delete bundle resources via DABs
+# Cleanup is a bundle SCRIPT, so the catalog override uses --var (not --params).
+# --params is for job tasks only; passing it to cleanup is silently ignored.
+# `--var catalog=X` on `bundle run cleanup` does NOT reach the script — use BUNDLE_VAR_catalog=.
+BUNDLE_VAR_catalog=<name> databricks bundle run cleanup -t <target>    # Delete runtime resources via uc_state
+databricks bundle destroy      -t <target>                         # Delete bundle resources via DABs
 ```
 
 **Location**: `/utils/uc_state/` - See `README.md` for API usage
@@ -320,8 +323,10 @@ rm -rf .databricks .bundle
 
 1. **Clean existing deployment**
    ```bash
-   databricks bundle run cleanup --params "CATALOG=testcatalog"
-   databricks bundle destroy -t <target>
+   # Cleanup is a script — use --var (not --params).  See the Quick Reference
+   # at the bottom of this doc for full details.
+   BUNDLE_VAR_catalog=testcatalog databricks bundle run cleanup -t <target>
+   databricks bundle destroy     -t <target>
    ```
 
 2. **Clear local cache** (if experiencing cache issues)
@@ -629,6 +634,40 @@ Use full redeploy instead if:
   - Ensure it's plumbed through all layers
   - Check `databricks.yml` parameters, stage parameter parsing, and implementation usage
 
+#### 5a. `--var catalog` vs `--params CATALOG` drift
+- **Why fragile**: Two separate dials use a catalog name and they can disagree.
+  - `bundle deploy --var catalog=X` → resolves `${var.catalog}` at deploy
+    time.  Bakes `X` into every DABs-managed resource name (e.g. the `all`
+    target's `caspers_ops_warehouse` becomes `X-ops-warehouse`), every
+    AI/BI dashboard name, every dashboard `dataset_catalog`, and every job
+    parameter `default: ${var.catalog}...` (incl. `CATALOG`,
+    `REFUND_AGENT_ENDPOINT_NAME`, `COMPLAINT_AGENT_ENDPOINT_NAME`,
+    `OPS_WAREHOUSE_NAME`, `SUPERVISOR_ENDPOINT_NAME`).
+  - `bundle run caspers --params "CATALOG=Y"` → overrides ONLY the
+    run-time `CATALOG` widget value inside stage notebooks.  Cannot rename
+    anything DABs already created.
+- **Symptom when they disagree**: stages that reconstruct a DABs-managed
+  resource name from the run-time `CATALOG` widget fail to find it.
+  Example: deploying with the default and then running
+  `--params CATALOG=mycatalog` against the `all` target makes
+  `stages/operational_app.ipynb` fail with
+  `RuntimeError: Warehouse 'mycatalog-ops-warehouse' not found` because
+  DABs created `caspersdev-ops-warehouse`.
+- **Best practice**:
+  - When in doubt, pass the same catalog to both:
+    `bundle deploy -t <target> --var catalog=X` then
+    `bundle run caspers --params "CATALOG=X"`.
+  - When adding a stage that needs the name of a DABs-managed resource,
+    do NOT reconstruct it from the `CATALOG` widget.  Add a dedicated job
+    parameter with a `${var.catalog}-...` default in `databricks.yml`
+    (this is how `OPS_WAREHOUSE_NAME`, `REFUND_AGENT_ENDPOINT_NAME` and
+    `COMPLAINT_AGENT_ENDPOINT_NAME` are wired), then read that parameter
+    via `dbutils.widgets.get(...)` in the stage.  The deploy-time value
+    rides through the job parameter into the run-time widget, so the two
+    dials physically cannot disagree.
+  - The long comment in `stages/operational_app.ipynb` cell 8 (the
+    `_agent_ep_name` helper) is the canonical example of this pattern.
+
 ### 6. Resource Dependencies
 - **Why fragile**: Stages create resources that others depend on (endpoints, tables, etc.)
 - **When touching**: Creation/deletion order, stage dependencies
@@ -754,8 +793,13 @@ databricks bundle run caspers [--params "CATALOG=mycatalog"]
 
 ### Cleanup
 ```bash
-databricks bundle run cleanup [--params "CATALOG=mycatalog"]
-databricks bundle destroy -t <target>
+# IMPORTANT: cleanup is a bundle SCRIPT, not a job task.
+#   Catalog override:  --var catalog=<name>   (NOT --params "CATALOG=...")
+#   Target selection:  -t <target>            (passes through normally)
+# --params is silently ignored by scripts; passing it will clean the
+# default catalog (caspersdev) which is rarely what you want.
+BUNDLE_VAR_catalog=<name> databricks bundle run cleanup -t <target>
+databricks bundle destroy     -t <target>
 rm -rf .databricks .bundle  # If cache issues
 ```
 

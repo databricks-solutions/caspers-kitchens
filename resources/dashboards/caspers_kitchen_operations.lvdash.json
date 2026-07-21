@@ -1,0 +1,3123 @@
+{
+  "datasets": [
+    {
+      "name": "locations",
+      "displayName": "Locations Overview",
+      "config": {
+        "version": 1.1,
+        "source": "simulator.locations",
+        "dimensions": [
+          {
+            "name": "location_name",
+            "expr": "name",
+            "displayName": "Location"
+          },
+          {
+            "name": "narrative",
+            "expr": "narrative",
+            "displayName": "Growth Status"
+          },
+          {
+            "name": "address",
+            "expr": "address",
+            "displayName": "Address"
+          }
+        ],
+        "measures": [
+          {
+            "name": "total_locations",
+            "expr": "COUNT(*)",
+            "displayName": "Total Locations"
+          },
+          {
+            "name": "avg_daily_orders",
+            "expr": "AVG(base_orders_day)",
+            "displayName": "Avg Daily Orders",
+            "format": {
+              "type": "number",
+              "decimalPlaces": {
+                "type": "exact",
+                "places": 0.0
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "complaints",
+      "displayName": "Customer Complaints",
+      "config": {
+        "version": 1.1,
+        "source": "complaints.raw_complaints",
+        "dimensions": [
+          {
+            "name": "complaint_category",
+            "expr": "complaint_category",
+            "displayName": "Complaint Category"
+          },
+          {
+            "name": "complaint_date",
+            "expr": "DATE(ts)",
+            "displayName": "Complaint Date"
+          },
+          {
+            "name": "complaint_month",
+            "expr": "DATE_TRUNC('MONTH', ts)",
+            "displayName": "Complaint Month"
+          }
+        ],
+        "measures": [
+          {
+            "name": "total_complaints",
+            "expr": "COUNT(*)",
+            "displayName": "Total Complaints"
+          },
+          {
+            "name": "unique_orders",
+            "expr": "COUNT(DISTINCT order_id)",
+            "displayName": "Unique Orders"
+          }
+        ]
+      }
+    },
+    {
+      "name": "inspections",
+      "displayName": "Food Safety Inspections",
+      "config": {
+        "version": 1.1,
+        "source": "food_safety.inspections",
+        "dimensions": [
+          {
+            "name": "location_name",
+            "expr": "location_name",
+            "displayName": "Location"
+          },
+          {
+            "name": "inspection_date",
+            "expr": "inspection_date",
+            "displayName": "Inspection Date"
+          },
+          {
+            "name": "grade",
+            "expr": "grade",
+            "displayName": "Grade"
+          },
+          {
+            "name": "inspector_name",
+            "expr": "inspector_name",
+            "displayName": "Inspector"
+          },
+          {
+            "name": "follow_up_status",
+            "expr": "follow_up_status",
+            "displayName": "Follow-up Status"
+          }
+        ],
+        "measures": [
+          {
+            "name": "avg_score",
+            "expr": "AVG(score)",
+            "displayName": "Avg Inspection Score",
+            "format": {
+              "type": "number",
+              "decimalPlaces": {
+                "type": "exact",
+                "places": 1.0
+              }
+            }
+          },
+          {
+            "name": "total_inspections",
+            "expr": "COUNT(*)",
+            "displayName": "Total Inspections"
+          },
+          {
+            "name": "total_violations",
+            "expr": "SUM(violation_count)",
+            "displayName": "Total Violations"
+          },
+          {
+            "name": "total_critical",
+            "expr": "SUM(critical_count)",
+            "displayName": "Critical Violations"
+          }
+        ]
+      }
+    },
+    {
+      "name": "violations",
+      "displayName": "Safety Violations",
+      "config": {
+        "version": 1.1,
+        "source": "food_safety.violations",
+        "dimensions": [
+          {
+            "name": "location_name",
+            "expr": "location_name",
+            "displayName": "Location"
+          },
+          {
+            "name": "severity",
+            "expr": "severity",
+            "displayName": "Severity"
+          },
+          {
+            "name": "category",
+            "expr": "category",
+            "displayName": "Category"
+          },
+          {
+            "name": "inspection_date",
+            "expr": "inspection_date",
+            "displayName": "Inspection Date"
+          }
+        ],
+        "measures": [
+          {
+            "name": "violation_count",
+            "expr": "COUNT(*)",
+            "displayName": "Violation Count"
+          },
+          {
+            "name": "avg_deadline_days",
+            "expr": "AVG(deadline_days)",
+            "displayName": "Avg Deadline Days",
+            "format": {
+              "type": "number",
+              "decimalPlaces": {
+                "type": "exact",
+                "places": 0.0
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "brands",
+      "displayName": "Restaurant Brands",
+      "config": {
+        "version": 1.1,
+        "source": "simulator.brands",
+        "dimensions": [
+          {
+            "name": "brand_name",
+            "expr": "name",
+            "displayName": "Brand"
+          },
+          {
+            "name": "cuisine_type",
+            "expr": "cuisine_type",
+            "displayName": "Cuisine Type"
+          }
+        ],
+        "measures": [
+          {
+            "name": "total_brands",
+            "expr": "COUNT(*)",
+            "displayName": "Total Brands"
+          },
+          {
+            "name": "avg_prep_time",
+            "expr": "AVG(avg_prep_time_min)",
+            "displayName": "Avg Prep Time (min)",
+            "format": {
+              "type": "number",
+              "decimalPlaces": {
+                "type": "exact",
+                "places": 1.0
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "order_revenue",
+      "displayName": "Order Revenue",
+      "config": {
+        "version": 1.1,
+        "source": "SELECT\n  oi.order_id,\n  oi.location_id,\n  oi.order_day,\n  oi.order_ts,\n  oi.brand_id,\n  b.name AS brand_name,\n  b.cuisine_type,\n  l.name AS location_name,\n  oi.item_name,\n  oi.price,\n  oi.qty,\n  oi.extended_price\nFROM lakeflow.silver_order_items oi JOIN simulator.brands b ON oi.brand_id = b.brand_id JOIN simulator.locations l ON CAST(oi.location_id AS BIGINT) = l.location_id\n",
+        "dimensions": [
+          {
+            "name": "order_day",
+            "expr": "order_day",
+            "displayName": "Order Date"
+          },
+          {
+            "name": "order_month",
+            "expr": "DATE_TRUNC('MONTH', order_day)",
+            "displayName": "Order Month"
+          },
+          {
+            "name": "brand_name",
+            "expr": "brand_name",
+            "displayName": "Brand"
+          },
+          {
+            "name": "cuisine_type",
+            "expr": "cuisine_type",
+            "displayName": "Cuisine Type"
+          },
+          {
+            "name": "location_name",
+            "expr": "location_name",
+            "displayName": "Location"
+          },
+          {
+            "name": "item_name",
+            "expr": "item_name",
+            "displayName": "Item"
+          }
+        ],
+        "measures": [
+          {
+            "name": "total_revenue",
+            "expr": "SUM(extended_price)",
+            "displayName": "Total Revenue",
+            "format": {
+              "type": "currency",
+              "currencyCode": "USD",
+              "decimalPlaces": {
+                "type": "exact",
+                "places": 0.0
+              }
+            }
+          },
+          {
+            "name": "total_orders",
+            "expr": "COUNT(DISTINCT order_id)",
+            "displayName": "Total Orders",
+            "format": {
+              "type": "number",
+              "decimalPlaces": {
+                "type": "exact",
+                "places": 0.0
+              }
+            }
+          },
+          {
+            "name": "total_items_sold",
+            "expr": "SUM(qty)",
+            "displayName": "Items Sold",
+            "format": {
+              "type": "number",
+              "decimalPlaces": {
+                "type": "exact",
+                "places": 0.0
+              }
+            }
+          },
+          {
+            "name": "avg_order_value",
+            "expr": "SUM(extended_price) / COUNT(DISTINCT order_id)",
+            "displayName": "Avg Order Value",
+            "format": {
+              "type": "currency",
+              "currencyCode": "USD",
+              "decimalPlaces": {
+                "type": "exact",
+                "places": 2.0
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "resolutions",
+      "displayName": "Complaint Resolutions",
+      "config": {
+        "version": 1.1,
+        "source": "SELECT\n  complaint_id,\n  order_id,\n  ts,\n  DATE(ts) as resolution_date,\n  agent_response:complaint_category::STRING as complaint_category,\n  agent_response:decision::STRING as decision,\n  agent_response:credit_amount::DOUBLE as credit_amount,\n  agent_response:confidence::STRING as confidence,\n  agent_response:priority::STRING as priority\nFROM complaints.complaint_responses\n",
+        "dimensions": [
+          {
+            "name": "complaint_category",
+            "expr": "complaint_category",
+            "displayName": "Complaint Category"
+          },
+          {
+            "name": "decision",
+            "expr": "decision",
+            "displayName": "Decision"
+          },
+          {
+            "name": "confidence",
+            "expr": "confidence",
+            "displayName": "Confidence Level"
+          },
+          {
+            "name": "priority",
+            "expr": "priority",
+            "displayName": "Priority"
+          },
+          {
+            "name": "resolution_date",
+            "expr": "resolution_date",
+            "displayName": "Resolution Date"
+          }
+        ],
+        "measures": [
+          {
+            "name": "total_resolutions",
+            "expr": "COUNT(*)",
+            "displayName": "Total Resolutions"
+          },
+          {
+            "name": "total_credits_issued",
+            "expr": "SUM(credit_amount)",
+            "displayName": "Total Credits Issued",
+            "format": {
+              "type": "currency",
+              "currencyCode": "USD",
+              "decimalPlaces": {
+                "type": "exact",
+                "places": 0.0
+              }
+            }
+          },
+          {
+            "name": "avg_credit_amount",
+            "expr": "AVG(CASE WHEN credit_amount > 0 THEN credit_amount END)",
+            "displayName": "Avg Credit Amount",
+            "format": {
+              "type": "currency",
+              "currencyCode": "USD",
+              "decimalPlaces": {
+                "type": "exact",
+                "places": 2.0
+              }
+            }
+          },
+          {
+            "name": "escalation_rate",
+            "expr": "COUNT(CASE WHEN decision = 'escalate' THEN 1 END) * 1.0 / COUNT(*)",
+            "displayName": "Escalation Rate"
+          }
+        ]
+      }
+    },
+    {
+      "name": "refunds",
+      "displayName": "Refund Recommendations",
+      "config": {
+        "version": 1.1,
+        "source": "SELECT\n  order_id,\n  ts as processed_ts,\n  order_ts,\n  DATE(order_ts) as order_date,\n  DATE_TRUNC('MONTH', order_ts) as order_month,\n  agent_response:refund_usd::DOUBLE as refund_usd,\n  agent_response:refund_class::STRING as refund_class,\n  agent_response:reason::STRING as reason,\n  SUBSTRING(order_id, -2) as location_code\nFROM recommender.refund_recommendations\n",
+        "dimensions": [
+          {
+            "name": "refund_class",
+            "expr": "refund_class",
+            "displayName": "Refund Class"
+          },
+          {
+            "name": "order_date",
+            "expr": "order_date",
+            "displayName": "Order Date"
+          },
+          {
+            "name": "order_month",
+            "expr": "order_month",
+            "displayName": "Order Month"
+          },
+          {
+            "name": "location_code",
+            "expr": "location_code",
+            "displayName": "Location Code"
+          }
+        ],
+        "measures": [
+          {
+            "name": "total_refund_requests",
+            "expr": "COUNT(*)",
+            "displayName": "Total Refund Requests"
+          },
+          {
+            "name": "total_refunded_usd",
+            "expr": "SUM(refund_usd)",
+            "displayName": "Total Refunded",
+            "format": {
+              "type": "currency",
+              "currencyCode": "USD",
+              "decimalPlaces": {
+                "type": "exact",
+                "places": 0.0
+              }
+            }
+          },
+          {
+            "name": "avg_refund_amount",
+            "expr": "AVG(CASE WHEN refund_usd > 0 THEN refund_usd END)",
+            "displayName": "Avg Refund Amount",
+            "format": {
+              "type": "currency",
+              "currencyCode": "USD",
+              "decimalPlaces": {
+                "type": "exact",
+                "places": 2.0
+              }
+            }
+          },
+          {
+            "name": "refund_rate",
+            "expr": "COUNT(CASE WHEN refund_class IN ('partial', 'full') THEN 1 END) * 1.0 / COUNT(*)",
+            "displayName": "Refund Rate"
+          }
+        ]
+      }
+    },
+    {
+      "name": "brand_growth",
+      "displayName": "Brand Growth",
+      "config": {
+        "version": 1.1,
+        "source": "SELECT\n  bl.brand_location_id,\n  b.name AS brand_name,\n  b.cuisine_type,\n  l.name AS location_name,\n  bl.trajectory,\n  bl.growth_rate_monthly\nFROM simulator.brand_locations bl JOIN simulator.brands b ON bl.brand_id = b.brand_id JOIN simulator.locations l ON bl.location_id = l.location_id\n",
+        "dimensions": [
+          {
+            "name": "brand_name",
+            "expr": "brand_name",
+            "displayName": "Brand"
+          },
+          {
+            "name": "cuisine_type",
+            "expr": "cuisine_type",
+            "displayName": "Cuisine Type"
+          },
+          {
+            "name": "location_name",
+            "expr": "location_name",
+            "displayName": "Location"
+          },
+          {
+            "name": "trajectory",
+            "expr": "trajectory",
+            "displayName": "Growth Trajectory"
+          }
+        ],
+        "measures": [
+          {
+            "name": "brand_location_count",
+            "expr": "COUNT(*)",
+            "displayName": "Brand-Location Count"
+          },
+          {
+            "name": "avg_growth_rate",
+            "expr": "AVG(growth_rate_monthly)",
+            "displayName": "Avg Monthly Growth Rate",
+            "format": {
+              "type": "number",
+              "decimalPlaces": {
+                "type": "exact",
+                "places": 2.0
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "hourly_demand",
+      "displayName": "Hourly Demand",
+      "config": {
+        "version": 1.1,
+        "source": "SELECT\n  h.location_id,\n  l.name AS location_name,\n  h.hour_ts,\n  DATE(h.hour_ts) as order_date,\n  HOUR(h.hour_ts) as hour_of_day,\n  h.orders,\n  h.revenue\nFROM lakeflow.gold_location_sales_hourly h JOIN simulator.locations l ON CAST(h.location_id AS BIGINT) = l.location_id\n",
+        "dimensions": [
+          {
+            "name": "location_name",
+            "expr": "location_name",
+            "displayName": "Location"
+          },
+          {
+            "name": "hour_of_day",
+            "expr": "hour_of_day",
+            "displayName": "Hour of Day"
+          },
+          {
+            "name": "order_date",
+            "expr": "order_date",
+            "displayName": "Order Date"
+          }
+        ],
+        "measures": [
+          {
+            "name": "total_orders",
+            "expr": "SUM(orders)",
+            "displayName": "Total Orders"
+          },
+          {
+            "name": "total_revenue",
+            "expr": "SUM(revenue)",
+            "displayName": "Revenue",
+            "format": {
+              "type": "currency",
+              "currencyCode": "USD",
+              "decimalPlaces": {
+                "type": "exact",
+                "places": 0.0
+              }
+            }
+          },
+          {
+            "name": "avg_orders_per_hour",
+            "expr": "AVG(orders)",
+            "displayName": "Avg Orders/Hour",
+            "format": {
+              "type": "number",
+              "decimalPlaces": {
+                "type": "exact",
+                "places": 1.0
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "location_map",
+      "displayName": "Location Revenue Map",
+      "config": {
+        "version": 1.1,
+        "source": "SELECT\n  oi.order_id,\n  l.name AS location_name,\n  l.lat,\n  l.lon,\n  oi.extended_price\nFROM lakeflow.silver_order_items oi JOIN simulator.locations l ON CAST(oi.location_id AS BIGINT) = l.location_id\n",
+        "dimensions": [
+          {
+            "name": "location_name",
+            "expr": "location_name",
+            "displayName": "Location"
+          },
+          {
+            "name": "latitude",
+            "expr": "lat",
+            "displayName": "Latitude"
+          },
+          {
+            "name": "longitude",
+            "expr": "lon",
+            "displayName": "Longitude"
+          }
+        ],
+        "measures": [
+          {
+            "name": "total_revenue",
+            "expr": "SUM(extended_price)",
+            "displayName": "Total Revenue",
+            "format": {
+              "type": "currency",
+              "currencyCode": "USD",
+              "decimalPlaces": {
+                "type": "exact",
+                "places": 0.0
+              }
+            }
+          },
+          {
+            "name": "total_orders",
+            "expr": "COUNT(DISTINCT order_id)",
+            "displayName": "Total Orders",
+            "format": {
+              "type": "number",
+              "decimalPlaces": {
+                "type": "exact",
+                "places": 0.0
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "refund_revenue_ratio",
+      "displayName": "Refund-to-Revenue Ratio",
+      "config": {
+        "version": 1.1,
+        "source": "WITH refund_total AS (\n  SELECT SUM(agent_response:refund_usd::DOUBLE) as refund_amt\n  FROM recommender.refund_recommendations\n), revenue_total AS (\n  SELECT SUM(extended_price) as revenue_amt\n  FROM lakeflow.silver_order_items\n) SELECT refund_amt, revenue_amt FROM refund_total CROSS JOIN revenue_total\n",
+        "dimensions": [
+          {
+            "name": "all_data",
+            "expr": "'all'"
+          }
+        ],
+        "measures": [
+          {
+            "name": "total_refunded",
+            "expr": "SUM(refund_amt)",
+            "displayName": "Total Refunded",
+            "format": {
+              "type": "currency",
+              "currencyCode": "USD",
+              "decimalPlaces": {
+                "type": "exact",
+                "places": 0.0
+              }
+            }
+          },
+          {
+            "name": "total_revenue_base",
+            "expr": "SUM(revenue_amt)",
+            "displayName": "Total Revenue",
+            "format": {
+              "type": "currency",
+              "currencyCode": "USD",
+              "decimalPlaces": {
+                "type": "exact",
+                "places": 0.0
+              }
+            }
+          },
+          {
+            "name": "refund_to_revenue_ratio",
+            "expr": "MEASURE(total_refunded) / MEASURE(total_revenue_base)",
+            "displayName": "Refund-to-Revenue Ratio",
+            "format": {
+              "type": "percentage",
+              "decimalPlaces": {
+                "type": "exact",
+                "places": 1.0
+              }
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "pages": [
+    {
+      "name": "52169638",
+      "displayName": "Quality & Compliance",
+      "layout": [
+        {
+          "widget": {
+            "name": "header",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Caspers Kitchen Operations\n",
+                "Multi-location food delivery operations monitoring across 8 locations and 24 restaurant brands."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_complaints",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "complaints",
+                  "fields": [
+                    {
+                      "name": "measure(total_complaints)",
+                      "expression": "MEASURE(`total_complaints`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Total Complaints",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(total_complaints)",
+                  "displayName": "Total Complaints"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_locations",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "locations",
+                  "fields": [
+                    {
+                      "name": "measure(total_locations)",
+                      "expression": "MEASURE(`total_locations`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Total Locations",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(total_locations)",
+                  "displayName": "Total Locations"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_brands",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "brands",
+                  "fields": [
+                    {
+                      "name": "measure(total_brands)",
+                      "expression": "MEASURE(`total_brands`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Total Brands",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(total_brands)",
+                  "displayName": "Total Brands"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_score",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "inspections",
+                  "fields": [
+                    {
+                      "name": "measure(avg_score)",
+                      "expression": "MEASURE(`avg_score`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Avg Inspection Score",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(avg_score)",
+                  "displayName": "Avg Inspection Score"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "complaints_by_category",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "complaints",
+                  "fields": [
+                    {
+                      "name": "complaint_category",
+                      "expression": "`complaint_category`"
+                    },
+                    {
+                      "name": "measure(total_complaints)",
+                      "expression": "MEASURE(`total_complaints`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Complaints by Category"
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "complaint_category",
+                  "displayName": "Category",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(total_complaints)",
+                  "displayName": "Count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "inspection_scores",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "inspections",
+                  "fields": [
+                    {
+                      "name": "location_name",
+                      "expression": "`location_name`"
+                    },
+                    {
+                      "name": "measure(avg_score)",
+                      "expression": "MEASURE(`avg_score`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Inspection Scores by Location"
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "location_name",
+                  "displayName": "Location",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y"
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(avg_score)",
+                  "displayName": "Avg Score",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 5,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "violations_severity",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "violations",
+                  "fields": [
+                    {
+                      "name": "measure(violation_count)",
+                      "expression": "MEASURE(`violation_count`)"
+                    },
+                    {
+                      "name": "severity",
+                      "expression": "`severity`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Violations by Severity"
+              },
+              "mark": {
+                "colors": [
+                  "#E74C3C",
+                  "#F39C12",
+                  "#3498DB"
+                ]
+              },
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "measure(violation_count)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Count"
+                },
+                "color": {
+                  "fieldName": "severity",
+                  "displayName": "Severity",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 12,
+            "width": 4,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "complaint_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "complaints",
+                  "fields": [
+                    {
+                      "name": "complaint_month",
+                      "expression": "`complaint_month`"
+                    },
+                    {
+                      "name": "measure(total_complaints)",
+                      "expression": "MEASURE(`total_complaints`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Complaint Trend"
+              },
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "complaint_month",
+                  "displayName": "Month",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(total_complaints)",
+                  "displayName": "Complaints",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 12,
+            "width": 8,
+            "height": 7
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "revenue_performance",
+      "displayName": "Revenue & Performance",
+      "layout": [
+        {
+          "widget": {
+            "name": "header",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Revenue & Restaurant Performance\n",
+                "Order data from Mar 2026 to Apr 2027 across all locations and brands."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_revenue",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "order_revenue",
+                  "fields": [
+                    {
+                      "name": "measure(total_revenue)",
+                      "expression": "MEASURE(`total_revenue`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Total Revenue"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(total_revenue)",
+                  "displayName": "Total Revenue"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_orders",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "order_revenue",
+                  "fields": [
+                    {
+                      "name": "measure(total_orders)",
+                      "expression": "MEASURE(`total_orders`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Total Orders"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(total_orders)",
+                  "displayName": "Total Orders"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_aov",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "order_revenue",
+                  "fields": [
+                    {
+                      "name": "measure(avg_order_value)",
+                      "expression": "MEASURE(`avg_order_value`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Avg Order Value"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(avg_order_value)",
+                  "displayName": "Avg Order Value"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_items",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "order_revenue",
+                  "fields": [
+                    {
+                      "name": "measure(total_items_sold)",
+                      "expression": "MEASURE(`total_items_sold`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Items Sold"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(total_items_sold)",
+                  "displayName": "Items Sold"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "revenue_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "order_revenue",
+                  "fields": [
+                    {
+                      "name": "order_month",
+                      "expression": "`order_month`"
+                    },
+                    {
+                      "name": "measure(total_revenue)",
+                      "expression": "MEASURE(`total_revenue`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Revenue Trend"
+              },
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "order_month",
+                  "displayName": "Month",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(total_revenue)",
+                  "displayName": "Revenue",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 12,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "revenue_by_brand",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "order_revenue",
+                  "fields": [
+                    {
+                      "name": "brand_name",
+                      "expression": "`brand_name`"
+                    },
+                    {
+                      "name": "measure(total_revenue)",
+                      "expression": "MEASURE(`total_revenue`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Revenue by Brand"
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "brand_name",
+                  "displayName": "Brand",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(total_revenue)",
+                  "displayName": "Revenue",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 11,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "revenue_by_location",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "order_revenue",
+                  "fields": [
+                    {
+                      "name": "location_name",
+                      "expression": "`location_name`"
+                    },
+                    {
+                      "name": "measure(total_revenue)",
+                      "expression": "MEASURE(`total_revenue`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Revenue by Location"
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "location_name",
+                  "displayName": "Location",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(total_revenue)",
+                  "displayName": "Revenue",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 11,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "orders_by_cuisine",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "order_revenue",
+                  "fields": [
+                    {
+                      "name": "measure(total_orders)",
+                      "expression": "MEASURE(`total_orders`)"
+                    },
+                    {
+                      "name": "cuisine_type",
+                      "expression": "`cuisine_type`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Orders by Cuisine Type"
+              },
+              "mark": {},
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "measure(total_orders)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Orders"
+                },
+                "color": {
+                  "fieldName": "cuisine_type",
+                  "displayName": "Cuisine",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 18,
+            "width": 5,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "revenue_location_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "order_revenue",
+                  "fields": [
+                    {
+                      "name": "location_name",
+                      "expression": "`location_name`"
+                    },
+                    {
+                      "name": "order_month",
+                      "expression": "`order_month`"
+                    },
+                    {
+                      "name": "measure(total_revenue)",
+                      "expression": "MEASURE(`total_revenue`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Revenue by Location Over Time"
+              },
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "order_month",
+                  "displayName": "Month",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(total_revenue)",
+                  "displayName": "Revenue",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "location_name",
+                  "displayName": "Location",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 5,
+            "y": 18,
+            "width": 7,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "top_items_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "order_revenue",
+                  "fields": [
+                    {
+                      "name": "item_name",
+                      "expression": "`item_name`"
+                    },
+                    {
+                      "name": "measure(total_revenue)",
+                      "expression": "MEASURE(`total_revenue`)"
+                    },
+                    {
+                      "name": "measure(total_items_sold)",
+                      "expression": "MEASURE(`total_items_sold`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Top-Selling Items",
+                "showTitle": true
+              },
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "item_name",
+                    "displayName": "Item"
+                  },
+                  {
+                    "fieldName": "measure(total_revenue)",
+                    "format": {
+                      "type": "number-currency",
+                      "abbreviation": "compact",
+                      "currencyCode": "USD"
+                    },
+                    "displayName": "Revenue"
+                  },
+                  {
+                    "fieldName": "measure(total_items_sold)",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "compact"
+                    },
+                    "displayName": "Qty Sold"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 25,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "location_map",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "location_map",
+                  "fields": [
+                    {
+                      "name": "location_name",
+                      "expression": "`location_name`"
+                    },
+                    {
+                      "name": "latitude",
+                      "expression": "`latitude`"
+                    },
+                    {
+                      "name": "longitude",
+                      "expression": "`longitude`"
+                    },
+                    {
+                      "name": "measure(total_revenue)",
+                      "expression": "MEASURE(`total_revenue`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Revenue by Location (Map)",
+                "showTitle": true
+              },
+              "widgetType": "symbol-map",
+              "encodings": {
+                "coordinates": {
+                  "coordinateType": "longitude-latitude",
+                  "latitude": {
+                    "fieldName": "latitude"
+                  },
+                  "longitude": {
+                    "fieldName": "longitude"
+                  }
+                },
+                "color": {
+                  "fieldName": "location_name",
+                  "displayName": "Location",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "size": {
+                  "fieldName": "measure(total_revenue)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "format": {
+                    "type": "number-currency",
+                    "abbreviation": "compact",
+                    "currencyCode": "USD"
+                  },
+                  "displayName": "Revenue"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 25,
+            "width": 6,
+            "height": 8
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "refunds_resolution",
+      "displayName": "Refunds & Resolution",
+      "layout": [
+        {
+          "widget": {
+            "name": "header",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Refunds & Complaint Resolution\n",
+                "AI-driven refund recommendations and complaint resolution outcomes. Tracks financial impact of operational issues."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_total_refunded",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "refunds",
+                  "fields": [
+                    {
+                      "name": "measure(total_refunded_usd)",
+                      "expression": "MEASURE(`total_refunded_usd`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Total Refunded"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(total_refunded_usd)",
+                  "displayName": "Total Refunded"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_refund_requests",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "refunds",
+                  "fields": [
+                    {
+                      "name": "measure(total_refund_requests)",
+                      "expression": "MEASURE(`total_refund_requests`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Refund Requests"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(total_refund_requests)",
+                  "displayName": "Refund Requests"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_avg_refund",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "refunds",
+                  "fields": [
+                    {
+                      "name": "measure(avg_refund_amount)",
+                      "expression": "MEASURE(`avg_refund_amount`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Avg Refund Amount"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(avg_refund_amount)",
+                  "displayName": "Avg Refund"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_escalation_rate",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "resolutions",
+                  "fields": [
+                    {
+                      "name": "measure(escalation_rate)",
+                      "expression": "MEASURE(`escalation_rate`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Escalation Rate"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(escalation_rate)",
+                  "displayName": "Escalation Rate"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "refunds_by_class",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "refunds",
+                  "fields": [
+                    {
+                      "name": "refund_class",
+                      "expression": "`refund_class`"
+                    },
+                    {
+                      "name": "measure(total_refund_requests)",
+                      "expression": "MEASURE(`total_refund_requests`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Refunds by Class"
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "refund_class",
+                  "displayName": "Refund Class",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(total_refund_requests)",
+                  "displayName": "Count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "resolution_decisions",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "resolutions",
+                  "fields": [
+                    {
+                      "name": "measure(total_resolutions)",
+                      "expression": "MEASURE(`total_resolutions`)"
+                    },
+                    {
+                      "name": "decision",
+                      "expression": "`decision`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Resolution Decisions"
+              },
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "measure(total_resolutions)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Count"
+                },
+                "color": {
+                  "fieldName": "decision",
+                  "displayName": "Decision",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 5,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "credits_by_category",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "resolutions",
+                  "fields": [
+                    {
+                      "name": "complaint_category",
+                      "expression": "`complaint_category`"
+                    },
+                    {
+                      "name": "measure(total_credits_issued)",
+                      "expression": "MEASURE(`total_credits_issued`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Credits by Complaint Category"
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "complaint_category",
+                  "displayName": "Category",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(total_credits_issued)",
+                  "displayName": "Credits ($)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 11,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "confidence_breakdown",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "resolutions",
+                  "fields": [
+                    {
+                      "name": "measure(total_resolutions)",
+                      "expression": "MEASURE(`total_resolutions`)"
+                    },
+                    {
+                      "name": "confidence",
+                      "expression": "`confidence`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "AI Confidence Level"
+              },
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "measure(total_resolutions)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Count"
+                },
+                "color": {
+                  "fieldName": "confidence",
+                  "displayName": "Confidence",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 11,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "refund_amount_by_class",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "refunds",
+                  "fields": [
+                    {
+                      "name": "refund_class",
+                      "expression": "`refund_class`"
+                    },
+                    {
+                      "name": "measure(total_refunded_usd)",
+                      "expression": "MEASURE(`total_refunded_usd`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Refund $ by Class"
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "refund_class",
+                  "displayName": "Refund Class",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(total_refunded_usd)",
+                  "displayName": "$ Refunded",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 18,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "category_escalations",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "resolutions",
+                  "fields": [
+                    {
+                      "name": "decision",
+                      "expression": "`decision`"
+                    },
+                    {
+                      "name": "complaint_category",
+                      "expression": "`complaint_category`"
+                    },
+                    {
+                      "name": "measure(total_resolutions)",
+                      "expression": "MEASURE(`total_resolutions`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Escalations by Category"
+              },
+              "mark": {
+                "layout": "stack"
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "complaint_category",
+                  "displayName": "Category",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(total_resolutions)",
+                  "displayName": "Count",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "decision",
+                  "displayName": "Decision",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 18,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_refund_ratio",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "refund_revenue_ratio",
+                  "fields": [
+                    {
+                      "name": "measure(refund_to_revenue_ratio)",
+                      "expression": "MEASURE(`refund_to_revenue_ratio`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Refund-to-Revenue Ratio",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(refund_to_revenue_ratio)",
+                  "displayName": "Refund/Revenue"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 24,
+            "width": 4,
+            "height": 3
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "demand_growth",
+      "displayName": "Demand & Growth",
+      "layout": [
+        {
+          "widget": {
+            "name": "header",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Demand Patterns & Brand Growth\n",
+                "Hourly order patterns for capacity planning and brand-location growth trajectories."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_peak_orders",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "hourly_demand",
+                  "fields": [
+                    {
+                      "name": "measure(total_orders)",
+                      "expression": "MEASURE(`total_orders`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Total Orders (Hourly Data)"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(total_orders)",
+                  "displayName": "Total Orders"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_hourly_revenue",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "hourly_demand",
+                  "fields": [
+                    {
+                      "name": "measure(total_revenue)",
+                      "expression": "MEASURE(`total_revenue`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Total Revenue (Hourly)"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(total_revenue)",
+                  "displayName": "Revenue"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_growing_brands",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "brand_growth",
+                  "fields": [
+                    {
+                      "name": "measure(brand_location_count)",
+                      "expression": "MEASURE(`brand_location_count`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`trajectory` = 'growing'"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Growing Brand-Locations"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(brand_location_count)",
+                  "displayName": "Growing"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_avg_growth",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "brand_growth",
+                  "fields": [
+                    {
+                      "name": "measure(avg_growth_rate)",
+                      "expression": "MEASURE(`avg_growth_rate`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Avg Monthly Growth"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(avg_growth_rate)",
+                  "displayName": "Avg Growth Rate"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "hourly_orders",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "hourly_demand",
+                  "fields": [
+                    {
+                      "name": "hour_of_day",
+                      "expression": "`hour_of_day`"
+                    },
+                    {
+                      "name": "measure(total_orders)",
+                      "expression": "MEASURE(`total_orders`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Orders by Hour of Day"
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "hour_of_day",
+                  "displayName": "Hour of Day",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "natural-order"
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(total_orders)",
+                  "displayName": "Orders",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 12,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "hourly_by_location",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "hourly_demand",
+                  "fields": [
+                    {
+                      "name": "location_name",
+                      "expression": "`location_name`"
+                    },
+                    {
+                      "name": "hour_of_day",
+                      "expression": "`hour_of_day`"
+                    },
+                    {
+                      "name": "measure(total_orders)",
+                      "expression": "MEASURE(`total_orders`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Hourly Demand by Location"
+              },
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "hour_of_day",
+                  "displayName": "Hour",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "natural-order"
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(total_orders)",
+                  "displayName": "Orders",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "location_name",
+                  "displayName": "Location",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 11,
+            "width": 7,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "revenue_by_hour_location",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "hourly_demand",
+                  "fields": [
+                    {
+                      "name": "hour_of_day",
+                      "expression": "`hour_of_day`"
+                    },
+                    {
+                      "name": "measure(total_revenue)",
+                      "expression": "MEASURE(`total_revenue`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Revenue by Hour"
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "hour_of_day",
+                  "displayName": "Hour",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "natural-order"
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(total_revenue)",
+                  "displayName": "Revenue",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 7,
+            "y": 11,
+            "width": 5,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "growth_trajectory",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "brand_growth",
+                  "fields": [
+                    {
+                      "name": "measure(brand_location_count)",
+                      "expression": "MEASURE(`brand_location_count`)"
+                    },
+                    {
+                      "name": "trajectory",
+                      "expression": "`trajectory`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "mark": {
+                "colors": [
+                  "#27AE60",
+                  "#F39C12",
+                  "#E74C3C"
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Brand Growth Trajectories"
+              },
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "measure(brand_location_count)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Count"
+                },
+                "color": {
+                  "fieldName": "trajectory",
+                  "displayName": "Trajectory",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 18,
+            "width": 4,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "brand_growth_rates",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "brand_growth",
+                  "fields": [
+                    {
+                      "name": "brand_name",
+                      "expression": "`brand_name`"
+                    },
+                    {
+                      "name": "measure(avg_growth_rate)",
+                      "expression": "MEASURE(`avg_growth_rate`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Growth Rate by Brand"
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "brand_name",
+                  "displayName": "Brand",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(avg_growth_rate)",
+                  "displayName": "Avg Growth Rate",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 18,
+            "width": 8,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "growth_by_location",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "brand_growth",
+                  "fields": [
+                    {
+                      "name": "trajectory",
+                      "expression": "`trajectory`"
+                    },
+                    {
+                      "name": "location_name",
+                      "expression": "`location_name`"
+                    },
+                    {
+                      "name": "measure(brand_location_count)",
+                      "expression": "MEASURE(`brand_location_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Growth by Location"
+              },
+              "version": 3,
+              "mark": {
+                "layout": "stack"
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "location_name",
+                  "displayName": "Location",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(brand_location_count)",
+                  "displayName": "Brands",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "trajectory",
+                  "displayName": "Trajectory",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 25,
+            "width": 12,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "prep_time_chart",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "brands",
+                  "fields": [
+                    {
+                      "name": "brand_name",
+                      "expression": "`brand_name`"
+                    },
+                    {
+                      "name": "measure(avg_prep_time)",
+                      "expression": "MEASURE(`avg_prep_time`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "title": "Avg Prep Time by Brand",
+                "showTitle": true
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "brand_name",
+                  "displayName": "Brand",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(avg_prep_time)",
+                  "displayName": "Avg Prep Time (min)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 32,
+            "width": 12,
+            "height": 6
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "global_filters",
+      "displayName": "Global Filters",
+      "layout": [
+        {
+          "widget": {
+            "name": "location_filter",
+            "queries": [
+              {
+                "name": "dashboards/01f1535d8321198cb4e400d9afc379f4/datasets/01f15360526a1eccacd5cfc7259251fd_location_name",
+                "query": {
+                  "datasetName": "locations",
+                  "fields": [
+                    {
+                      "name": "location_name",
+                      "expression": "`location_name`"
+                    },
+                    {
+                      "name": "location_name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "dashboards/01f1535d8321198cb4e400d9afc379f4/datasets/01f153622f8b18738e45a3eebce6a56d_location_name",
+                "query": {
+                  "datasetName": "order_revenue",
+                  "fields": [
+                    {
+                      "name": "location_name",
+                      "expression": "`location_name`"
+                    },
+                    {
+                      "name": "location_name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "dashboards/01f1535d8321198cb4e400d9afc379f4/datasets/01f1536056bc1df583823e9954e1ed08_location_name",
+                "query": {
+                  "datasetName": "inspections",
+                  "fields": [
+                    {
+                      "name": "location_name",
+                      "expression": "`location_name`"
+                    },
+                    {
+                      "name": "location_name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "dashboards/01f1535d8321198cb4e400d9afc379f4/datasets/01f15360587b1b9e985f894a3baae886_location_name",
+                "query": {
+                  "datasetName": "violations",
+                  "fields": [
+                    {
+                      "name": "location_name",
+                      "expression": "`location_name`"
+                    },
+                    {
+                      "name": "location_name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "dashboards/01f1535d8321198cb4e400d9afc379f4/datasets/01f153646476146aa0cb4e1e717f6c98_location_name",
+                "query": {
+                  "datasetName": "hourly_demand",
+                  "fields": [
+                    {
+                      "name": "location_name",
+                      "expression": "`location_name`"
+                    },
+                    {
+                      "name": "location_name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "dashboards/01f1535d8321198cb4e400d9afc379f4/datasets/01f153646299154195e403455b344102_location_name",
+                "query": {
+                  "datasetName": "brand_growth",
+                  "fields": [
+                    {
+                      "name": "location_name",
+                      "expression": "`location_name`"
+                    },
+                    {
+                      "name": "location_name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "dashboards/01f1535d8321198cb4e400d9afc379f4/datasets/01f15365fe0714858af9fb564993e59a_location_name",
+                "query": {
+                  "datasetName": "location_map",
+                  "fields": [
+                    {
+                      "name": "location_name",
+                      "expression": "`location_name`"
+                    },
+                    {
+                      "name": "location_name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Location",
+                "showTitle": true
+              },
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "location_name",
+                    "queryName": "dashboards/01f1535d8321198cb4e400d9afc379f4/datasets/01f15360526a1eccacd5cfc7259251fd_location_name"
+                  },
+                  {
+                    "fieldName": "location_name",
+                    "queryName": "dashboards/01f1535d8321198cb4e400d9afc379f4/datasets/01f153622f8b18738e45a3eebce6a56d_location_name"
+                  },
+                  {
+                    "fieldName": "location_name",
+                    "queryName": "dashboards/01f1535d8321198cb4e400d9afc379f4/datasets/01f1536056bc1df583823e9954e1ed08_location_name"
+                  },
+                  {
+                    "fieldName": "location_name",
+                    "queryName": "dashboards/01f1535d8321198cb4e400d9afc379f4/datasets/01f15360587b1b9e985f894a3baae886_location_name"
+                  },
+                  {
+                    "fieldName": "location_name",
+                    "queryName": "dashboards/01f1535d8321198cb4e400d9afc379f4/datasets/01f153646476146aa0cb4e1e717f6c98_location_name"
+                  },
+                  {
+                    "fieldName": "location_name",
+                    "queryName": "dashboards/01f1535d8321198cb4e400d9afc379f4/datasets/01f153646299154195e403455b344102_location_name"
+                  },
+                  {
+                    "fieldName": "location_name",
+                    "queryName": "dashboards/01f1535d8321198cb4e400d9afc379f4/datasets/01f15365fe0714858af9fb564993e59a_location_name"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 3,
+            "height": 2
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_GLOBAL_FILTERS",
+      "layoutVersion": "GRID_V1"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "canvasBackgroundColor": {
+        "light": "#F8F9FA",
+        "dark": "#0D1117"
+      },
+      "widgetBackgroundColor": {
+        "light": "#FFFFFF",
+        "dark": "#161B22"
+      },
+      "widgetBorderColor": {
+        "light": "#E1E4E8",
+        "dark": "#30363D"
+      },
+      "fontColor": {
+        "light": "#1F2328",
+        "dark": "#E6EDF3"
+      },
+      "selectionColor": {
+        "light": "#0969DA",
+        "dark": "#58A6FF"
+      },
+      "visualizationColors": [
+        "#58A6FF",
+        "#3FB950",
+        "#F78166",
+        "#D2A8FF",
+        "#79C0FF",
+        "#56D364",
+        "#FFA657",
+        "#FF7B72",
+        "#A5D6FF",
+        "#7EE787"
+      ],
+      "widgetHeaderAlignment": "CENTER",
+      "fontFamily": "Trebuchet MS"
+    },
+    "applyModeEnabled": false
+  }
+}

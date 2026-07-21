@@ -1,0 +1,38 @@
+# DevConnect Act 2 — Omnigent agent for wiring new UC functions into agent.py.
+# Synced to the workspace by `bundle deploy -t devconnect`.
+# Builtin policies only on Databricks managed Omnigent (no custom policy modules).
+name: catastrophe-coder
+description: Wire governed UC functions into the catastrophe command agent.
+
+instructions: AGENTS.md
+
+executor:
+  harness: claude-sdk
+  model: databricks-claude-sonnet-4-6
+  auth:
+    type: databricks
+    profile: DEFAULT
+
+os_env:
+  type: caller_process
+  cwd: .
+  sandbox:
+    write_paths:
+      - apps/catastrophe-command
+    allow_network: true
+
+policies:
+  tool_cap:
+    type: function
+    handler: omnigent.policies.builtins.safety.max_tool_calls_per_session
+    factory_params:
+      limit: 40
+  session_cost:
+    type: function
+    handler: omnigent.policies.builtins.cost.cost_budget
+    factory_params:
+      ask_thresholds_usd: [0.25, 1.0]
+      max_cost_usd: 5.0
+  shell_safety:
+    type: function
+    handler: omnigent.policies.builtins.orchestration.blast_radius

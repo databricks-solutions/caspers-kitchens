@@ -1,0 +1,760 @@
+{
+  "datasets": [
+    {
+      "name": "healthy_options",
+      "displayName": "Healthy Options",
+      "queryLines": [
+        "SELECT\n",
+        "  item_name,\n",
+        "  brand_name,\n",
+        "  cuisine,\n",
+        "  category,\n",
+        "  price,\n",
+        "  calories,\n",
+        "  protein_g,\n",
+        "  fat_g,\n",
+        "  carbs_g,\n",
+        "  protein_pct\n",
+        "FROM\n",
+        "  menu_documents.silver_menu_items\n",
+        "WHERE\n",
+        "  is_high_protein = true\n",
+        "  AND is_low_calorie = true\n",
+        "ORDER BY\n",
+        "  protein_pct DESC"
+      ]
+    },
+    {
+      "name": "menu_items_metrics",
+      "displayName": "Menu Items Metrics",
+      "config": {
+        "version": 1.1,
+        "source": "menu_documents.silver_menu_items",
+        "dimensions": [
+          {
+            "name": "brand_name",
+            "expr": "brand_name",
+            "displayName": "Brand"
+          },
+          {
+            "name": "cuisine",
+            "expr": "cuisine",
+            "displayName": "Cuisine"
+          },
+          {
+            "name": "category",
+            "expr": "category",
+            "displayName": "Category"
+          },
+          {
+            "name": "price_tier",
+            "expr": "price_tier",
+            "displayName": "Price Tier"
+          },
+          {
+            "name": "calorie_category",
+            "expr": "calorie_category",
+            "displayName": "Calorie Category"
+          },
+          {
+            "name": "item_name",
+            "expr": "item_name",
+            "displayName": "Item Name"
+          },
+          {
+            "name": "price",
+            "expr": "price",
+            "displayName": "Price"
+          },
+          {
+            "name": "calories",
+            "expr": "calories",
+            "displayName": "Calories"
+          },
+          {
+            "name": "protein_g",
+            "expr": "protein_g",
+            "displayName": "Protein (g)"
+          },
+          {
+            "name": "is_high_protein",
+            "expr": "is_high_protein",
+            "displayName": "High Protein"
+          },
+          {
+            "name": "is_low_calorie",
+            "expr": "is_low_calorie",
+            "displayName": "Low Calorie"
+          },
+          {
+            "name": "is_allergen_free",
+            "expr": "is_allergen_free",
+            "displayName": "Allergen Free"
+          }
+        ],
+        "measures": [
+          {
+            "name": "total_items",
+            "expr": "COUNT(*)",
+            "displayName": "Total Menu Items"
+          },
+          {
+            "name": "avg_price",
+            "expr": "AVG(price)",
+            "displayName": "Avg Price",
+            "format": {
+              "type": "currency",
+              "currencyCode": "USD",
+              "decimalPlaces": {
+                "type": "exact",
+                "places": 2.0
+              }
+            }
+          },
+          {
+            "name": "avg_calories",
+            "expr": "AVG(calories)",
+            "displayName": "Avg Calories",
+            "format": {
+              "type": "number",
+              "decimalPlaces": {
+                "type": "exact",
+                "places": 0.0
+              }
+            }
+          },
+          {
+            "name": "allergen_free_count",
+            "expr": "COUNT(CASE WHEN is_allergen_free = true THEN 1 END)",
+            "displayName": "Allergen-Free Items"
+          },
+          {
+            "name": "pct_allergen_free",
+            "expr": "MEASURE(allergen_free_count) * 100.0 / MEASURE(total_items)",
+            "displayName": "% Allergen Free",
+            "format": {
+              "type": "percentage",
+              "decimalPlaces": {
+                "type": "exact",
+                "places": 1.0
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "allergen_prevalence",
+      "displayName": "Allergen Prevalence",
+      "queryLines": [
+        "SELECT\n",
+        "  allergen_type,\n",
+        "  COUNT(*) as item_count\n",
+        "FROM\n",
+        "  menu_documents.allergens\n",
+        "    UNPIVOT (\n",
+        "      contains_allergen FOR allergen_type IN (\n",
+        "        contains_wheat AS Wheat,\n",
+        "        contains_milk AS Milk,\n",
+        "        contains_egg AS Egg,\n",
+        "        contains_soy AS Soy,\n",
+        "        contains_peanut AS Peanut,\n",
+        "        contains_tree_nut AS Tree_Nut,\n",
+        "        contains_fish AS Fish,\n",
+        "        contains_shellfish AS Shellfish,\n",
+        "        contains_sesame AS Sesame\n",
+        "      )\n",
+        "    )\n",
+        "WHERE\n",
+        "  contains_allergen = true\n",
+        "GROUP BY\n",
+        "  allergen_type\n",
+        "ORDER BY\n",
+        "  item_count DESC"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "8d91abd2",
+      "displayName": "Page 1",
+      "layout": [
+        {
+          "widget": {
+            "name": "title",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Menu Intelligence & Nutrition Analytics"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_total_items",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "menu_items_metrics",
+                  "fields": [
+                    {
+                      "name": "measure(total_items)",
+                      "expression": "MEASURE(`total_items`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Total Menu Items",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(total_items)",
+                  "displayName": "Total Menu Items"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_avg_price",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "menu_items_metrics",
+                  "fields": [
+                    {
+                      "name": "measure(avg_price)",
+                      "expression": "MEASURE(`avg_price`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Average Price",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(avg_price)",
+                  "displayName": "Avg Price"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 1,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_allergen_free",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "menu_items_metrics",
+                  "fields": [
+                    {
+                      "name": "measure(pct_allergen_free)",
+                      "expression": "MEASURE(`pct_allergen_free`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "% Allergen Free",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(pct_allergen_free)",
+                  "displayName": "% Allergen Free"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 1,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_avg_calories",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "menu_items_metrics",
+                  "fields": [
+                    {
+                      "name": "measure(avg_calories)",
+                      "expression": "MEASURE(`avg_calories`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Average Calories",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(avg_calories)",
+                  "displayName": "Avg Calories"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 1,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "avg_price_by_cuisine",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "menu_items_metrics",
+                  "fields": [
+                    {
+                      "name": "cuisine",
+                      "expression": "`cuisine`"
+                    },
+                    {
+                      "name": "measure(avg_price)",
+                      "expression": "MEASURE(`avg_price`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Average Price by Cuisine"
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "cuisine",
+                  "displayName": "Cuisine",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(avg_price)",
+                  "format": {
+                    "type": "number-currency",
+                    "abbreviation": "none",
+                    "currencyCode": "USD",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 2
+                    }
+                  },
+                  "displayName": "Avg Price",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 3,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "price_tier_pie",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "menu_items_metrics",
+                  "fields": [
+                    {
+                      "name": "measure(total_items)",
+                      "expression": "MEASURE(`total_items`)"
+                    },
+                    {
+                      "name": "price_tier",
+                      "expression": "`price_tier`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Price Tier Distribution"
+              },
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "measure(total_items)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Items"
+                },
+                "color": {
+                  "fieldName": "price_tier",
+                  "displayName": "Price Tier",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 3,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "allergen_prevalence",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "allergen_prevalence",
+                  "fields": [
+                    {
+                      "name": "allergen_type",
+                      "expression": "`allergen_type`"
+                    },
+                    {
+                      "name": "item_count",
+                      "expression": "`item_count`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Allergen Prevalence"
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "allergen_type",
+                  "displayName": "Allergen",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "item_count",
+                  "displayName": "Items Containing",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "items_per_category",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "menu_items_metrics",
+                  "fields": [
+                    {
+                      "name": "category",
+                      "expression": "`category`"
+                    },
+                    {
+                      "name": "measure(total_items)",
+                      "expression": "MEASURE(`total_items`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Items per Category"
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "category",
+                  "displayName": "Category",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(total_items)",
+                  "displayName": "Items",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 8,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "price_vs_calories",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "menu_items_metrics",
+                  "fields": [
+                    {
+                      "name": "cuisine",
+                      "expression": "`cuisine`"
+                    },
+                    {
+                      "name": "price",
+                      "expression": "`price`"
+                    },
+                    {
+                      "name": "calories",
+                      "expression": "`calories`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Price vs Calories"
+              },
+              "widgetType": "scatter",
+              "encodings": {
+                "x": {
+                  "fieldName": "price",
+                  "displayName": "Price ($)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "y": {
+                  "fieldName": "calories",
+                  "displayName": "Calories",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "cuisine",
+                  "displayName": "Cuisine",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 13,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "healthy_options_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "healthy_options",
+                  "fields": [
+                    {
+                      "name": "item_name",
+                      "expression": "`item_name`"
+                    },
+                    {
+                      "name": "brand_name",
+                      "expression": "`brand_name`"
+                    },
+                    {
+                      "name": "cuisine",
+                      "expression": "`cuisine`"
+                    },
+                    {
+                      "name": "calories",
+                      "expression": "`calories`"
+                    },
+                    {
+                      "name": "protein_g",
+                      "expression": "`protein_g`"
+                    },
+                    {
+                      "name": "price",
+                      "expression": "`price`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Healthy Options"
+              },
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "item_name",
+                    "displayName": "Item"
+                  },
+                  {
+                    "fieldName": "brand_name",
+                    "displayName": "Brand"
+                  },
+                  {
+                    "fieldName": "cuisine",
+                    "displayName": "Cuisine"
+                  },
+                  {
+                    "fieldName": "calories",
+                    "displayName": "Calories"
+                  },
+                  {
+                    "fieldName": "protein_g",
+                    "displayName": "Protein (g)"
+                  },
+                  {
+                    "fieldName": "price",
+                    "format": {
+                      "type": "number-currency",
+                      "abbreviation": "none",
+                      "currencyCode": "USD",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 2
+                      }
+                    },
+                    "displayName": "Price"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 13,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    },
+    "applyModeEnabled": false
+  }
+}
+

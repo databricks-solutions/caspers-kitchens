@@ -71,7 +71,7 @@ def silver_order_items():
                F.col("item.name").alias("item_name"),
                F.col("item.price"),
                F.col("item.qty"),
-               "extended_price"
+               "extended_price",
            )
     )
     return df
@@ -154,4 +154,61 @@ def gold_location_sales_hourly():
                F.approx_count_distinct("order_id").alias("orders"),
                F.sum("extended_price").alias("revenue")
            )
+    )
+
+# ──────────────────────────────────────────────────────────────
+# 2-E. Gold – daily order STATUS per location  (created / delivered / cancelled)
+# ──────────────────────────────────────────────────────────────
+#
+# Why a materialized view (batch `dlt.read`) instead of a streaming
+# aggregation:  "cancelled" is the absence of a `delivered` event for an
+# `order_created`, so it requires joining two event streams.  A
+# stream-stream anti-join with watermarks is fragile (late-arriving
+# `delivered` events flip a previously-cancelled order back to delivered
+# only inside the watermark window).  A full-refresh materialized view
+# recomputed every pipeline trigger is correct, cheap on a serverless
+# Lakeflow pipeline, and lets the ops dashboard read pre-aggregated
+# location/day rows instead of scanning the raw `all_events` table.
+#
+# Consumer:  apps/caspers-ops-dashboard /api/revenue and /api/locations.
+# Before this table existed the dashboard ran two `SELECT DISTINCT` scans
+# over 30 days of raw events + a LEFT JOIN on every page load, adding
+# ~1.8s per request — see commit history for context.
+@dlt.table(
+    name           = "gold_location_order_status_daily",
+    partition_cols = ["day"],
+    comment        = "Gold – per-location daily created / delivered / cancelled order counts.",
+)
+def gold_location_order_status_daily():
+    events = dlt.read("all_events")
+    created = (
+        events.filter(F.col("event_type") == "order_created")
+              .select(
+                  F.col("order_id"),
+                  F.col("location_id"),
+                  F.to_date(F.to_timestamp("ts")).alias("day"),
+              )
+              .dropDuplicates(["order_id"])
+    )
+    delivered = (
+        events.filter(F.col("event_type") == "delivered")
+              .select(F.col("order_id").alias("delivered_order_id"))
+              .dropDuplicates(["delivered_order_id"])
+    )
+    return (
+        created.join(
+            delivered,
+            created["order_id"] == delivered["delivered_order_id"],
+            "left",
+        )
+        .withColumn(
+            "is_delivered",
+            F.when(F.col("delivered_order_id").isNotNull(), 1).otherwise(0),
+        )
+        .groupBy("location_id", "day")
+        .agg(
+            F.count("order_id").alias("created_count"),
+            F.sum("is_delivered").alias("delivered_count"),
+            (F.count("order_id") - F.sum("is_delivered")).alias("cancelled_count"),
+        )
     )

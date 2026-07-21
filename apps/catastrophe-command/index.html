@@ -1,0 +1,3592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <title>Casper's Kitchens — Live Fleet</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #1c1c1e; --muted: #6b6b70; --line: #e4e4ea;
+      --bike: #34c759; --car: #0a84ff; --scooter: #ff9f0a;
+      --stuck: #ff3b30; --reroute: #af52de; --kitchen: #ff2d55;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+      color: var(--ink); background: #eef0f3; overflow: hidden;
+    }
+    #map { position: absolute; inset: 0; z-index: 1; background: #dfe3e8; }
+
+    /* ---- Control dock (top-left) ---- */
+    .dock {
+      position: absolute; z-index: 1000; top: 16px; left: 16px;
+      background: rgba(255,255,255,.82); backdrop-filter: blur(10px) saturate(160%);
+      -webkit-backdrop-filter: blur(10px) saturate(160%);
+      border: 1px solid rgba(255,255,255,.6); border-radius: 20px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.16); padding: 14px 16px; width: 260px;
+      max-height: calc(100vh - 32px); overflow-y: auto;
+    }
+    .dock h1 { margin: 0 0 2px; font-size: 16px; font-weight: 700; letter-spacing: -.2px; }
+    .dock .sub { margin: 0 0 12px; font-size: 12px; color: var(--muted); }
+    .dock .sub.build-tag { margin: -8px 0 12px; font-size: 10px; opacity: .75; letter-spacing: .2px; }
+    .btn-row { display: flex; gap: 8px; margin-bottom: 10px; }
+    .btn {
+      flex: 1; border: none; border-radius: 12px; padding: 9px 0; font-size: 13px; font-weight: 600;
+      cursor: pointer; background: #f1f1f4; color: var(--ink); transition: transform .05s, background .15s;
+    }
+    .btn:active { transform: scale(.96); }
+    .btn.primary { background: #0a84ff; color: #fff; }
+    .btn.danger  { background: #ff3b30; color: #fff; }
+    .btn:disabled { opacity: .4; cursor: default; }
+    .speed { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+    .speed input[type="range"] { flex: 1; accent-color: #0a84ff; }
+    .ovol { background: #f6f6f8; border-radius: 12px; padding: 8px 10px; margin-bottom: 10px; }
+    .ovol-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px;
+      font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+    .ovol-head #ordersVal { color: #0a84ff; }
+    .ovol input[type="range"] { width: 100%; accent-color: #0a84ff; }
+    .seg { display: flex; margin-left: auto; background: #f0f0f4; border-radius: 10px; padding: 2px; }
+    .seg button { border: none; background: transparent; color: var(--muted); font-size: 12px; font-weight: 700;
+      padding: 5px 12px; border-radius: 8px; cursor: pointer; }
+    .seg button.on { background: #fff; color: #0a84ff; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+
+    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+    .stat { background: #f6f6f8; border-radius: 12px; padding: 8px 10px; }
+    .stat .n { font-size: 24px; font-weight: 700; line-height: 1; }
+    .stat .l { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-top: 4px; }
+    .stat.delayed .n { color: var(--stuck); }
+    .stat.reroute .n { color: var(--reroute); }
+    .stat.reordered { grid-column: 1 / -1; }
+    .stat.reordered .n { color: #0a84ff; }
+    .stat.refunded { grid-column: 1 / -1; }
+    .stat.refunded .n { color: #248a3d; }
+    .stat.cancelled { grid-column: 1 / -1; }
+    .stat.cancelled .n { color: #8e8e93; }
+    .stat.complaints { grid-column: 1 / -1; }
+    .stat.complaints .n { color: #ff375f; }
+
+    /* ---- Vehicle pucks ---- */
+    .veh { will-change: transform; }
+    .puck {
+      width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 16px; background: #fff; box-shadow: 0 3px 8px rgba(0,0,0,.28);
+      border: 2px solid #fff; transition: box-shadow .2s;
+    }
+    .puck.bike { box-shadow: 0 0 0 2px var(--bike), 0 3px 8px rgba(0,0,0,.28); }
+    .puck.car  { box-shadow: 0 0 0 2px var(--car), 0 3px 8px rgba(0,0,0,.28); }
+    .puck.scooter { box-shadow: 0 0 0 2px var(--scooter), 0 3px 8px rgba(0,0,0,.28); }
+    .puck.stuck { box-shadow: 0 0 0 3px var(--stuck), 0 3px 10px rgba(255,59,48,.5); animation: jiggle .5s infinite; }
+    .puck.rerouted { box-shadow: 0 0 0 3px var(--reroute), 0 3px 8px rgba(175,82,222,.4); }
+    .puck.cancelled { box-shadow: 0 0 0 2px #8e8e93, 0 3px 8px rgba(0,0,0,.2); filter: grayscale(1); opacity: .55; animation: none; }
+    .puck.sel { box-shadow: 0 0 0 3px #0a84ff, 0 4px 12px rgba(10,132,255,.5); }
+    @keyframes jiggle { 0%,100%{transform:translateY(0)} 25%{transform:translateX(-1px)} 75%{transform:translateX(1px)} }
+    /* Callout label shown on the map for the order selected in the sidebar. */
+    .puck-label {
+      position: absolute; left: 50%; top: -13px; transform: translate(-50%, -100%);
+      background: #0a84ff; color: #fff; font-size: 10px; font-weight: 800;
+      padding: 3px 7px; border-radius: 8px; white-space: nowrap; z-index: 500;
+      box-shadow: 0 3px 8px rgba(0,0,0,.3); pointer-events: none;
+    }
+    .puck-label::after {
+      content: ""; position: absolute; left: 50%; top: 100%; transform: translateX(-50%);
+      border: 5px solid transparent; border-top-color: #0a84ff;
+    }
+
+    .kitchen {
+      display: flex; flex-direction: column; align-items: center; pointer-events: none;
+    }
+    .kitchen .badge {
+      width: 40px; height: 40px; border-radius: 12px; background: #fff; display: flex; align-items: center; justify-content: center;
+      font-size: 20px; box-shadow: 0 4px 12px rgba(0,0,0,.22); border: 2px solid var(--kitchen);
+      pointer-events: auto; cursor: pointer; transition: transform .12s;
+    }
+    .kitchen .badge:hover { transform: scale(1.12); }
+    .kitchen .name {
+      margin-top: 4px; font-size: 10px; font-weight: 700; color: var(--ink);
+      background: rgba(255,255,255,.9); padding: 2px 6px; border-radius: 6px; white-space: nowrap;
+      box-shadow: 0 1px 3px rgba(0,0,0,.12);
+    }
+    .drop {
+      font-size: 20px; line-height: 1; filter: drop-shadow(0 2px 3px rgba(0,0,0,.35));
+      cursor: pointer;
+    }
+    .drop.stuck { animation: dropPulse 1s infinite; }
+    @keyframes dropPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.25)} }
+    .bridge-pill {
+      font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 8px; white-space: nowrap;
+      background: #34c759; color: #fff; box-shadow: 0 3px 10px rgba(52,199,89,.4);
+    }
+    .bridge-pill.closed { background: #ff3b30; box-shadow: 0 3px 10px rgba(255,59,48,.5); }
+    .bridge-pill.alt { background: rgba(255,255,255,.92); color: #1c1c1e; box-shadow: 0 2px 6px rgba(0,0,0,.15); }
+    .bridge-cap {
+      position: relative; display: inline-block; font-size: 11px; font-weight: 700; white-space: nowrap;
+      padding: 3px 9px; border-radius: 8px; color: #1c1c1e; background: rgba(255,255,255,.96);
+      box-shadow: 0 3px 10px rgba(0,0,0,.16); border: 1px solid rgba(0,0,0,.05);
+    }
+    .bridge-cap::after {
+      content: ""; position: absolute; left: 50%; bottom: -5px; transform: translateX(-50%);
+      border: 5px solid transparent; border-bottom: 0; border-top-color: rgba(255,255,255,.96);
+    }
+    .bridge-cap.closed { color: #fff; background: #1c1c1e; border-color: transparent;
+      box-shadow: 0 4px 12px rgba(0,0,0,.3); }
+    .bridge-cap.closed::after { border-top-color: #1c1c1e; }
+    .bridge-cap.alt { color: #8944ab; }
+
+    /* ---- Apple-style push banner (top center) ---- */
+    #banner {
+      position: absolute; z-index: 1200; top: -140px; left: 50%; transform: translateX(-50%);
+      width: min(420px, 92vw);
+      background: rgba(30,30,32,.72); color: #fff; backdrop-filter: blur(12px) saturate(160%);
+      -webkit-backdrop-filter: blur(12px) saturate(160%);
+      border-radius: 22px; box-shadow: 0 18px 50px rgba(0,0,0,.4);
+      padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start;
+      transition: top .55s cubic-bezier(.2,.9,.3,1.2); opacity: 0;
+    }
+    #banner.show { top: 18px; opacity: 1; }
+    #banner .ico { font-size: 26px; line-height: 1; }
+    #banner .txt .t { font-weight: 700; font-size: 15px; }
+    #banner .txt .d { font-size: 13px; opacity: .85; margin-top: 2px; }
+    #banner .txt .app { font-size: 10px; opacity: .6; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 2px; }
+
+    /* ---- Catastrophe headline (center screen, demo beat) ---- */
+    #catastrophe-alert {
+      position: fixed; inset: 0; z-index: 5000;
+      display: flex; align-items: center; justify-content: center;
+      pointer-events: none; opacity: 0; visibility: hidden;
+      transition: opacity .45s ease, visibility .45s ease;
+    }
+    #catastrophe-alert::before {
+      content: ""; position: absolute; inset: 0;
+      background: rgba(0, 0, 0, .72);
+    }
+    #catastrophe-alert.show { opacity: 1; visibility: visible; }
+    #catastrophe-alert .ca-inner {
+      position: relative; text-align: center;
+      width: min(88vw, 720px); padding: 36px 44px;
+      background: linear-gradient(180deg, rgba(40, 8, 12, .97), rgba(18, 4, 8, .97));
+      color: #fff;
+      border: 3px solid #ff3b30; border-radius: 28px;
+      box-shadow: 0 0 0 6px rgba(255, 59, 48, .16), 0 24px 72px rgba(0, 0, 0, .7);
+      backdrop-filter: blur(20px) saturate(150%);
+      -webkit-backdrop-filter: blur(20px) saturate(150%);
+      animation: caIn .5s cubic-bezier(.2, .9, .3, 1.1);
+    }
+    #catastrophe-alert .ca-ico {
+      font-size: clamp(56px, 12vw, 96px); line-height: 1; margin-bottom: 16px;
+      filter: drop-shadow(0 6px 18px rgba(255, 59, 48, .45));
+    }
+    #catastrophe-alert .ca-title {
+      font-size: clamp(32px, 6vw, 56px); font-weight: 900;
+      letter-spacing: -.02em; line-height: 1.05;
+      color: #fff;
+      text-shadow: 0 4px 24px rgba(255, 59, 48, .5);
+    }
+    #catastrophe-alert .ca-desc {
+      font-size: clamp(18px, 3vw, 28px); font-weight: 600;
+      color: #ffe8e6; margin-top: 16px; line-height: 1.35;
+      max-width: 640px; margin-left: auto; margin-right: auto;
+    }
+    @keyframes caIn {
+      from { transform: scale(.9); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    /* ---- Order-delay cards (right) ---- */
+    #cards {
+      position: absolute; z-index: 1100; top: 16px; right: 16px; width: min(320px, 90vw);
+      display: flex; flex-direction: column; gap: 10px; max-height: calc(100vh - 32px); overflow-y: auto;
+      padding-bottom: 8px;
+    }
+    #cards::-webkit-scrollbar { display: none; }
+    .card {
+      position: relative;
+      background: rgba(255,255,255,.86); backdrop-filter: blur(10px) saturate(160%);
+      -webkit-backdrop-filter: blur(10px) saturate(160%);
+      border-radius: 18px; box-shadow: 0 10px 30px rgba(0,0,0,.16); border: 1px solid rgba(255,255,255,.6);
+      padding: 12px 14px; animation: cardIn .35s cubic-bezier(.2,.9,.3,1.2);
+    }
+    .card .card-x {
+      position: absolute; top: 9px; right: 9px; width: 22px; height: 22px; border: none; border-radius: 50%;
+      background: rgba(0,0,0,.06); color: #636366; font-size: 12px; line-height: 1; cursor: pointer; z-index: 2;
+    }
+    .card .card-x:hover { background: rgba(0,0,0,.12); }
+    .card.resolved { opacity: .7; }
+    .card .resolution { font-size: 11px; font-weight: 700; color: #248a3d; margin: 4px 0 8px; }
+    @keyframes cardIn { from { transform: translateX(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+    .card.leaving { animation: cardOut .3s forwards; }
+    @keyframes cardOut { to { transform: translateX(40px); opacity: 0; height: 0; padding: 0; margin: 0; } }
+    .card .head { display: flex; align-items: center; gap: 8px; }
+    .card .dotc { width: 10px; height: 10px; border-radius: 50%; background: var(--stuck); flex: none; }
+    .card .title { font-size: 13px; font-weight: 700; }
+    .card .body { font-size: 12px; color: var(--muted); margin: 6px 0 10px; }
+    .card .acts { display: flex; gap: 8px; }
+    .card .acts .btn { padding: 8px 0; font-size: 12px; }
+    .card .btn.ignore { background: #ececef; }
+    .card .btn.reroute { background: var(--reroute); color: #fff; }
+    .card .btn.more { background: #e7e7ee; }
+    .card .head { flex-wrap: wrap; padding-right: 22px; }
+    .card .kind { margin-left: auto; font-size: 10px; font-weight: 700; color: var(--muted);
+      background: #f0f0f4; padding: 2px 7px; border-radius: 999px; }
+    .card .flag.cold { margin: 6px 0 0; font-size: 11px; font-weight: 700; color: #0a84ff;
+      background: rgba(10,132,255,.1); border: 1px solid rgba(10,132,255,.25);
+      padding: 5px 8px; border-radius: 10px; }
+    .card .meta { font-size: 11px; color: var(--muted); margin: 8px 0 10px; }
+    .card .meta .late { color: var(--stuck); }
+    .card .btn:disabled { opacity: .5; cursor: not-allowed; }
+    /* ── Whole-block colour per notification type (not just the dot) so each
+       card is legible at a glance: delay=red, cancelled=grey, complaint=pink,
+       reroute=purple, and confirmations coloured by action. ── */
+    .card.delay { border: 2px solid var(--stuck);
+      background: linear-gradient(180deg,#ffd9d5,#ffe6e3); }
+    .card.delay .title { color: #c8102e; }
+    .card.expired { opacity: .55; filter: grayscale(1); }
+    .card.expired-note { border: 2px solid #8e8e93;
+      background: linear-gradient(180deg,#e5e5ea,#eeeef1); }
+    .card.expired-note .title { color: #48484a; }
+    .card .dotc.gray { background: #8e8e93; }
+    .card .kind.exp { background: rgba(142,142,147,.18); color: #636366; }
+    .card .btn.okay { background: #1c1c1e; color: #fff; }
+    .card .acts.wrap { flex-wrap: wrap; margin-bottom: 8px; }
+    .card .btn.refund { background: rgba(52,199,89,.16); color: #248a3d; }
+    .card .btn.reorder { background: rgba(10,132,255,.12); color: #0a6cff; }
+    .card .btn.contact { background: #ececef; }
+    .card .btn.done { opacity: .55; }
+    .exp-status { font-size: 11px; color: var(--muted); margin: 2px 0 8px; }
+    .exp-status.ok { color: #248a3d; font-weight: 700; }
+    /* Customer complaint (escalation after an unactioned cancellation) */
+    .card.complaint { border: 2px solid #ff375f;
+      background: linear-gradient(180deg,#ffd4e0,#ffe2ea); }
+    .card.complaint .title { color: #c40036; }
+    .card .dotc.cmp { background: #ff375f; }
+    .card .kind.cmp { background: rgba(255,55,95,.14); color: #d70040; }
+    .card .quote { margin: 6px 0 0; font-size: 12px; font-style: italic; color: #6b3b46;
+      background: rgba(255,55,95,.07); border: 1px solid rgba(255,55,95,.2);
+      padding: 6px 9px; border-radius: 10px; }
+    .card .btn.apology { background: rgba(255,55,95,.14); color: #d70040; }
+    .card .btn.escalate { background: #1c1c1e; color: #fff; }
+    /* Confirmation notification — green by default (refund / resolved). */
+    .card.confirm { border: 2px solid #34c759;
+      background: linear-gradient(180deg,#c7f2d3,#dcf7e3); }
+    .card.confirm .title { color: #1f7a35; }
+    .card .dotc.ok { background: #34c759; }
+    .card .kind.ok2 { background: rgba(52,199,89,.15); color: #248a3d; }
+    .card .cline { display: flex; align-items: center; gap: 7px; font-size: 12px; margin-top: 6px; }
+    .card .cline .tick { color: #248a3d; font-weight: 800; }
+    /* Confirmation variants so each resolved action reads as its own colour. */
+    .card.confirm.v-reorder { border-color: #0a84ff;
+      background: linear-gradient(180deg,#cce1ff,#dfecff); }
+    .card.confirm.v-reorder .title { color: #0a5fd0; }
+    .card.confirm.v-reorder .dotc.ok,
+    .card.confirm.v-reorder .cline .tick { background: #0a84ff; color: #0a5fd0; }
+    .card.confirm.v-contact { border-color: #ff2d9b;
+      background: linear-gradient(180deg,#ffd3ee,#ffe3f5); }
+    .card.confirm.v-contact .title { color: #c01a76; }
+    .card.confirm.v-contact .dotc.ok { background: #ff2d9b; }
+    .card.confirm.v-contact .cline .tick { color: #c01a76; }
+    .card.confirm.v-escalate { border-color: #ff9f0a;
+      background: linear-gradient(180deg,#ffe3b8,#ffeed0); }
+    .card.confirm.v-escalate .title { color: #b5710a; }
+    .card.confirm.v-escalate .dotc.ok { background: #ff9f0a; }
+    .card.confirm.v-escalate .cline .tick { color: #b5710a; }
+    /* Auto-reroute notification (in-progress, purple) */
+    .card.rerouting { border: 2px solid var(--reroute);
+      background: linear-gradient(180deg,#e4d0ff,#efe0ff); }
+    .card.rerouting .title { color: #7d3aad; }
+    .card .dotc.rr { background: var(--reroute); }
+    .card .kind.rr2 { background: rgba(175,82,222,.15); color: #8944ab; }
+    /* Traffic-jam zone label on the map */
+    .jam-pill { font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 999px; white-space: nowrap;
+      background: #ff9f0a; color: #fff; box-shadow: 0 3px 10px rgba(255,159,10,.5); }
+
+    /* All-orders drawer (left, slide-open with a persistent handle) */
+    .btn.ghost { background: #fff; border: 1px solid var(--line); }
+    .sidebar {
+      position: absolute; z-index: 1300; top: 0; left: 0; height: 100%; width: min(340px, 92vw);
+      background: rgba(255,255,255,.93); backdrop-filter: blur(12px) saturate(160%);
+      -webkit-backdrop-filter: blur(12px) saturate(160%);
+      box-shadow: 12px 0 40px rgba(0,0,0,.18); border-right: 1px solid rgba(0,0,0,.06);
+      transform: translateX(-100%); transition: transform .28s cubic-bezier(.2,.9,.3,1);
+      display: flex; flex-direction: column;
+    }
+    .sidebar.open { transform: none; }
+    /* Pull handle that rides on the drawer's right edge (visible even when closed) */
+    .sb-handle {
+      position: absolute; top: 50%; right: -34px; transform: translateY(-50%);
+      width: 34px; padding: 16px 0; border: none; cursor: pointer;
+      background: rgba(255,255,255,.93); backdrop-filter: blur(12px) saturate(160%);
+      -webkit-backdrop-filter: blur(12px) saturate(160%);
+      border-radius: 0 14px 14px 0; box-shadow: 6px 0 18px rgba(0,0,0,.14);
+      writing-mode: vertical-rl; text-orientation: mixed; font-size: 12px; font-weight: 700;
+      color: var(--ink); letter-spacing: .3px;
+    }
+    .sb-handle:hover { background: #fff; }
+    .sb-handle .chev { display: block; margin: 6px auto 0; font-size: 11px; color: var(--muted); }
+    .sb-head { display: flex; align-items: center; padding: 14px 16px 10px; }
+    .sb-title { font-size: 16px; font-weight: 700; }
+    .sb-count { margin-left: auto; color: var(--muted); font-weight: 600; font-size: 13px; }
+    .sb-head .modal-close { margin-left: 8px; }
+    .sb-tabs { display: flex; gap: 2px; background: #f0f0f4; border-radius: 10px; padding: 2px; }
+    .sb-tab { border: none; background: transparent; color: var(--muted); font-size: 12px; font-weight: 700;
+      padding: 6px 12px; border-radius: 8px; cursor: pointer; }
+    .sb-tab.on { background: #fff; color: #0a84ff; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+    .nrow { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 8px 10px;
+      background: #f6f6f8; border-radius: 10px; cursor: pointer; }
+    .nrow:hover { background: #eef0f3; }
+    .nrow .nr-ico { font-size: 15px; }
+    .nrow .nr-body { margin-right: auto; overflow: hidden; }
+    .nrow .nr-title { font-weight: 700; font-size: 12px; }
+    .nrow .nr-time { color: var(--muted); font-size: 10px; }
+    .sb-filters { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 10px; border-bottom: 1px solid var(--line); }
+    .sb-filters .chip { font-size: 11px; border: 1px solid var(--line); background: #fff; color: var(--ink);
+      padding: 5px 9px; border-radius: 999px; cursor: pointer; }
+    .sb-filters .chip.on { background: #0a84ff; color: #fff; border-color: #0a84ff; }
+    .sb-list { flex: 1; overflow-y: auto; padding: 12px 16px 20px; display: flex; flex-direction: column; gap: 6px; }
+    .sb-row { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 8px 10px;
+      background: #f6f6f8; border-radius: 10px; cursor: pointer; }
+    .sb-row:hover { background: #eef0f3; }
+    .sb-row.sel { background: #e8f0fe; box-shadow: inset 3px 0 0 #0a84ff; }
+    .sb-row.dim { opacity: .38; }
+    .sb-row .kk-veh { font-size: 15px; }
+    .sb-row .sr-id { font-weight: 700; }
+    .sb-row .sr-kit { color: var(--muted); font-size: 11px; margin-right: auto; overflow: hidden;
+      text-overflow: ellipsis; white-space: nowrap; max-width: 120px; }
+    .sb-row .kk-status { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 999px; }
+    .kk-status.done { background: rgba(52,199,89,.15); color: #248a3d; }
+    .kk-status.cancel { background: rgba(142,142,147,.2); color: #636366; }
+    .sb-empty { color: var(--muted); font-size: 13px; text-align: center; padding: 24px 0; }
+
+    /* "More" modal */
+    .modal-overlay { position: absolute; inset: 0; z-index: 2000; background: rgba(20,20,24,.45);
+      backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center; }
+    .modal-overlay[hidden] { display: none; }
+    .modal-card { width: min(560px, 94vw); max-height: 88vh; overflow: hidden; display: flex; flex-direction: column;
+      background: rgba(255,255,255,.97); border-radius: 22px; box-shadow: 0 30px 80px rgba(0,0,0,.35);
+      animation: cardIn .25s cubic-bezier(.2,.9,.3,1.2); }
+    .modal-head { display: flex; align-items: center; padding: 16px 18px; border-bottom: 1px solid var(--line); }
+    .modal-title { font-size: 16px; font-weight: 700; }
+    .modal-close { margin-left: auto; border: none; background: #f0f0f4; width: 30px; height: 30px;
+      border-radius: 50%; font-size: 14px; cursor: pointer; }
+    .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 16px 18px; overflow-y: auto; }
+    @media (max-width: 560px) { .modal-grid { grid-template-columns: 1fr; } }
+    .modal-details .d-row { display: flex; justify-content: space-between; gap: 10px; font-size: 13px;
+      padding: 6px 0; border-bottom: 1px solid #f0f0f2; }
+    .modal-details .d-row span { color: var(--muted); }
+    .modal-details .late-strong { color: var(--stuck); }
+    .modal-chat { display: flex; flex-direction: column; min-height: 240px; }
+    .chat-log { flex: 1; overflow-y: auto; background: #f6f6f8; border-radius: 12px; padding: 10px;
+      display: flex; flex-direction: column; gap: 6px; min-height: 120px; }
+    .chat-log .msg { font-size: 12px; padding: 7px 10px; border-radius: 12px; max-width: 85%; line-height: 1.3; }
+    .chat-log .msg.ops { align-self: flex-end; background: #0a84ff; color: #fff; }
+    .chat-log .msg.driver { align-self: flex-start; background: #fff; border: 1px solid var(--line); }
+    .chat-log .empty { color: var(--muted); font-size: 12px; align-self: center; margin: auto 0; }
+    .chat-presets { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .chat-presets .chip { font-size: 11px; border: 1px solid var(--line); background: #fff; color: var(--ink);
+      padding: 5px 9px; border-radius: 999px; cursor: pointer; }
+    .chat-presets .chip:hover { background: #f0f0f4; }
+    .chat-input { display: flex; gap: 8px; }
+    .chat-input input { flex: 1; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 13px; }
+    .modal-actions { display: flex; gap: 10px; padding: 0 18px 16px; flex-wrap: wrap; }
+    .modal-actions .btn { flex: 1; padding: 10px 0; min-width: 120px; }
+    /* Modal action buttons mirror the notification card buttons 1:1 */
+    .modal-actions .btn.ignore { background: #ececef; }
+    .modal-actions .btn.reroute { background: var(--reroute); color: #fff; }
+    .modal-actions .btn.refund { background: rgba(52,199,89,.16); color: #248a3d; }
+    .modal-actions .btn.reorder { background: rgba(10,132,255,.12); color: #0a6cff; }
+    .modal-actions .btn.contact { background: #ececef; }
+    .modal-actions .btn.apology { background: rgba(255,55,95,.14); color: #d70040; }
+    .modal-actions .btn.escalate { background: #1c1c1e; color: #fff; }
+    .modal-actions .btn.okay { background: #1c1c1e; color: #fff; }
+    .modal-actions .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* Kitchen orders modal */
+    .modal-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .kmodal-body { padding: 12px 18px 18px; overflow-y: auto; }
+    .korders { display: flex; flex-direction: column; gap: 6px; }
+    .korow { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 8px 10px;
+      background: #f6f6f8; border-radius: 10px; }
+    .korow .kk-veh { font-size: 15px; }
+    .korow .kk-id { font-weight: 700; }
+    .korow .kk-kind { color: var(--muted); font-size: 12px; margin-right: auto; }
+    .korow .kk-status { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px; }
+    .kk-status.ok { background: rgba(52,199,89,.15); color: #248a3d; }
+    .kk-status.reroute { background: rgba(175,82,222,.15); color: #8944ab; }
+    .kk-status.stuck { background: rgba(255,59,48,.15); color: var(--stuck); }
+    .kk-status.late { background: rgba(255,149,0,.15); color: #c25e00; }
+    .korow .kk-more { padding: 5px 10px; font-size: 12px; }
+    .kempty { color: var(--muted); font-size: 13px; text-align: center; padding: 22px 0; }
+
+    .fab-row {
+      position: absolute; z-index: 1000; bottom: 16px; left: 16px;
+      display: flex; gap: 8px; align-items: center;
+    }
+    .config-fab {
+      position: static;
+      background: rgba(255,255,255,.82); backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px); border: 1px solid var(--line);
+      border-radius: 12px; padding: 8px 12px; font-size: 12px; font-weight: 600;
+      color: var(--muted); cursor: pointer; box-shadow: 0 6px 20px rgba(0,0,0,.12);
+    }
+    .config-fab:hover { color: var(--ink); }
+    /* Discreet "undo the disaster" button — small, muted, sits by the gear. */
+    .stop-cata-fab { padding: 8px 10px; opacity: .5; }
+    .stop-cata-fab:hover { opacity: 1; color: #248a3d; }
+    .legend {
+      position: absolute; z-index: 1000; bottom: 60px; left: 16px;
+      background: rgba(255,255,255,.82); backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px); border-radius: 14px; padding: 10px 12px;
+      font-size: 11px; box-shadow: 0 6px 20px rgba(0,0,0,.12); line-height: 1.7;
+    }
+    .legend b { font-weight: 700; }
+    .swatch { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+
+    /* Configuration screen (city / order volume / initial speed) */
+    .setup { position: absolute; inset: 0; z-index: 4000; display: flex; align-items: center; justify-content: center;
+      background: rgba(18,20,26,.55); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+    .setup[hidden] { display: none; }
+    .setup-card { width: min(460px, 92vw); background: rgba(255,255,255,.98); border-radius: 24px;
+      box-shadow: 0 40px 100px rgba(0,0,0,.45); padding: 26px 26px 22px;
+      animation: cardIn .3s cubic-bezier(.2,.9,.3,1.2); }
+    .setup-card h2 { margin: 0 0 2px; font-size: 22px; font-weight: 800; letter-spacing: -.4px; }
+    .setup-card .lead { margin: 0 0 20px; color: var(--muted); font-size: 13px; }
+    .setup-field { margin-bottom: 18px; }
+    .setup-field > label { display: block; font-size: 12px; font-weight: 700; margin-bottom: 8px; }
+    .setup-field select { width: 100%; padding: 11px 12px; font-size: 14px; border: 1px solid var(--line);
+      border-radius: 12px; background: #fff; color: var(--ink); cursor: pointer; }
+    .setup-field .rangewrap { display: flex; align-items: center; gap: 12px; }
+    .setup-field input[type="range"] { flex: 1; accent-color: #0a84ff; }
+    .setup-field .rangeval { font-weight: 800; color: #0a84ff; font-size: 15px; min-width: 34px; text-align: right; }
+    .setup-seg { display: flex; gap: 6px; }
+    .setup-seg button { flex: 1; border: 1px solid var(--line); background: #fff; color: var(--ink);
+      padding: 9px 0; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .setup-seg button.on { background: #0a84ff; color: #fff; border-color: #0a84ff; }
+    .setup-start { width: 100%; margin-top: 6px; border: none; border-radius: 14px; padding: 13px 0;
+      font-size: 15px; font-weight: 800; color: #fff; background: #0a84ff; cursor: pointer; }
+    .setup-start:hover { background: #0a74e0; }
+    .setup-close { position: absolute; top: 14px; right: 16px; border: none; background: rgba(255,255,255,.9);
+      width: 32px; height: 32px; border-radius: 50%; font-size: 15px; cursor: pointer; }
+    .icon-btn { flex: 0 0 auto; width: 40px; }
+
+    /* ─────────────── Theme system ───────────────
+       Classic = clean light Apple look (base styling above).
+       Arcade = dark neon "game board": glowing grid, pixel fonts, chunky HUD.
+       (Vehicle ring colors stay constant so the legend always matches.) */
+    .theme-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+    #themeSeg { margin-left: auto; }
+    #themeSeg button { padding: 5px 7px; font-size: 11px; }
+
+    /* ── Shared "cute" flourishes (chunky animated markers) ── */
+    /* Chunkier, livelier vehicle pucks */
+    body.cute .puck { width: 34px; height: 34px; font-size: 18px; border-radius: 50%;
+      transform-origin: 50% 64%; box-shadow: 0 4px 12px rgba(0,0,0,.22), inset 0 0 0 2px #fff; }
+    body.cute .veh .puck:not(.stuck):not(.cancelled) { animation: floaty 2.4s ease-in-out infinite; }
+    @keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+    body.cute .puck.bike    { box-shadow: 0 0 0 3px var(--bike),    0 4px 14px rgba(52,199,89,.45); }
+    body.cute .puck.car     { box-shadow: 0 0 0 3px var(--car),     0 4px 14px rgba(10,132,255,.45); }
+    body.cute .puck.scooter { box-shadow: 0 0 0 3px var(--scooter), 0 4px 14px rgba(255,159,10,.45); }
+
+    /* Cute kitchens: bigger bobbing badge + rising steam */
+    body.cute .kitchen .badge { width: 46px; height: 46px; font-size: 23px;
+      border-radius: 16px; border-width: 3px; animation: bob 3s ease-in-out infinite; }
+    body.cute .kitchen .badge::before { content: "♨️"; position: absolute; top: -15px; left: 50%;
+      font-size: 13px; transform: translateX(-50%); opacity: 0; animation: steam 2.6s ease-in-out infinite; }
+    body.cute .kitchen .name { border-radius: 9px; font-weight: 700; }
+    @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+    @keyframes steam {
+      0%   { opacity: 0; transform: translate(-50%, 5px) scale(.7); }
+      45%  { opacity: .9; }
+      100% { opacity: 0; transform: translate(-50%, -12px) scale(1.15); }
+    }
+
+    /* Cute drop-offs: big bouncing pin + pulsing target ring */
+    body.cute .drop { position: relative; font-size: 24px; animation: pinbounce 1.6s ease-in-out infinite; }
+    body.cute .drop.stuck { animation: dropPulse 1s infinite; }
+    body.cute .drop::before {
+      content: ""; position: absolute; left: 50%; top: 60%; width: 26px; height: 26px;
+      margin: -13px 0 0 -13px; border-radius: 50%; border: 2px solid var(--kitchen);
+      opacity: .6; animation: ring 1.8s ease-out infinite;
+    }
+    @keyframes pinbounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+    @keyframes ring { 0% { transform: scale(.4); opacity: .75; } 100% { transform: scale(1.85); opacity: 0; } }
+
+    /* ══════════════ RETRO ARCADE ══════════════
+       Dark neon "game board": glowing grid + vignette over a dark map, pixel
+       fonts, chunky panels with hard pixel shadows, sprite-style markers. */
+    body[data-theme="arcade"] {
+      --ink: #eafcff; --muted: #8ea6d6; --line: #00e5ff;
+      --kitchen: #ffe600; --reroute: #c04dff; --stuck: #ff2e88;
+      font-family: 'VT323', ui-monospace, monospace; font-size: 16px;
+    }
+    body[data-theme="arcade"] #map { background: #060213; }
+    /* Clean dark board: keep streets readable, nudge the whole map cool-blue. */
+    body[data-theme="arcade"] .leaflet-tile-pane {
+      filter: contrast(1.06) saturate(1.15) brightness(.98) hue-rotate(-8deg); }
+    /* Subtle single-colour neon grid on generous cells (not a busy plaid). */
+    body[data-theme="arcade"] #map::after {
+      content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 250;
+      background-image:
+        linear-gradient(rgba(0,229,255,.10) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,229,255,.10) 1px, transparent 1px);
+      background-size: 72px 72px; mix-blend-mode: screen;
+    }
+    /* Smooth blue vignette that fades the edges into the HUD. */
+    body[data-theme="arcade"] #map::before {
+      content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 255;
+      background: radial-gradient(ellipse at center, transparent 60%, rgba(5,1,20,.55) 100%);
+    }
+    /* Neon glow on every route / trail / bridge line. */
+    body[data-theme="arcade"] .leaflet-overlay-pane path { filter: drop-shadow(0 0 3px rgba(0,229,255,.85)); }
+    /* Chunky neon HUD panels with a hard "pixel" drop shadow. */
+    body[data-theme="arcade"] .dock, body[data-theme="arcade"] .card, body[data-theme="arcade"] .sidebar,
+    body[data-theme="arcade"] .legend, body[data-theme="arcade"] .config-fab, body[data-theme="arcade"] .setup-card,
+    body[data-theme="arcade"] .modal-card, body[data-theme="arcade"] .sb-handle, body[data-theme="arcade"] #banner,
+    body[data-theme="arcade"] .kmodal-body {
+      background: #140a2e; color: var(--ink); border: 2px solid #00e5ff; border-radius: 10px;
+      box-shadow: 0 0 0 2px rgba(0,229,255,.15), 6px 6px 0 rgba(0,0,0,.55), 0 0 22px rgba(0,229,255,.25);
+      backdrop-filter: none; -webkit-backdrop-filter: none;
+    }
+    /* Per-type neon accent so arcade cards are distinguishable too (the base
+       rule above paints every card the same dark cyan). */
+    body[data-theme="arcade"] .card.delay        { border: 2px solid var(--stuck);   box-shadow: 0 0 16px rgba(255,46,136,.4), 6px 6px 0 rgba(0,0,0,.55); }
+    body[data-theme="arcade"] .card.expired-note { border: 2px solid #8ea6d6; }
+    body[data-theme="arcade"] .card.complaint    { border: 2px solid #ff2e88;  box-shadow: 0 0 16px rgba(255,46,136,.45), 6px 6px 0 rgba(0,0,0,.55); }
+    body[data-theme="arcade"] .card.rerouting    { border: 2px solid #c04dff;  box-shadow: 0 0 16px rgba(192,77,255,.45), 6px 6px 0 rgba(0,0,0,.55); }
+    body[data-theme="arcade"] .card.confirm      { border: 2px solid #00ff8c;  box-shadow: 0 0 16px rgba(0,255,140,.4), 6px 6px 0 rgba(0,0,0,.55); }
+    body[data-theme="arcade"] .card.confirm.v-reorder  { background: #140a2e; border-color: #4cd7ff; box-shadow: 0 0 16px rgba(76,215,255,.45), 6px 6px 0 rgba(0,0,0,.55); }
+    body[data-theme="arcade"] .card.confirm.v-contact  { background: #140a2e; border-color: #ff5aa6; box-shadow: 0 0 16px rgba(255,90,166,.45), 6px 6px 0 rgba(0,0,0,.55); }
+    body[data-theme="arcade"] .card.confirm.v-escalate { background: #140a2e; border-color: #ffb020; box-shadow: 0 0 16px rgba(255,176,32,.45), 6px 6px 0 rgba(0,0,0,.55); }
+    body[data-theme="arcade"] .card.confirm .title    { color: #4dff9e; text-shadow: 0 0 7px rgba(0,255,140,.6); }
+    body[data-theme="arcade"] .card.confirm.v-reorder .title  { color: #7fe3ff; text-shadow: 0 0 7px rgba(76,215,255,.6); }
+    body[data-theme="arcade"] .card.confirm.v-contact .title  { color: #ff8ac2; text-shadow: 0 0 7px rgba(255,90,166,.6); }
+    body[data-theme="arcade"] .card.confirm.v-escalate .title { color: #ffcf6b; text-shadow: 0 0 7px rgba(255,176,32,.6); }
+    body[data-theme="arcade"] .card.delay .title      { color: #ff5aa6; text-shadow: 0 0 7px rgba(255,46,136,.6); }
+    body[data-theme="arcade"] .card.complaint .title  { color: #ff5aa6; text-shadow: 0 0 7px rgba(255,46,136,.6); }
+    body[data-theme="arcade"] .card.rerouting .title  { color: #d59bff; text-shadow: 0 0 7px rgba(192,77,255,.6); }
+    body[data-theme="arcade"] .dock h1 {
+      font-family: 'Press Start 2P', ui-monospace, monospace; font-size: 13px; line-height: 1.5;
+      color: #ff2e88; text-shadow: 0 0 8px rgba(255,46,136,.85), 2px 2px 0 #05010f;
+    }
+    body[data-theme="arcade"] .dock .sub, body[data-theme="arcade"] .speed,
+    body[data-theme="arcade"] .theme-row, body[data-theme="arcade"] .ovol-head { color: #8ea6d6; }
+    body[data-theme="arcade"] .btn {
+      background: #241452; color: #eafcff; border: 2px solid #4cd7ff; border-radius: 8px;
+      text-transform: uppercase; letter-spacing: .6px; box-shadow: 3px 3px 0 rgba(0,0,0,.55);
+      font-family: 'VT323', monospace; font-size: 16px; font-weight: 400;
+    }
+    body[data-theme="arcade"] .btn.primary { background: #00e5ff; color: #05010f; border-color: #00e5ff;
+      box-shadow: 0 0 14px rgba(0,229,255,.7), 3px 3px 0 rgba(0,0,0,.55); }
+    body[data-theme="arcade"] .btn.danger { background: #ff2e88; color: #fff; border-color: #ff2e88;
+      box-shadow: 0 0 14px rgba(255,46,136,.6), 3px 3px 0 rgba(0,0,0,.55); }
+    /* The "More" chip defaults to light grey (.card .btn.more) — override so its
+       text is readable on the arcade palette. */
+    body[data-theme="arcade"] .card .btn.more { background: #241452; color: #eafcff; border-color: #4cd7ff; }
+    /* Order-type chip defaults to light-on-light (#f0f0f4 + muted). Neon it up:
+       hot food / groceries in green, cold-chain items (ice cream / frozen) in pink. */
+    body[data-theme="arcade"] .card .kind {
+      background: rgba(0,255,140,.12); color: #4dff9e; border: 1px solid rgba(0,255,140,.55);
+      text-shadow: 0 0 6px rgba(0,255,140,.55); }
+    body[data-theme="arcade"] .card .kind.cold {
+      background: rgba(255,46,136,.14); color: #ff5aa6; border-color: rgba(255,46,136,.6);
+      text-shadow: 0 0 6px rgba(255,46,136,.6); }
+
+    /* ── Arcade action buttons ── the Classic light backgrounds (#ececef,
+       tinted greens/blues) outrank the base arcade .btn rule and would leave
+       arcade's light text unreadable, so re-skin every card + modal variant. */
+    body[data-theme="arcade"] .card .btn.ignore, body[data-theme="arcade"] .modal-actions .btn.ignore,
+    body[data-theme="arcade"] .card .btn.contact, body[data-theme="arcade"] .modal-actions .btn.contact,
+    body[data-theme="arcade"] .card .btn.done, body[data-theme="arcade"] .card .btn.okay,
+    body[data-theme="arcade"] .modal-actions .btn.okay {
+      background: #241452; color: #eafcff; border: 2px solid #4cd7ff; }
+    body[data-theme="arcade"] .card .btn.reroute, body[data-theme="arcade"] .modal-actions .btn.reroute {
+      background: var(--reroute); color: #fff; border: 2px solid var(--reroute);
+      box-shadow: 0 0 12px rgba(192,77,255,.6), 3px 3px 0 rgba(0,0,0,.55); }
+    body[data-theme="arcade"] .card .btn.refund, body[data-theme="arcade"] .modal-actions .btn.refund {
+      background: #2ee88f; color: #04140b; border: 2px solid #2ee88f;
+      box-shadow: 0 0 12px rgba(46,232,143,.6), 3px 3px 0 rgba(0,0,0,.55); }
+    body[data-theme="arcade"] .card .btn.reorder, body[data-theme="arcade"] .modal-actions .btn.reorder {
+      background: #35d6ff; color: #04121a; border: 2px solid #35d6ff;
+      box-shadow: 0 0 12px rgba(53,214,255,.6), 3px 3px 0 rgba(0,0,0,.55); }
+    body[data-theme="arcade"] .card .btn.apology, body[data-theme="arcade"] .modal-actions .btn.apology {
+      background: rgba(255,46,136,.18); color: #ff5aa6; border: 2px solid rgba(255,46,136,.55); }
+    body[data-theme="arcade"] .card .btn.escalate, body[data-theme="arcade"] .modal-actions .btn.escalate {
+      background: #ff2e88; color: #fff; border: 2px solid #ff2e88;
+      box-shadow: 0 0 12px rgba(255,46,136,.5), 3px 3px 0 rgba(0,0,0,.55); }
+
+    /* ── Arcade status chips ── (cmp/rr2/exp keep their meaning, but readable) */
+    body[data-theme="arcade"] .card .kind.cmp {
+      background: rgba(255,46,136,.16); color: #ff5aa6; border-color: rgba(255,46,136,.55);
+      text-shadow: 0 0 6px rgba(255,46,136,.6); }
+    body[data-theme="arcade"] .card .kind.rr2 {
+      background: rgba(192,77,255,.16); color: #d19bff; border-color: rgba(192,77,255,.5);
+      text-shadow: 0 0 6px rgba(192,77,255,.6); }
+    body[data-theme="arcade"] .card .kind.exp {
+      background: rgba(142,160,200,.16); color: #b8c6e6; border-color: rgba(142,160,200,.4);
+      text-shadow: none; }
+
+    /* ── Arcade complaint / confirm body copy (was dark-on-dark) ── */
+    body[data-theme="arcade"] .card .quote {
+      color: #ffb3c9; background: rgba(255,46,136,.1); border-color: rgba(255,46,136,.35); }
+    body[data-theme="arcade"] .card .resolution,
+    body[data-theme="arcade"] .card .cline .tick,
+    body[data-theme="arcade"] .exp-status.ok { color: #4dff9e; }
+    body[data-theme="arcade"] .card .flag.cold {
+      color: #4cd7ff; background: rgba(0,229,255,.1); border-color: rgba(0,229,255,.35); }
+
+    /* ── Arcade sidebar / kitchen-modal status pills ── */
+    body[data-theme="arcade"] .kk-status.done, body[data-theme="arcade"] .kk-status.ok {
+      background: rgba(0,255,140,.16); color: #4dff9e; }
+    body[data-theme="arcade"] .kk-status.cancel {
+      background: rgba(142,160,200,.16); color: #b8c6e6; }
+    body[data-theme="arcade"] .kk-status.reroute {
+      background: rgba(192,77,255,.16); color: #d19bff; }
+    body[data-theme="arcade"] .kk-status.stuck {
+      background: rgba(255,46,136,.18); color: #ff5aa6; }
+    body[data-theme="arcade"] .kk-status.late {
+      background: rgba(255,159,10,.18); color: #ffbe5c; }
+    body[data-theme="arcade"] .sb-row.sel { background: rgba(0,229,255,.14); }
+
+    /* ── Arcade setup screen controls (white-on-white otherwise) ── */
+    body[data-theme="arcade"] .setup-seg button {
+      background: #241452; color: #eafcff; border: 2px solid #4cd7ff; }
+    body[data-theme="arcade"] .setup-seg button.on {
+      background: #00e5ff; color: #05010f; border-color: #00e5ff;
+      box-shadow: 0 0 12px rgba(0,229,255,.6); }
+    body[data-theme="arcade"] .setup-close { background: #241452; color: #eafcff; border: 2px solid #4cd7ff; }
+    body[data-theme="arcade"] .setup-card h2, body[data-theme="arcade"] .modal-title { color: #eafcff; }
+    body[data-theme="arcade"] .setup-card .lead, body[data-theme="arcade"] .setup-field > label,
+    body[data-theme="arcade"] .modal-sub, body[data-theme="arcade"] .sb-count,
+    body[data-theme="arcade"] .kempty, body[data-theme="arcade"] .sb-empty,
+    body[data-theme="arcade"] .exp-status { color: #9fb2dd; }
+    body[data-theme="arcade"] .stat, body[data-theme="arcade"] .ovol, body[data-theme="arcade"] .seg,
+    body[data-theme="arcade"] .sb-row, body[data-theme="arcade"] .nrow, body[data-theme="arcade"] .korow,
+    body[data-theme="arcade"] .sb-tabs, body[data-theme="arcade"] .chat-log, body[data-theme="arcade"] .modal-details .d-row {
+      background: #1c0f3e; border: 1px solid rgba(0,229,255,.35); }
+    /* Driver chat bubble defaults to white bg with no text colour → inherits
+       arcade's light --ink and reads white-on-white. Force a dark readable bubble. */
+    body[data-theme="arcade"] .chat-log .msg.driver {
+      background: #241452; color: #eafcff; border-color: #4cd7ff; }
+    body[data-theme="arcade"] .stat .n {
+      font-family: 'Press Start 2P', monospace; font-size: 19px; color: #ffe600;
+      text-shadow: 0 0 7px rgba(255,230,0,.6); }
+    body[data-theme="arcade"] .stat .l { color: #a9c0ee; font-size: 15px; letter-spacing: .6px; }
+    body[data-theme="arcade"] .stat.delayed .n { color: #ff2e88; text-shadow: 0 0 7px rgba(255,46,136,.7); }
+    body[data-theme="arcade"] .stat.reroute .n { color: #c04dff; text-shadow: 0 0 7px rgba(192,77,255,.7); }
+    body[data-theme="arcade"] .stat.reordered .n { color: #4cd7ff; text-shadow: 0 0 7px rgba(76,215,255,.7); }
+    body[data-theme="arcade"] .stat.refunded .n { color: #4dff9e; text-shadow: 0 0 7px rgba(0,255,140,.7); }
+    body[data-theme="arcade"] .stat.cancelled .n { color: #9fb2dd; }
+    body[data-theme="arcade"] .stat.complaints .n { color: #ff2e88; text-shadow: 0 0 7px rgba(255,46,136,.7); }
+    body[data-theme="arcade"] .seg button, body[data-theme="arcade"] .sb-tab, body[data-theme="arcade"] .chip { color: #8ea6d6; }
+    body[data-theme="arcade"] .seg button.on, body[data-theme="arcade"] .sb-tab.on {
+      background: #00e5ff; color: #05010f; box-shadow: 0 0 10px rgba(0,229,255,.6); }
+    body[data-theme="arcade"] .chip { background: #1c0f3e; border: 1px solid rgba(0,229,255,.35); }
+    body[data-theme="arcade"] .chip.on { background: #ff2e88; color: #fff; border-color: #ff2e88; }
+    /* Chat presets (e.g. "Call the customer") default to #fff + a light hover,
+       which hides arcade's light text — force a dark readable chip in every state. */
+    body[data-theme="arcade"] .chat-presets .chip { background: #241452; color: #eafcff; border-color: #4cd7ff; }
+    body[data-theme="arcade"] .chat-presets .chip:hover,
+    body[data-theme="arcade"] .sb-filters .chip:hover { background: #32206a; color: #eafcff; }
+    body[data-theme="arcade"] .card .title, body[data-theme="arcade"] .modal-title,
+    body[data-theme="arcade"] .sb-title { color: #eafcff; }
+    body[data-theme="arcade"] .card .body, body[data-theme="arcade"] .card .meta,
+    body[data-theme="arcade"] .nr-time, body[data-theme="arcade"] .sr-kit { color: #9fb2dd; }
+    /* VT323 is a pixel font — it reads tiny/ugly at the Classic 11–13px sizes.
+       Bump the whole notification block up so it's comfortable to read. */
+    body[data-theme="arcade"] .card .title { font-size: 18px; line-height: 1.25; }
+    body[data-theme="arcade"] .card .body { font-size: 16px; line-height: 1.35; margin: 8px 0 12px; }
+    body[data-theme="arcade"] .card .meta { font-size: 15px; }
+    body[data-theme="arcade"] .card .kind { font-size: 14px; padding: 2px 9px; }
+    body[data-theme="arcade"] .card .quote { font-size: 16px; line-height: 1.35; padding: 8px 11px; }
+    body[data-theme="arcade"] .card .resolution,
+    body[data-theme="arcade"] .card .cline,
+    body[data-theme="arcade"] .card .flag.cold,
+    body[data-theme="arcade"] .exp-status { font-size: 15px; }
+    body[data-theme="arcade"] .card .acts .btn { font-size: 15px; padding: 9px 0; }
+    body[data-theme="arcade"] .nrow .nr-title { font-size: 15px; }
+    body[data-theme="arcade"] .nrow .nr-time { font-size: 12px; }
+    body[data-theme="arcade"] .nrow .nr-ico { font-size: 17px; }
+    body[data-theme="arcade"] .card-x, body[data-theme="arcade"] .modal-close {
+      background: rgba(255,255,255,.12); color: #eafcff; }
+    body[data-theme="arcade"] .kitchen .name {
+      background: #140a2e; color: #eafcff; border: 1px solid rgba(0,229,255,.5);
+      font-family: 'VT323', monospace; font-size: 12px; }
+    body[data-theme="arcade"] #banner { border-color: #ff2e88;
+      box-shadow: 0 0 22px rgba(255,46,136,.35), 6px 6px 0 rgba(0,0,0,.55); }
+    body[data-theme="arcade"] #catastrophe-alert .ca-inner {
+      background: rgba(12, 4, 28, .94); border-color: #ff2e88;
+      box-shadow: 0 0 40px rgba(255, 46, 136, .35), 8px 8px 0 rgba(0, 0, 0, .55);
+    }
+    body[data-theme="arcade"] #catastrophe-alert .ca-title {
+      font-family: 'VT323', monospace; text-transform: uppercase;
+      text-shadow: 0 0 18px rgba(255, 46, 136, .55);
+    }
+    /* Sprite-style vehicle pucks: dark chip with a bright neon glow (not the
+       classic white circle). */
+    /* Light chip so the vehicle emoji stays clearly visible; per-type neon ring
+       + glow tells bike / car / scooter apart at a glance. */
+    body[data-theme="arcade"] .puck { border-radius: 8px; background: #f5f8ff;
+      box-shadow: 0 0 0 3px rgba(255,255,255,.9), 3px 3px 0 rgba(0,0,0,.5); }
+    body[data-theme="arcade"] .puck.bike    { box-shadow: 0 0 0 3px var(--bike),    0 0 14px var(--bike); }
+    body[data-theme="arcade"] .puck.car     { box-shadow: 0 0 0 3px var(--car),     0 0 14px var(--car); }
+    body[data-theme="arcade"] .puck.scooter { box-shadow: 0 0 0 3px var(--scooter), 0 0 14px var(--scooter); }
+    body[data-theme="arcade"] .puck.stuck   { box-shadow: 0 0 0 3px var(--stuck),   0 0 16px var(--stuck); }
+    body[data-theme="arcade"] .puck.rerouted{ box-shadow: 0 0 0 3px var(--reroute), 0 0 16px var(--reroute); }
+    /* Dark neon kitchen badges + glowing target rings. */
+    body[data-theme="arcade"] .kitchen .badge { background: #0a0620; border-color: var(--kitchen);
+      box-shadow: 0 0 16px rgba(255,230,0,.5); }
+    body[data-theme="arcade"] .chat-input input, body[data-theme="arcade"] .setup-field select {
+      background: #1c0f3e; color: #eafcff; border: 1px solid rgba(0,229,255,.4); }
+
+    /* ---- Agent panel (Act 2) ---- */
+    /* Force a clean sans-serif everywhere in the agent UI. The arcade theme sets
+       a VT323 pixel font on <body> which the panel would otherwise inherit and
+       become unreadable; form controls don't inherit font-family, so target
+       descendants explicitly. */
+    #agentToggle, #agentPanel, #agentPanel * {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+      letter-spacing: normal;
+    }
+    /* Agent panel is opaque; drop HUD blur while it's open so the map can repaint
+       behind the dock/cards without the browser choking (motion stays live). */
+    body.agent-open .dock,
+    body.agent-open .card,
+    body.agent-open #banner,
+    body.agent-open .sidebar,
+    body.agent-open .legend,
+    body.agent-open .config-fab {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+    #agentToggle {
+      /* Hidden until the operator hits "Activate agentic"; centered at the
+         bottom, deliberately large (this is the Act 2 hero button). */
+      position: absolute; z-index: 1200; left: 50%; bottom: 26px;
+      transform: translateX(-50%);
+      display: none; align-items: center; gap: 10px;
+      border: none; border-radius: 999px; padding: 16px 30px; cursor: pointer;
+      background: #0a84ff; color: #fff; font-size: 17px; font-weight: 700;
+      box-shadow: 0 12px 36px rgba(10,132,255,.45); transition: transform .06s, box-shadow .15s;
+    }
+    #agentToggle.show { display: flex; }
+    #agentToggle:active { transform: translateX(-50%) scale(.96); }
+    #agentToggle .dot { width: 10px; height: 10px; border-radius: 50%; background: #34c759; }
+    #agentToggle .dot.off { background: #ff9f0a; }
+    #agentPanel {
+      /* The panel is always a light glass surface, so pin ink/muted/line to
+         their light-theme values here. Otherwise the arcade theme (which flips
+         --ink to near-white) renders light text on this light background. */
+      --ink: #1c1c1e; --muted: #6b6b70; --line: #e4e4ea;
+      color: var(--ink);
+      position: absolute; z-index: 1300; left: 50%; transform: translateX(-50%); bottom: 20px;
+      width: 460px; max-width: calc(100vw - 40px); height: 640px; max-height: calc(100vh - 40px);
+      display: none; flex-direction: column;
+      /* Solid, opaque surface — deliberately NOT translucent, so the neon arcade
+         map behind it never bleeds through and hurts readability. */
+      background: #ffffff;
+      border: 1px solid #e4e4ea; border-radius: 20px;
+      box-shadow: 0 24px 70px rgba(0,0,0,.35); overflow: hidden;
+    }
+    #agentPanel.open { display: flex; }
+    .agent-head { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+    .agent-head h2 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -.2px; }
+    .agent-head .meta { margin-left: auto; font-size: 12px; color: var(--muted); text-align: right; line-height: 1.3; }
+    .agent-head .meta .gw { color: #0a84ff; font-weight: 700; }
+    .agent-head .close { border: none; background: #f1f1f4; color: var(--ink); border-radius: 10px; width: 30px; height: 30px; cursor: pointer; font-size: 15px; }
+    .agent-log { flex: 1; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+    .agent-msg { max-width: 88%; padding: 11px 14px; border-radius: 14px; font-size: 15px; line-height: 1.45; white-space: pre-wrap; }
+    .agent-msg.user { align-self: flex-end; background: #0a84ff; color: #fff; border-bottom-right-radius: 4px; }
+    .agent-msg.bot { align-self: flex-start; background: #f2f2f6; color: var(--ink); border-bottom-left-radius: 4px; }
+    .agent-msg.err { align-self: flex-start; background: #ffe5e3; color: #a01109; border-bottom-left-radius: 4px; }
+    .agent-step { align-self: flex-start; width: 100%; flex-shrink: 0;
+      background: #fff; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+    .agent-step .st-head { display: flex; align-items: center; gap: 6px; padding: 10px 12px;
+      font-size: 13px; font-weight: 700; background: #f6f6f8; border-bottom: 1px solid var(--line); }
+    .agent-step .st-head .tag { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: #fff; background: #af52de; border-radius: 6px; padding: 2px 6px; }
+    .agent-step .st-head .tag.warehouse { background: #0a84ff; }
+    .agent-step .st-head .ing-tag { font-size: 11px; font-weight: 700; color: #6b4c00; background: #fff3cd; border-radius: 6px; padding: 2px 6px; text-transform: lowercase; }
+    .agent-step .st-head .n { margin-left: auto; color: var(--muted); font-weight: 600; }
+    .agent-step.warn { border-color: var(--line); border-left: 4px solid #ff9f0a; }
+    .agent-step.warn .st-head { background: #fffaf2; }
+    .agent-step.warn .st-head .n { color: #c93400; font-weight: 800; }
+    .agent-step.err-step { border-color: var(--line); border-left: 4px solid #ff3b30; }
+    .agent-step.err-step .st-head { background: #fff0ef; }
+    .agent-step .st-empty {
+      padding: 12px 14px; font-size: 14px; line-height: 1.45; color: #8a5a00;
+      background: #fffdf6;
+    }
+    .agent-step .st-empty strong { color: #c93400; }
+    .agent-step.ok-step { border-color: var(--line); border-left: 4px solid #34c759; }
+    .agent-step.ok-step .st-head { background: #eefbf3; }
+    .agent-step.ok-step .st-head .n { color: #248a3d; font-weight: 800; }
+    .agent-step .st-ok {
+      padding: 12px 14px; font-size: 14px; line-height: 1.45; color: #1d6b36;
+      background: #f4fff8;
+    }
+    .agent-step .st-err {
+      padding: 10px 12px; font-size: 13px; line-height: 1.4; color: #a01109;
+      background: #fff0ef;
+    }
+    .agent-step table { width: 100%; border-collapse: collapse; font-size: 13px; color: var(--ink); }
+    .agent-step th, .agent-step td { text-align: left; padding: 8px 10px; border-top: 1px solid var(--line);
+      white-space: nowrap; color: var(--ink); }
+    .agent-step thead th { border-top: none; background: #fafafa; }
+    .agent-step th { color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
+    .agent-step .st-wrap { max-height: 200px; overflow: auto; }
+    .agent-steps-label { align-self: flex-start; font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .5px; color: var(--muted); margin-top: 4px; }
+    .agent-typing { align-self: flex-start; color: var(--muted); font-size: 14px; font-style: italic; }
+    .agent-suggest { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 8px; }
+    .agent-suggest button { border: 1px solid var(--line); background: #fff; color: var(--ink); border-radius: 999px; padding: 7px 12px; font-size: 13px; cursor: pointer; }
+    .agent-input { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--line); }
+    .agent-input input { flex: 1; border: 1px solid var(--line); border-radius: 12px; padding: 11px 14px; font-size: 15px; outline: none; }
+    .agent-input input:focus { border-color: #0a84ff; }
+    .agent-input button { border: none; border-radius: 12px; padding: 11px 18px; font-size: 15px; font-weight: 700; cursor: pointer; background: #0a84ff; color: #fff; }
+    .agent-input button:disabled { opacity: .4; cursor: default; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <div id="setup" class="setup" hidden>
+    <div class="setup-card">
+      <button class="setup-close" id="setupClose" hidden>✕</button>
+      <h2>Casper's Command Center</h2>
+      <p class="lead">Configure the simulation, then launch the live fleet.</p>
+      <div class="setup-field">
+        <label for="cfgCity">City</label>
+        <select id="cfgCity"></select>
+      </div>
+      <div class="setup-field">
+        <label for="cfgOrders">Number of orders</label>
+        <div class="rangewrap">
+          <input type="range" id="cfgOrders" min="10" max="120" value="45" step="5" />
+          <span class="rangeval" id="cfgOrdersVal">45</span>
+        </div>
+      </div>
+      <div class="setup-field">
+        <label>Initial speed</label>
+        <div class="setup-seg" id="cfgSpeed">
+          <button data-sim="4" class="on">1×</button>
+          <button data-sim="8">2×</button>
+          <button data-sim="16">4×</button>
+          <button data-sim="32">8×</button>
+        </div>
+      </div>
+      <button class="setup-start" id="setupStart">▶ Start simulation</button>
+    </div>
+  </div>
+
+  <div class="dock">
+    <h1 id="title">Casper's Kitchens</h1>
+    <p class="sub" id="subtitle">Loading…</p>
+    <p class="sub build-tag" id="buildTag"></p>
+    <div class="btn-row">
+      <button class="btn primary" id="playBtn">⏸ Pause</button>
+      <button class="btn" id="restartBtn">↻ Replay</button>
+    </div>
+    <button class="btn danger" id="bridgeBtn" style="width:100%;margin-bottom:10px">🚨 Trigger catastrophe</button>
+    <div class="theme-row">
+      <span>🎨 Theme</span>
+      <div class="seg" id="themeSeg">
+        <button data-theme="classic" class="on">Classic</button>
+        <button data-theme="arcade">🕹 Arcade</button>
+      </div>
+    </div>
+    <div class="speed">
+      <span>Speed</span>
+      <div class="seg" id="speedSeg">
+        <button data-sim="4" class="on">1×</button>
+        <button data-sim="8">2×</button>
+        <button data-sim="16">4×</button>
+        <button data-sim="32">8×</button>
+      </div>
+    </div>
+    <div class="ovol">
+      <div class="ovol-head"><span>📦 Order volume</span><span id="ordersVal">45</span></div>
+      <input type="range" id="orders" min="10" max="120" value="45" step="5" />
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="n" id="sActive">0</div><div class="l">On the road</div></div>
+      <div class="stat"><div class="n" id="sDelivered">0</div><div class="l">Delivered</div></div>
+      <div class="stat delayed"><div class="n" id="sDelayed">0</div><div class="l">Delayed</div></div>
+      <div class="stat reroute"><div class="n" id="sReroute">0</div><div class="l">Rerouted</div></div>
+      <div class="stat reordered"><div class="n" id="sReordered">0</div><div class="l">Reordered</div></div>
+      <div class="stat refunded"><div class="n" id="sRefunded">0</div><div class="l">Refunded · <span id="sRefundSum">$0</span></div></div>
+      <div class="stat cancelled"><div class="n" id="sCancelled">0</div><div class="l">Cancelled (expired)</div></div>
+      <div class="stat complaints"><div class="n" id="sComplaints">0</div><div class="l">Complaints</div></div>
+    </div>
+  </div>
+
+  <div id="sidebar" class="sidebar">
+    <button class="sb-handle" id="sbHandle">📋 Orders<span class="chev" id="sbChev">›</span></button>
+    <div class="sb-head">
+      <div class="sb-tabs">
+        <button class="sb-tab on" data-tab="orders">Orders</button>
+        <button class="sb-tab" data-tab="notifs">Notifications</button>
+      </div>
+      <span class="sb-count" id="sbCount"></span>
+      <button class="modal-close" id="sbClose">✕</button>
+    </div>
+    <div class="sb-filters" id="sbFilters">
+      <button class="chip on" data-f="all">All</button>
+      <button class="chip" data-f="active">On road</button>
+      <button class="chip" data-f="delayed">Delayed</button>
+      <button class="chip" data-f="rerouted">Rerouted</button>
+      <button class="chip" data-f="delivered">Delivered</button>
+      <button class="chip" data-f="cancelled">Cancelled</button>
+    </div>
+    <div class="sb-list" id="sbList"></div>
+  </div>
+
+  <div class="fab-row">
+    <button id="configBtn" class="config-fab">⚙️ Change configuration</button>
+    <button id="activateAgentBtn" class="config-fab" title="Bring up the ops agent">🤖 Activate agentic</button>
+    <button id="stopCataBtn" class="config-fab stop-cata-fab" title="Reset the catastrophe (reopen the crossing)">✔ Stop</button>
+  </div>
+
+  <div class="legend">
+    <div><span class="swatch" style="background:#34c759"></span><b>Bikes</b> &nbsp; <span class="swatch" style="background:#0a84ff"></span><b>Cars</b> &nbsp; <span class="swatch" style="background:#ff9f0a"></span><b>Scooters</b></div>
+    <div><span class="swatch" style="background:#ff2d55"></span><b>Kitchens</b> &nbsp; 📍 <b>Drop-off</b> &nbsp; <span class="swatch" style="background:#ff3b30"></span><b>Delayed</b> &nbsp; <span class="swatch" style="background:#af52de"></span><b>Rerouted</b></div>
+  </div>
+
+  <div id="banner">
+    <div class="ico" id="bIco">🌉</div>
+    <div class="txt"><div class="app">Casper's Ops</div><div class="t" id="bTitle"></div><div class="d" id="bDesc"></div></div>
+  </div>
+
+  <div id="catastrophe-alert" aria-live="assertive">
+    <div class="ca-inner">
+      <div class="ca-ico" id="caIco">🚨</div>
+      <div class="ca-title" id="caTitle"></div>
+      <div class="ca-desc" id="caDesc"></div>
+    </div>
+  </div>
+
+  <div id="cards"></div>
+
+  <div id="modal" class="modal-overlay" hidden>
+    <div class="modal-card">
+      <div class="modal-head">
+        <div class="modal-title">Order <span id="mOrderId"></span></div>
+        <button class="modal-close" id="mClose">✕</button>
+      </div>
+      <div class="modal-grid">
+        <div class="modal-details" id="mDetails"></div>
+        <div class="modal-chat">
+          <div class="chat-log" id="mChat"></div>
+          <div class="chat-presets" id="mPresets"></div>
+          <div class="chat-input">
+            <input id="mMsg" placeholder="Tell the driver what to do…" autocomplete="off" />
+            <button class="btn primary" id="mSend">Send</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions" id="mActions"></div>
+    </div>
+  </div>
+
+  <div id="kmodal" class="modal-overlay" hidden>
+    <div class="modal-card">
+      <div class="modal-head">
+        <div>
+          <div class="modal-title" id="kName"></div>
+          <div class="modal-sub" id="kCount"></div>
+        </div>
+        <button class="modal-close" id="kClose">✕</button>
+      </div>
+      <div class="kmodal-body"><div class="korders" id="kOrders"></div></div>
+    </div>
+  </div>
+
+  <script>
+  const BUILD_ID = "2026-07-21g-catastrophe-alert";
+  const CATASTROPHE_ALERT_MS = 5000;
+  let bannerTimer = null, catastropheAlertTimer = null;
+  let catastropheAlertShowing = false, jamTrafficMsgPending = false;
+  function showCatastropheAlert(ico, title, desc) {
+    document.getElementById("caIco").textContent = ico;
+    document.getElementById("caTitle").textContent = title;
+    document.getElementById("caDesc").textContent = desc;
+    const el = document.getElementById("catastrophe-alert");
+    el.classList.add("show");
+    catastropheAlertShowing = true;
+    jamTrafficMsgPending = true;
+    clearTimeout(catastropheAlertTimer);
+    catastropheAlertTimer = setTimeout(() => {
+      el.classList.remove("show");
+      catastropheAlertShowing = false;
+    }, CATASTROPHE_ALERT_MS);
+  }
+  // central river crossing that "closes"; the reroute uses a nearby parallel
+  // crossing. Banks (a/b), approaches and customer regions are derived from the
+  // two bridge coordinates server-side. Vehicles follow real streets via OSRM.
+  // ────────────────────────────────────────────────────────────────
+  // Fallback = Amsterdam (mirrors the registry) if /api/city is unavailable.
+  const CITY_FALLBACK = {
+    id: "amsterdam", name: "Amsterdam, Netherlands", flag: "🇳🇱", river: "Amstel",
+    center: [52.351755, 4.909375],
+    bridge: { name: "Berlagebrug", coord: [52.34734, 4.9127] },
+    alt: { name: "Nieuwe Amstelbrug", coord: [52.35617, 4.90605] },
+    regions: { a: [52.342459177553344, 4.895332789164471], b: [52.35222082244666, 4.930067210835529] },
+    approaches: { a: [52.34651401466287, 4.909760933550911], b: [52.34816598533713, 4.915639066449089] },
+    close_radius_m: 120,
+    catastrophe: { icon: "🌉", title: "Berlagebrug structural failure", desc: "The Berlagebrug's bascule mechanism seized and a span support cracked. The Amstel crossing is shut for emergency structural checks.", label: "closed" },
+  };
+  let BRIDGE, ALT, BRIDGE_NAME, ALT_NAME, RIVER, CITY_NAME, CATA;
+  let APPROACH_A, APPROACH_B, REGION_A, REGION_B, CENTER, CLOSE_RADIUS;
+
+  function applyCity(c) {
+    BRIDGE = c.bridge.coord; ALT = c.alt.coord;
+    BRIDGE_NAME = c.bridge.name; ALT_NAME = c.alt.name;
+    APPROACH_A = c.approaches.a; APPROACH_B = c.approaches.b;
+    REGION_A = c.regions.a; REGION_B = c.regions.b;
+    CENTER = c.center; CLOSE_RADIUS = c.close_radius_m || 160;
+    RIVER = c.river; CITY_NAME = c.name;
+    CATA = c.catastrophe || CITY_FALLBACK.catastrophe;
+    const bb = document.getElementById("bridgeBtn");
+    if (bb && !bb.disabled) bb.textContent = `${CATA.icon} Trigger catastrophe`;
+  }
+  applyCity(CITY_FALLBACK);
+
+  let currentCityId = null;
+  async function loadCity(id) {
+    let c;
+    const url = id ? "/api/city?id=" + encodeURIComponent(id) : "/api/city";
+    try {
+      const r = await trackedFetch(url, {}, 3000);
+      c = r.ok ? await r.json() : null;
+    }
+    catch (e) { c = null; }
+    applyCity(c && c.bridge ? c : CITY_FALLBACK);
+    currentCityId = (c && c.id) ? c.id : (id || currentCityId);
+  }
+
+  const FOOD = ["🍔","🍕","🍜","🌮","🍣","🥗","🍛","🍝","🥙","🧆","🍤","🥘","🍱","🌯","🍗","🧀"];
+  const KITCHENS_FALLBACK = [
+    { name: "Casper's De Pijp",         lat: 52.35450, lon: 4.89180 },
+    { name: "Casper's Rivierenbuurt",   lat: 52.34700, lon: 4.90500 },
+    { name: "Casper's Amsteldijk",      lat: 52.35200, lon: 4.90100 },
+    { name: "Casper's Watergraafsmeer", lat: 52.35120, lon: 4.93000 },
+    { name: "Casper's Oost",            lat: 52.35950, lon: 4.92000 },
+    { name: "Casper's Amstelkwartier",  lat: 52.34650, lon: 4.91750 },
+  ];
+  let KITCHENS = [];
+  const VEH_TYPES = [
+    { type: "bike",    emoji: "🚲", mps: 4.5 },
+    { type: "car",     emoji: "🚗", mps: 9.0 },
+    { type: "scooter", emoji: "🛵", mps: 7.0 },
+  ];
+  // Order kinds. "cold" items are cold-chain sensitive and get an extra flag
+  // when stuck (they melt / spoil). `max` = max tolerated delay past the
+  // promised time (minutes) before the order auto-expires / cancels. Cold
+  // items expire fastest.
+  const ORDER_KINDS = [
+    { id: "hot",     label: "Hot food",  emoji: "🍜", cold: false, w: 5, max: 25, val: [14, 38] },
+    { id: "grocery", label: "Groceries", emoji: "🛒", cold: false, w: 2, max: 40, val: [22, 65] },
+    { id: "ice",     label: "Ice cream", emoji: "🍦", cold: true,  w: 3, max: 15, val: [8, 20] },
+    { id: "frozen",  label: "Frozen",    emoji: "🧊", cold: true,  w: 2, max: 20, val: [16, 42] },
+  ];
+  function pickKind() {
+    const total = ORDER_KINDS.reduce((s, k) => s + k.w, 0);
+    let r = Math.random() * total;
+    for (const k of ORDER_KINDS) { if ((r -= k.w) <= 0) return k; }
+    return ORDER_KINDS[0];
+  }
+  const openCards = new Map(); // v.id -> { v, el }
+  const pad2 = n => String(n).padStart(2, "0");
+  const fmtClock = ts => { const d = new Date(ts); return pad2(d.getHours()) + ":" + pad2(d.getMinutes()); };
+  // Minutes late vs the original promised delivery time (grows while stuck).
+  function lateOf(v) {
+    // Guard: without a stuck timestamp, Date.now()-0 would render ~1.19e9 "minutes".
+    if (!v.stuckSince) return v.lateBase || 0;
+    return v.lateBase + Math.floor((simNow() - v.stuckSince) / 1500);
+  }
+
+  // ── Map ──
+  const map = L.map("map", { zoomControl: false, attributionControl: false }).setView(CENTER, 15);
+  let tileLayer = L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { maxZoom: 20, subdomains: "abcd" }).addTo(map);
+  L.control.zoom({ position: "bottomright" }).addTo(map);
+
+  const routeLayer   = L.layerGroup().addTo(map);
+  const trailLayer   = L.layerGroup().addTo(map);   // subtle motion trails (cute themes)
+  const kitchenLayer = L.layerGroup().addTo(map);
+  const vehLayer     = L.layerGroup().addTo(map);
+  const custLayer    = L.layerGroup().addTo(map);
+
+  // ── Themes ── Classic (light Apple) and Arcade (dark neon game board).
+  const THEME_TILES = {
+    classic: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+    arcade:  "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+  };
+  const VEH_COLORS = { bike: "#34c759", car: "#0a84ff", scooter: "#ff9f0a" };
+  const THEME_KEY = "cc_theme_v1";
+  let currentTheme = "classic", cuteTheme = false;
+  function setBasemap(url) {
+    if (tileLayer) map.removeLayer(tileLayer);
+    tileLayer = L.tileLayer(url, { maxZoom: 20, subdomains: "abcd" }).addTo(map);
+    if (tileLayer.bringToBack) tileLayer.bringToBack();
+  }
+  function cachePuck(v) {
+    v.puckEl = (v.marker && v.marker._icon) ? v.marker._icon.querySelector(".puck") : null;
+  }
+  function removeTrail(v) {
+    if (v.trailLine) { trailLayer.removeLayer(v.trailLine); v.trailLine = null; }
+    v.trailPts = null;
+  }
+  function applyTheme(key) {
+    if (!THEME_TILES[key]) key = "classic";
+    currentTheme = key;
+    cuteTheme = key !== "classic";
+    document.body.dataset.theme = key;
+    document.body.classList.toggle("cute", cuteTheme);
+    setBasemap(THEME_TILES[key]);
+    if (!cuteTheme) {
+      trailLayer.clearLayers();
+      vehicles.forEach(v => { v.trailLine = null; v.trailPts = null; if (v.puckEl) v.puckEl.style.transform = ""; });
+    }
+    document.querySelectorAll("#themeSeg button").forEach(b => b.classList.toggle("on", b.dataset.theme === key));
+    try { localStorage.setItem(THEME_KEY, key); } catch (e) {}
+  }
+
+  // Bridge labels (real crossings for the active city)
+  let bridgeMarker = null, bridgeSpan = null, altMarker = null, closeCircle = null;
+  // Build a rectangle (bridge deck) centered on `center`, its long axis running
+  // bank-to-bank along a→b, so it scales with map zoom like a real feature.
+  function bridgeRect(center, a, b, halfLenM, halfWidM) {
+    const midlat = (a[0] + b[0]) / 2;
+    const dvLat = (b[0] - a[0]) * RE;
+    const dvLon = (b[1] - a[1]) * RE * Math.cos(rad(midlat));
+    const len = Math.hypot(dvLat, dvLon) || 1;
+    const ux = dvLat / len, uy = dvLon / len;   // unit vector along the span
+    const px = -uy, py = ux;                     // perpendicular (deck width)
+    const clat = RE, clon = RE * Math.cos(rad(center[0]));
+    const corner = (s, w) => [
+      center[0] + (ux * halfLenM * s + px * halfWidM * w) / clat,
+      center[1] + (uy * halfLenM * s + py * halfWidM * w) / clon,
+    ];
+    return [corner(1, 1), corner(1, -1), corner(-1, -1), corner(-1, 1)];
+  }
+  function drawAltMarker() {
+    if (altMarker) map.removeLayer(altMarker);
+    altMarker = L.marker(ALT, { interactive: false, icon: L.divIcon({
+      className: "", iconSize: [180, 22], iconAnchor: [90, 34],
+      html: `<div class="bridge-cap alt">↩ ${ALT_NAME}</div>` }) }).addTo(map);
+  }
+  function drawBridgeMarker() {
+    if (bridgeMarker) map.removeLayer(bridgeMarker);
+    if (bridgeSpan) map.removeLayer(bridgeSpan);
+    // Single geographic bridge deck that scales with the map zoom.
+    const fill = bridgeClosed ? "#ff3b30" : "#8a94a6";
+    bridgeSpan = L.polygon(bridgeRect(BRIDGE, APPROACH_A, APPROACH_B, 55, 8), {
+      interactive: false, color: "#fff", weight: 2, lineJoin: "round",
+      fillColor: fill, fillOpacity: bridgeClosed ? .95 : .9,
+    }).addTo(map);
+    // Clean callout label above the deck (clearly a label, not a second bar).
+    const cls = bridgeClosed ? "bridge-cap closed" : "bridge-cap";
+    const txt = bridgeClosed ? `🚧 ${BRIDGE_NAME} · ${(CATA && CATA.label) || "closed"}` : BRIDGE_NAME;
+    bridgeMarker = L.marker(BRIDGE, { interactive: false, zIndexOffset: 1000, icon: L.divIcon({
+      className: "", iconSize: [180, 22], iconAnchor: [90, 34],
+      html: `<div class="${cls}">${txt}</div>` }) }).addTo(map);
+  }
+
+  function drawKitchens() {
+    kitchenLayer.clearLayers();
+    KITCHENS.forEach(k => {
+      const m = L.marker(k.pos, { icon: L.divIcon({
+        className: "", iconSize: [80, 60], iconAnchor: [40, 50],
+        html: `<div class="kitchen"><div class="badge">${k.emoji}</div><div class="name">${k.name}</div></div>`
+      })}).addTo(kitchenLayer);
+      m.on("click", () => openKitchen(k));
+    });
+  }
+
+  // ── Geometry helpers ──
+  const RE = 111320, rad = d => d * Math.PI / 180;
+  function mdist(a, b) {
+    const dlat = (b[0]-a[0]) * RE;
+    const dlon = (b[1]-a[1]) * RE * Math.cos(rad((a[0]+b[0])/2));
+    return Math.hypot(dlat, dlon);
+  }
+  function buildPath(pts) {
+    const cum = [0];
+    for (let i = 1; i < pts.length; i++) cum.push(cum[i-1] + mdist(pts[i-1], pts[i]));
+    return { pts, cum, total: cum[cum.length-1] };
+  }
+  function posAt(v) {
+    const { pts, cum } = v; if (!pts || pts.length < 2) return pts ? pts[0] : CENTER;
+    let d = Math.max(0, Math.min(v.traveled, v.total));
+    for (let i = 1; i < pts.length; i++) {
+      if (d <= cum[i]) {
+        const seg = cum[i] - cum[i-1] || 1; const t = (d - cum[i-1]) / seg;
+        return [pts[i-1][0] + (pts[i][0]-pts[i-1][0])*t, pts[i-1][1] + (pts[i][1]-pts[i-1][1])*t];
+      }
+    }
+    return pts[pts.length-1];
+  }
+  // Which bank of the river a point is on (nearest bridge approach wins).
+  function bankOf(p) { return mdist(p, APPROACH_A) < mdist(p, APPROACH_B) ? "a" : "b"; }
+  // LRU-bounded caches — OSRM responses accumulate over a long demo run.
+  function cachePut(map, key, value, maxSize = 400) {
+    if (map.has(key)) map.delete(key);
+    map.set(key, value);
+    while (map.size > maxSize) {
+      const oldest = map.keys().next().value;
+      map.delete(oldest);
+    }
+  }
+  const nearestCache = new Map();
+  async function snap(pos) {
+    if (_pageUnloading) return pos;
+    const key = pos[0].toFixed(4) + "," + pos[1].toFixed(4);
+    if (nearestCache.has(key)) return nearestCache.get(key);
+    const ctrl = new AbortController();
+    _osrmAborters.add(ctrl);
+    try {
+      const r = await fetch(
+        `https://router.project-osrm.org/nearest/v1/driving/${pos[1]},${pos[0]}?number=1`,
+        { signal: ctrl.signal },
+      );
+      const j = await r.json();
+      const w = j.waypoints && j.waypoints[0];
+      const snapped = w ? [w.location[1], w.location[0]] : pos;
+      cachePut(nearestCache, key, snapped);
+      return snapped;
+    } catch (e) { return pos; }
+    finally { _osrmAborters.delete(ctrl); }
+  }
+  // A delivery destination on a given bank, near that bank's region, on a road.
+  async function randCustomer(bank) {
+    const c = bank === "a" ? REGION_A : REGION_B;
+    for (let t = 0; t < 6; t++) {
+      const lat = c[0] + (Math.random() - 0.5) * 0.010;
+      const lon = c[1] + (Math.random() - 0.5) * 0.014;
+      const p = await snap([lat, lon]);
+      if (bankOf(p) === bank && mdist(p, BRIDGE) > 250) return p;
+    }
+    return snap(c);
+  }
+  // Snap many points with bounded concurrency so a big city doesn't fire a burst
+  // of routing calls all at once.
+  async function snapAll(points, limit = 5) {
+    const out = new Array(points.length);
+    let idx = 0;
+    async function worker() {
+      while (idx < points.length) { const i = idx++; out[i] = await snap(points[i]); }
+    }
+    await Promise.all(Array.from({ length: Math.min(limit, points.length) }, worker));
+    return out;
+  }
+
+  // ── Real street routing via OSRM (public demo server) ──
+  const routeCache = new Map();
+  async function osrm(coords) {
+    if (_pageUnloading) throw new Error("unloading");
+    const key = coords.map(c => c[0].toFixed(4) + "," + c[1].toFixed(4)).join(";");
+    if (routeCache.has(key)) return routeCache.get(key);
+    const path = coords.map(c => c[1] + "," + c[0]).join(";");
+    const url = `https://router.project-osrm.org/route/v1/driving/${path}?overview=full&geometries=geojson`;
+    const ctrl = new AbortController();
+    _osrmAborters.add(ctrl);
+    try {
+      const r = await fetch(url, { signal: ctrl.signal });
+      if (!r.ok) throw new Error("osrm " + r.status);
+      const j = await r.json();
+      if (!j.routes || !j.routes[0]) throw new Error("no route");
+      const geo = j.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+      cachePut(routeCache, key, geo);
+      return geo;
+    } finally { _osrmAborters.delete(ctrl); }
+  }
+  // Distance along a route where it first enters the closure zone (or null)
+  function bridgeDistOf(v) {
+    for (let i = 0; i < v.pts.length; i++) {
+      if (mdist(v.pts[i], BRIDGE) <= CLOSE_RADIUS) return v.cum[i];
+    }
+    return null;
+  }
+  // Cumulative distance at the route's closest approach to the bridge.
+  function nearestBridgeCum(v) {
+    let best = Infinity, cum = null;
+    for (let i = 0; i < v.pts.length; i++) {
+      const d = mdist(v.pts[i], BRIDGE);
+      if (d < best) { best = d; cum = v.cum[i]; }
+    }
+    return cum;
+  }
+
+  // Load kitchens for the active city from catastrophe_kitchens (via API) and
+  // snap them to real roads (generated coords can land in water).
+  const KITCHEN_CACHE_KEY = "cc_kitchens_v1";
+  function kitchenCacheKey(cityId) {
+    return `${KITCHEN_CACHE_KEY}:${cityId || "default"}`;
+  }
+  function loadKitchenCache(cityId) {
+    try {
+      const s = localStorage.getItem(kitchenCacheKey(cityId));
+      const j = s ? JSON.parse(s) : null;
+      return Array.isArray(j) && j.length ? j : null;
+    } catch (e) { return null; }
+  }
+  function saveKitchenCache(cityId, kitchens) {
+    try {
+      localStorage.setItem(kitchenCacheKey(cityId), JSON.stringify(kitchens));
+    } catch (e) {}
+  }
+  function subtitleText(shortCity, kitchenCount) {
+    const city = shortCity || (CITY_NAME || "").split(",")[0] || "City";
+    const n = kitchenCount != null ? kitchenCount : (KITCHENS || []).length;
+    return `${city} · ${n} kitchens live`;
+  }
+  function setBuildTag() {
+    const el = document.getElementById("buildTag");
+    if (el) el.textContent = `build ${BUILD_ID}`;
+  }
+  function applyKitchenList(kitchens) {
+    KITCHENS = kitchens;
+    const shortCity = (CITY_NAME || "").split(",")[0];
+    document.getElementById("subtitle").textContent = subtitleText(shortCity, KITCHENS.length);
+    const pts = KITCHENS.map(k => k.pos).concat([BRIDGE, ALT]);
+    if (pts.length) map.fitBounds(L.latLngBounds(pts).pad(0.2));
+  }
+  async function loadKitchens({ snap = true } = {}) {
+    const cityId = currentCityId || "";
+    const cached = loadKitchenCache(cityId);
+    if (cached) {
+      applyKitchenList(cached);
+      return;
+    }
+    let rows;
+    const url = cityId ? "/api/kitchens?city=" + encodeURIComponent(cityId) : "/api/kitchens";
+    try {
+      const r = await trackedFetch(url, {}, 3000);
+      rows = r.ok ? await r.json() : null;
+    } catch (e) { rows = null; }
+    if (!rows || !rows.length) rows = KITCHENS_FALLBACK;
+    let positions;
+    if (snap) {
+      positions = await snapAll(rows.map(k => [Number(k.lat), Number(k.lon)]), 8);
+    } else {
+      positions = rows.map(k => [Number(k.lat), Number(k.lon)]);
+    }
+    const kitchens = rows.map((k, i) => {
+      const pos = positions[i];
+      return {
+        name: k.name, neighborhood: k.neighborhood || "", emoji: FOOD[i % FOOD.length],
+        pos, bank: bankOf(pos),
+      };
+    });
+    applyKitchenList(kitchens);
+    saveKitchenCache(cityId, kitchens);
+  }
+
+  // ── State ──
+  let vehicles = [], seq = 0;
+  // One id per simulation run so DB rows can be scoped to the current sim
+  // (order_id is reused across runs). Regenerated on start/restart. Modelled on
+  // a real dispatch/ops session id: <city>-<YYYYMMDD>-<HHMM>-<short unique>.
+  function newSession() {
+    const d = new Date();
+    const p = n => String(n).padStart(2, "0");
+    const stamp = `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;
+    const city = (currentCityId || "demo");
+    sessionId = `${city}-${stamp}-${Math.random().toString(36).slice(2, 6)}`;
+    sessionStartedAt = Date.now();
+  }
+  let sessionStartedAt = Date.now();
+  let sessionId = `demo-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-init`;
+  let notifLog = []; // notification history: { ts, orderId, type, title, body }
+  // Cancelled orders awaiting an ops reaction; if ignored past dueAt, a customer
+  // complaint notification is raised for the same order.
+  let pendingComplaints = [];
+  const COMPLAINT_DELAY_MS = 10000;
+  const CARDS_MAX = 35;
+  function trimCards() {
+    const wrap = document.getElementById("cards");
+    while (wrap.children.length > CARDS_MAX) wrap.lastElementChild.remove();
+  }
+  function pushNotif(entry) {
+    notifLog.push(entry);
+    if (notifLog.length > 200) notifLog.splice(0, notifLog.length - 200);
+  }
+  // Add a dismiss (✕) button to a card. Card only leaves the feed on click.
+  function attachDismiss(card, v, onDismiss) {
+    const x = document.createElement("button");
+    x.className = "card-x"; x.textContent = "✕"; x.title = "Dismiss";
+    x.addEventListener("click", e => {
+      e.stopPropagation();
+      if (v) openCards.delete(v.id);
+      if (onDismiss) onDismiss();
+      card.classList.add("leaving"); setTimeout(() => card.remove(), 300);
+    });
+    card.appendChild(x);
+  }
+  let bridgeClosed = false, running = true, sim = 4;
+  // Simulation clock: wall-clock minus time spent paused, so delays, order
+  // expiry, complaint escalation and the auto-close all FREEZE while paused.
+  let pausedAccum = 0, pauseStart = 0, autoCloseAt = 0;
+  function simNow() { return Date.now() - pausedAccum - (pauseStart ? Date.now() - pauseStart : 0); }
+  function pauseClock() { if (!pauseStart) pauseStart = Date.now(); }
+  function resumeClock() { if (pauseStart) { pausedAccum += Date.now() - pauseStart; pauseStart = 0; } }
+  function resetClock() { pausedAccum = 0; pauseStart = 0; }
+  let queue = { a: 0, b: 0 };
+  let stats = { delivered: 0, reroute: 0, cancelled: 0, reordered: 0, complaints: 0, refunded: 0, refundTotal: 0 };
+  let refundedOrderIds = new Set();
+  let fleetTarget = 45; // number of concurrent orders (controlled by the Orders slider)
+  const QUEUE_BUFFER = 45, QUEUE_SPACING = 26;
+  const activeCount = () => vehicles.filter(v => v.status !== "delivered" && v.status !== "cancelled").length;
+  function isActiveVehicle(v) {
+    return v.status !== "delivered" && v.status !== "cancelled";
+  }
+  function purgeVehicle(v) {
+    const i = vehicles.indexOf(v);
+    if (i >= 0) vehicles.splice(i, 1);
+  }
+  function fillFleet() {
+    const need = fleetTarget - activeCount();
+    for (let i = 0; i < need; i++) setTimeout(() => spawnOrder(bridgeClosed), i * 25);
+  }
+  function topUpFleetAfterResume() {
+    fillFleet();
+    // OSRM routing is async — a second pass catches spawns that lost the race.
+    setTimeout(fillFleet, 1500);
+    setTimeout(fillFleet, 4000);
+  }
+
+  function puckIcon(v) {
+    let cls = "puck " + v.vtype.type;
+    if (v.status === "cancelled") cls += " cancelled";
+    else if (v.status === "stuck" || v.status === "late") cls += " stuck";
+    else if (v.status === "rerouted") cls += " rerouted";
+    const selected = v.id === selectedOrderId;
+    if (selected) cls += " sel";
+    const label = selected ? `<div class="puck-label">${v.id} · ${v.kitchen}</div>` : "";
+    return L.divIcon({ className: "veh", iconSize: [30,30], iconAnchor: [15,15], html: `${label}<div class="${cls}">${v.vtype.emoji}</div>` });
+  }
+  function refreshIcon(v) { if (v.marker) { v.marker.setIcon(puckIcon(v)); cachePuck(v); } }
+
+  function dropIcon(stuck) {
+    return L.divIcon({ className: "", iconSize: [22, 22], iconAnchor: [11, 20],
+      html: `<div class="drop${stuck ? " stuck" : ""}">📍</div>` });
+  }
+
+  // `tmpl` (optional) reuses an existing order's setup — same kitchen, delivery
+  // address, courier type and item — so a "Reorder" places an identical order.
+  async function spawnOrder(forceSameSide, tmpl) {
+    if (_pageUnloading) return;
+    const reorder = !!tmpl;
+    if (!reorder && activeCount() >= fleetTarget) return;
+    let kitchen, crossWanted, custSide, customer, vtype, kind;
+    if (reorder) {
+      kitchen = tmpl.kitchen; if (!kitchen) return;
+      crossWanted = tmpl.crossWanted; custSide = tmpl.custSide;
+      customer = tmpl.customer; vtype = tmpl.vtype; kind = tmpl.kind;
+    } else {
+      kitchen = KITCHENS[Math.floor(Math.random() * KITCHENS.length)];
+      if (!kitchen) return;
+      // ~90% of orders route across the river (through the problematic crossing),
+      // both before and after closure, so most orders are affected.
+      crossWanted = Math.random() < 0.9;
+      custSide = crossWanted ? (kitchen.bank === "a" ? "b" : "a") : kitchen.bank;
+      customer = await randCustomer(custSide);
+      vtype = VEH_TYPES[Math.floor(Math.random() * VEH_TYPES.length)];
+      kind = pickKind();
+    }
+    const kSide = kitchen.bank;
+    const promisedMin = Math.round(25 + Math.random() * 20); // promised 25–45 min
+    const placedAt = Date.now();
+
+    const v = {
+      id: "CK-" + String(++seq).padStart(3, "0"),
+      vtype, pts: [kitchen.pos], cum: [0], total: 0, traveled: 0, speed: vtype.mps,
+      customer, startSide: kSide, custSide, crosses: false, bridgeDist: null,
+      rerouted: false, status: "routing", notified: false, kitchen: kitchen.name,
+      kind, promisedMin, placedAt, promisedAt: placedAt + promisedMin * 60000,
+      lateBase: 0, stuckSince: 0, chat: [], maxDelay: kind.max,
+      orderValue: +(kind.val[0] + Math.random() * (kind.val[1] - kind.val[0])).toFixed(2),
+    };
+    v.marker = L.marker(kitchen.pos, { icon: puckIcon(v), zIndexOffset: 400 }).addTo(vehLayer);
+    cachePuck(v);
+    v.custDot = L.marker(customer, { icon: dropIcon(false), zIndexOffset: 200 })
+      .addTo(custLayer)
+      .bindPopup(`<b>Deliver ${v.id}</b><br>${v.vtype.emoji} from ${v.kitchen}`);
+    vehicles.push(v);
+
+    const bridgeBlocked = bridgeClosed || policyBridgeClosed;
+    // When rerouting via ALT, also pin the approach on the customer's bank after
+    // ALT so the second leg can't drift back over the closed main bridge (OSRM
+    // doesn't know it's shut).
+    const custApproach = bankOf(customer) === "a" ? APPROACH_A : APPROACH_B;
+    const route = crossWanted
+      ? (bridgeBlocked ? [kitchen.pos, ALT, custApproach, customer] : [kitchen.pos, BRIDGE, customer])
+      : [kitchen.pos, customer];
+    try {
+      const geo = await osrm(route);
+      if (!vehicles.includes(v) || v.status !== "routing") return;
+      Object.assign(v, buildPath(geo));
+    } catch (e) {
+      Object.assign(v, buildPath(route)); // fallback: straight through the bridge
+    }
+    if (v.status === "delivered") return; // was reset while routing
+    // Crossing intent is bank-to-bank (set at spawn). Don't rely only on the
+    // tight closure-radius test — on very wide rivers (e.g. Seoul's Han) the
+    // route can skirt the bridge centre by more than the radius, so those orders
+    // were never flagged as crossing and sailed across without getting stuck.
+    v.crosses = crossWanted || bankOf(customer) !== kSide;
+    v.bridgeDist = bridgeDistOf(v);
+    if (v.bridgeDist == null) v.bridgeDist = nearestBridgeCum(v);
+    // Ensure a crossing order has a valid stop point BEFORE the far bank, so it
+    // piles up at the crossing rather than after it (which looked like the order
+    // crossing the bridge and vanishing on the far side).
+    if (v.crosses && (v.bridgeDist == null || v.bridgeDist >= v.total * 0.9)) {
+      v.bridgeDist = v.total * 0.5;
+    }
+    v.status = "enroute";
+    dbOrder(v);
+  }
+
+  // Place a fresh order that mirrors `orig` exactly (same kitchen, delivery
+  // address, courier and item). Used by the "Reorder" resolution.
+  function reorderOrder(orig) {
+    const kitchen = KITCHENS.find(k => k.name === orig.kitchen)
+      || { pos: orig.pts[0], bank: orig.startSide, name: orig.kitchen };
+    stats.reordered++;
+    updateStats();
+    return spawnOrder(false, {
+      kitchen, customer: orig.customer, vtype: orig.vtype, kind: orig.kind,
+      custSide: orig.custSide, crossWanted: orig.crosses,
+    });
+  }
+
+  function deliver(v) {
+    v.status = "delivered"; stats.delivered++;
+    dbStatus(v, "delivered");
+    removeTrail(v);
+    if (v.marker) vehLayer.removeLayer(v.marker);
+    if (v.custDot) custLayer.removeLayer(v.custDot);
+    v.marker = null; v.custDot = null;
+    purgeVehicle(v);
+    setTimeout(() => spawnOrder(bridgeClosed), 400 + Math.random() * 900);
+  }
+
+  // ── Animation loop ──
+  let last = performance.now();
+  let _lastStatsAt = 0;         // throttles the per-frame updateStats() call
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    if (running) {
+      for (const v of vehicles) {
+        if (v.status !== "enroute" && v.status !== "rerouted") continue;
+        // Crawl through active traffic-jam zones so congestion is visible.
+        // Rerouted orders took the alternate crossing to escape the bridge
+        // congestion, so they move at full speed (don't get dragged down by
+        // the jam zones the reroute was meant to avoid).
+        const cong = (jams.length && !v.rerouted) ? jamFactorAt(posAt(v)) : 1;
+        v.traveled += v.speed * dt * sim * cong;
+        const crossingBlocked = bridgeClosed || policyBridgeClosed;
+        if (v.crosses && !v.rerouted && crossingBlocked && v.traveled > v.bridgeDist - QUEUE_BUFFER) {
+          // route_policies closed in Lakebase (query 1): cold-chain still deliverable
+          // must use the alternate crossing instead of piling up at the bridge.
+          if (policyBridgeClosed && v.kind.cold && lateOf(v) < v.maxDelay) {
+            externalReroute(v);
+            continue;
+          }
+          // Policy closed but the UI bridge is still up and this isn't a cold
+          // reroute candidate: let it cross normally (fall through), don't clog.
+          if (!bridgeClosed) {
+            if (v.traveled >= v.total) { deliver(v); }
+            else { if (v.marker) v.marker.setLatLng(posAt(v)); if (cuteTheme) cuteMotion(v, posAt(v), now); }
+            continue;
+          }
+          v.status = "stuck";
+          // Queue slot = how many orders are CURRENTLY stuck on this side (not a
+          // monotonic counter), capped so the backlog piles up in a compact
+          // cluster right at the bridge instead of backing up kilometres along
+          // every route and scattering pucks across random streets.
+          const ahead = vehicles.reduce((n, o) =>
+            n + (o !== v && o.status === "stuck" && o.startSide === v.startSide ? 1 : 0), 0);
+          const slot = Math.min(ahead, 14);
+          v.traveled = Math.max(0, v.bridgeDist - QUEUE_BUFFER - slot * QUEUE_SPACING);
+          if (v.marker) v.marker.setLatLng(posAt(v)); refreshIcon(v);
+          if (v.custDot) v.custDot.setIcon(dropIcon(true));
+          if (!v.notified) { v.notified = true; addDelayCard(v); dbStatus(v, "stuck"); }
+          continue;
+        }
+        if (v.traveled >= v.total) { deliver(v); continue; }
+        const pos = posAt(v);
+        if (v.marker) v.marker.setLatLng(pos);
+        if (cuteTheme) cuteMotion(v, pos, now);
+      }
+      // updateStats() does 2 full vehicle scans + 8 DOM writes. Running it every
+      // frame (~60fps) is ~480 forced style/layout writes/sec, which bogs down the
+      // whole UI (and delays notification inserts). Discrete events (deliver /
+      // reroute / refund / cancel) still call it immediately for instant counts;
+      // this per-frame call only needs to catch enroute↔stuck drift, so ~5fps.
+      if (now - _lastStatsAt > 200) { updateStats(); _lastStatsAt = now; }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // Cute-theme flourishes: a throttled motion trail + a gentle directional lean.
+  function cuteMotion(v, pos, now) {
+    if (!v.lastTrail || now - v.lastTrail > 120) {
+      v.lastTrail = now;
+      (v.trailPts ||= []).push(pos);
+      if (v.trailPts.length > 6) v.trailPts.shift();
+      if (v.trailPts.length > 1) {
+        if (!v.trailLine) v.trailLine = L.polyline(v.trailPts, {
+          color: VEH_COLORS[v.vtype.type] || "#0a84ff", weight: 3, opacity: .3, lineCap: "round" }).addTo(trailLayer);
+        else v.trailLine.setLatLngs(v.trailPts);
+      }
+    }
+    if (v.puckEl && v.prevPos) {
+      const dx = pos[1] - v.prevPos[1];
+      const target = Math.max(-12, Math.min(12, dx * 6e6));
+      v.lean = (v.lean || 0) * 0.8 + target * 0.2;
+      v.puckEl.style.transform = "rotate(" + v.lean.toFixed(1) + "deg)";
+    }
+    v.prevPos = pos;
+  }
+
+  function updateStats() {
+    const active = vehicles.filter(v => v.status === "enroute" || v.status === "rerouted" || v.status === "routing").length;
+    const delayed = vehicles.filter(v => v.status === "stuck" || v.status === "late").length;
+    document.getElementById("sActive").textContent = active;
+    document.getElementById("sDelivered").textContent = stats.delivered;
+    document.getElementById("sDelayed").textContent = delayed;
+    document.getElementById("sReroute").textContent = stats.reroute;
+    document.getElementById("sReordered").textContent = stats.reordered;
+    document.getElementById("sRefunded").textContent = stats.refunded;
+    document.getElementById("sRefundSum").textContent =
+      "$" + Math.round(stats.refundTotal).toLocaleString();
+    document.getElementById("sCancelled").textContent = stats.cancelled;
+    document.getElementById("sComplaints").textContent = stats.complaints;
+  }
+
+  // ── Bridge collapse ──
+  function closeBridge() {
+    if (bridgeClosed) return;
+    bridgeClosed = true;
+    drawBridgeMarker();
+    closeCircle = L.circle(BRIDGE, { radius: CLOSE_RADIUS, color: "#ff3b30", fillColor: "#ff3b30", fillOpacity: .12, weight: 2 }).addTo(map);
+    document.getElementById("bridgeBtn").disabled = true;
+    map.flyTo(BRIDGE, 16, { duration: 1.2 });
+    showCatastropheAlert(
+      (CATA && CATA.icon) || "🚨",
+      (CATA && CATA.title) || `${BRIDGE_NAME} out`,
+      (CATA && CATA.desc) || `The ${RIVER} crossing is out. Deliveries across the river are stuck and traffic is building up.`,
+    );
+    startJams();
+    scheduleSaveSession();
+  }
+
+  // Undo the disaster: reopen the crossing, clear jams, reopen the route policy
+  // and recover any stuck orders so they finish delivering. Small hidden button
+  // by the gear — handy to reset the demo without a full restart.
+  function stopCatastrophe() {
+    bridgeClosed = false;
+    autoCloseAt = 0;
+    policyBridgeClosed = false; seenPolicyClosed = null;
+    if (closeCircle) { map.removeLayer(closeCircle); closeCircle = null; }
+    clearJams();
+    drawBridgeMarker();
+    document.getElementById("bridgeBtn").disabled = false;
+    // Reopen route_policies in Lakebase so cross-river orders stop routing via ALT.
+    const cfg = {
+      city: currentCityId || document.getElementById("cfgCity").value || "",
+      orders: fleetTarget, speed: sim,
+    };
+    saveCfg(cfg);
+    // Recover stuck/late orders — send them on via the alternate crossing.
+    let n = 0;
+    for (const v of vehicles) {
+      if ((v.status === "stuck" || v.status === "late") && !v.rerouted) { externalReroute(v); n++; }
+    }
+    showBanner("✅", "Catastrophe cleared",
+      `${BRIDGE_NAME} reopened — jams cleared${n ? ` and ${n} stuck order${n > 1 ? "s" : ""} recovered` : ""}.`);
+    scheduleSaveSession();
+  }
+
+  // ── Traffic jams ──
+  // After the collapse, congestion builds up gradually in a handful of areas,
+  // holds for a while, then clears. Vehicles crawl through an active jam zone.
+  const jamLayer = L.layerGroup().addTo(map);
+  let jams = [];
+  let jamActive = false, jamStart = 0, jamCands = [], jamNext = 0, jamRemoved = 0, easeStart = 0;
+  let jamFormMsgShown = false, jamEaseMsgShown = false;
+  // Congestion keeps escalating (spawning new zones) and does NOT ease until the
+  // team has racked up EASE_NOTIFS total notifications — see tickJams().
+  const JAM_MAX = 14, JAM_SPAWN_EVERY = 2600, JAM_CLEAR_EVERY = 2600, EASE_NOTIFS = 300;
+  function jamCandidates() {
+    const c = CENTER;
+    const off = (dlat, dlon) => [c[0] + dlat, c[1] + dlon];
+    // Both bridge approaches (congestion starts at the collapse) plus a wide
+    // spread of spots so the whole city gradually gridlocks.
+    const list = [APPROACH_A, APPROACH_B,
+      off(0.006, 0.004), off(-0.006, -0.005), off(0.004, -0.009),
+      off(-0.005, 0.008), off(0.008, -0.002), off(-0.002, 0.010),
+      off(0.010, 0.007), off(-0.009, 0.003), off(0.003, 0.012),
+      off(-0.011, -0.008), off(0.012, -0.006), off(-0.004, -0.012)];
+    return list.sort(() => Math.random() - 0.5);
+  }
+  function startJams() {
+    clearJams();
+    jamActive = true; jamStart = simNow(); jamCands = jamCandidates();
+    jamNext = 0; jamRemoved = 0; easeStart = 0; jamFormMsgShown = false; jamEaseMsgShown = false;
+  }
+  function spawnJam(center, radius) {
+    radius = radius || (280 + Math.random() * 130);
+    const circle = L.circle(center, { radius, interactive: false,
+      color: "#ff9f0a", weight: 1.5, fillColor: "#ff9f0a", fillOpacity: .18 }).addTo(jamLayer);
+    const label = L.marker(center, { interactive: false, icon: L.divIcon({
+      className: "", iconSize: [120, 20], iconAnchor: [60, 10],
+      html: `<div class="jam-pill">🚧 Heavy traffic</div>` }) }).addTo(jamLayer);
+    jams.push({ center, radius, circle, label });
+  }
+  function removeOneJam() {
+    const j = jams.shift(); if (!j) return;
+    jamLayer.removeLayer(j.circle); jamLayer.removeLayer(j.label);
+  }
+  function clearJams() {
+    jamLayer.clearLayers(); jams = []; jamActive = false;
+    jamNext = 0; jamRemoved = 0; easeStart = 0;
+  }
+  function restoreJams(j) {
+    if (!j || !j.jamActive) return;
+    clearJams();
+    jamActive = true;
+    jamStart = j.jamStart || simNow();
+    jamCands = j.jamCands || jamCandidates();
+    jamNext = j.jamNext || 0;
+    jamRemoved = j.jamRemoved || 0;
+    easeStart = j.easeStart || 0;
+    jamFormMsgShown = !!j.jamFormMsgShown;
+    jamEaseMsgShown = !!j.jamEaseMsgShown;
+    for (const spot of j.jams || []) spawnJam(spot.center, spot.radius);
+  }
+  function snapshotJams() {
+    return {
+      jamActive, jamStart, jamNext, jamRemoved, easeStart,
+      jamFormMsgShown, jamEaseMsgShown, jamCands,
+      jams: jams.map(j => ({ center: j.center, radius: j.radius })),
+    };
+  }
+  // Congestion factor at a point: vehicles crawl through active jam zones.
+  // Gets worse the more zones are active, so gridlock intensifies over time.
+  function jamFactorAt(pos) {
+    for (const j of jams) {
+      if (mdist(pos, j.center) < j.radius) return jams.length >= 8 ? 0.12 : 0.18;
+    }
+    return 1;
+  }
+  // Drive the jam lifecycle from the sim clock, so it freezes while paused.
+  // Congestion escalates (new zones keep appearing) and holds until the team has
+  // handled EASE_NOTIFS total notifications; only then does traffic start easing.
+  function tickJams() {
+    if (!jamActive) return;
+    const eased = notifLog.length >= EASE_NOTIFS;
+    if (!eased) {
+      const el = simNow() - jamStart;
+      const shouldExist = Math.min(JAM_MAX, Math.floor(el / JAM_SPAWN_EVERY) + 1);
+      while (jams.length < shouldExist && jamNext < jamCands.length) spawnJam(jamCands[jamNext++]);
+      if (jamTrafficMsgPending && !jamFormMsgShown && jams.length && !catastropheAlertShowing) {
+        jamFormMsgShown = true;
+        jamTrafficMsgPending = false;
+        showBanner("🚧", "Traffic building up", "Congestion is spreading across the city after the incident.");
+      }
+      return;
+    }
+    // Past the 300-notification threshold: gradually clear the gridlock.
+    if (!jamEaseMsgShown) {
+      jamEaseMsgShown = true; easeStart = simNow();
+      showBanner("🌤", "Traffic easing", `${EASE_NOTIFS}+ incidents handled — congestion is finally clearing.`);
+    }
+    const shouldRemove = Math.floor((simNow() - easeStart) / JAM_CLEAR_EVERY);
+    while (jamRemoved < shouldRemove && jams.length) { removeOneJam(); jamRemoved++; }
+    if (!jams.length) jamActive = false;
+  }
+
+  function showBanner(ico, title, desc) {
+    document.getElementById("bIco").textContent = ico;
+    document.getElementById("bTitle").textContent = title;
+    document.getElementById("bDesc").textContent = desc;
+    const b = document.getElementById("banner");
+    b.classList.add("show");
+    clearTimeout(bannerTimer);
+    bannerTimer = setTimeout(() => b.classList.remove("show"), 4200);
+  }
+
+  // ── Order-delay cards ──
+  function addDelayCard(v) {
+    const wrap = document.getElementById("cards");
+    const card = document.createElement("div");
+    card.className = "card delay"; card.id = "card-" + v.id;
+    v.lateBase = Math.round(3 + Math.random() * 6); // already this many min past the promise (< every kind's max)
+    v.stuckSince = simNow();
+    // Catastrophe tuning: it's a disaster, not a normal day. Only a minority of
+    // stuck orders quietly self-recover; the rest stay stuck (piling up on
+    // screen) and most ride on to cancellation → complaints. The ones that do
+    // auto-reroute linger a long time first, so the standing "stuck" count is
+    // high. Recovering the rest is what the Lakebase reroute query is for.
+    v.willAutoReroute = Math.random() < 0.3;
+    v.rerouteAfter = v.lateBase + 8 + Math.floor(Math.random() * 8);
+    const coldFlag = v.kind.cold
+      ? `<div class="flag cold">❄️ Cold-chain at risk — ${v.kind.label.toLowerCase()} melting</div>` : "";
+    card.innerHTML = `
+      <div class="head">
+        <span class="dotc"></span>
+        <span class="title">Order ${v.id} delayed</span>
+        <span class="kind${v.kind.cold ? " cold" : ""}">${v.kind.emoji} ${v.kind.label}</span>
+      </div>
+      ${coldFlag}
+      <div class="body">${v.vtype.emoji} ${v.kitchen} · stuck at ${BRIDGE_NAME}</div>
+      <div class="meta">Promised ${fmtClock(v.promisedAt)} · <b class="late">+${lateOf(v)} min late</b></div>
+      <div class="acts">
+        <button class="btn more">⋯ More</button>
+        <button class="btn okay">Dismiss</button>
+      </div>`;
+    card.querySelector(".more").addEventListener("click", () => openMore(v, "delay"));
+    card.querySelector(".okay").addEventListener("click", () => removeCard(v));
+    attachDismiss(card, v);
+    wrap.prepend(card);
+    trimCards();
+    openCards.set(v.id, { v, el: card });
+    pushNotif({ ts: Date.now(), orderId: v.id, type: "delayed", title: `Order ${v.id} delayed`, body: `${v.kind.emoji} ${v.kitchen}` });
+  }
+  function removeCard(v) {
+    const entry = openCards.get(v.id);
+    openCards.delete(v.id);
+    const card = entry ? entry.el : document.getElementById("card-" + v.id);
+    if (!card) return;
+    card.classList.add("leaving"); setTimeout(() => card.remove(), 300);
+  }
+  // Animate a raw card element out of the feed.
+  function fadeRemove(el) { if (!el) return; el.classList.add("leaving"); setTimeout(() => el.remove(), 300); }
+  function fadeRemoveById(id) { fadeRemove(document.getElementById(id)); }
+  // (kept for reference — actions now fire a confirmation card and remove the
+  // original notification instead of resolving it in place.)
+  function resolveCard(v, label) {
+    const entry = openCards.get(v.id);
+    openCards.delete(v.id);
+    if (!entry) return;
+    const el = entry.el;
+    el.classList.add("resolved");
+    el.querySelectorAll(".acts .btn").forEach(b => { if (!b.classList.contains("more")) b.disabled = true; });
+    if (!el.querySelector(".resolution")) {
+      const res = document.createElement("div");
+      res.className = "resolution"; res.textContent = "✓ " + label;
+      el.querySelector(".acts").before(res);
+    }
+  }
+  // Live-tick the delay on every open notification (and the modal if open).
+  // When an order's delay exceeds its max tolerated delay, it expires.
+  function updateCards() {
+    // Frozen while paused: no ticking, expiry, complaints or auto-close.
+    if (running) {
+      // Stuck deliveries reroute themselves after a short delay.
+      for (const v of vehicles) {
+        if (v.status === "stuck" && v.willAutoReroute && !v.rerouted
+            && lateOf(v) >= v.rerouteAfter) autoReroute(v);
+      }
+      tickJams();
+      const toExpire = [];
+      for (const { v, el } of openCards.values()) {
+        const late = lateOf(v);
+        const lateEl = el.querySelector(".late");
+        if (lateEl) lateEl.textContent = "+" + late + " min late";
+        if (v.status === "stuck" && late >= v.maxDelay) toExpire.push(v);
+      }
+      toExpire.forEach(expireOrder);
+      // Escalate cancelled orders that ops never acted on into customer complaints.
+      if (pendingComplaints.length) {
+        const now = simNow(), keep = [];
+        for (const p of pendingComplaints) {
+          if (p.v.expReacted) continue;      // ops resolved it — no complaint
+          if (now >= p.dueAt) { addComplaintCard(p.v); continue; }
+          keep.push(p);
+        }
+        pendingComplaints = keep;
+      }
+      if (!bridgeClosed && autoCloseAt && simNow() >= autoCloseAt) closeBridge();
+    }
+    if (currentModalV && openCards.has(currentModalV.id)) refreshModalMeta(currentModalV);
+    if (sidebarOpen) {
+      const now = Date.now();
+      if (now - _sbLastRenderAt >= 2000) {
+        const l = document.getElementById("sbList");
+        const t = l.scrollTop;
+        renderSidebar();
+        l.scrollTop = t;
+      }
+    }
+  }
+  setInterval(updateCards, 1000);
+
+  // Order exceeded its max tolerated delay: gray the original notification,
+  // push an "expired" notification, and move the order to cancelled state.
+  function expireOrder(v) {
+    v.status = "cancelled";
+    dbStatus(v, "cancelled");
+    const entry = openCards.get(v.id);
+    openCards.delete(v.id);
+    if (entry) {
+      entry.el.classList.add("expired");
+      entry.el.querySelectorAll(".acts .btn").forEach(b => b.disabled = true);
+    }
+    v.expReacted = false;
+    addExpiredCard(v);
+    pendingComplaints.push({ v, dueAt: simNow() + COMPLAINT_DELAY_MS });
+    refreshIcon(v);
+    stats.cancelled++;
+    updateStats();
+    fireAction("cancel_order", v.id,
+      `Auto-cancelled: ${v.kind.label} exceeded max delay of ${v.maxDelay} min past promise`);
+    if (currentModalV === v) refreshModalMeta(v);
+    removeTrail(v);
+    setTimeout(() => {
+      if (v.marker) vehLayer.removeLayer(v.marker);
+      if (v.custDot) custLayer.removeLayer(v.custDot);
+      v.marker = null; v.custDot = null;
+      if (!pendingComplaints.some(p => p.v === v)) purgeVehicle(v);
+    }, 2600);
+    setTimeout(() => spawnOrder(bridgeClosed), 900 + Math.random() * 900);
+  }
+  function addExpiredCard(v) {
+    const wrap = document.getElementById("cards");
+    const card = document.createElement("div");
+    card.className = "card expired-note";
+    card.id = "exp-" + v.id;
+    const cold = v.kind.cold ? " Cold-chain lost —" : "";
+    card.innerHTML = `
+      <div class="head">
+        <span class="dotc gray"></span>
+        <span class="title">Order ${v.id} cancelled</span>
+        <span class="kind exp">⛔ Expired</span>
+      </div>
+      <div class="body">${v.kind.emoji} ${v.kitchen} ·${cold} exceeded max delay of ${v.maxDelay} min.</div>
+      <div class="exp-status">Choose a resolution:</div>
+      <div class="acts wrap">
+        <button class="btn refund">💸 Refund</button>
+        <button class="btn reorder">🔁 Reorder</button>
+        <button class="btn contact">💬 Contact</button>
+      </div>
+      <div class="acts"><button class="btn more">⋯ More</button><button class="btn okay">Dismiss</button></div>`;
+    // Each resolution fires a confirmation notification and clears this card.
+    card.querySelector(".more").addEventListener("click", () => openMore(v, "cancelled"));
+    card.querySelector(".refund").addEventListener("click", () => {
+      v.expReacted = true;
+      fireAction("issue_credit", v.id, "Full refund issued for cancelled order");
+      dbRefund(v, "Full refund issued for cancelled order");
+      addConfirmCard(v, `Refund issued · Order ${v.id}`, ["Full refund issued to the customer"]);
+      fadeRemove(card);
+    });
+    card.querySelector(".reorder").addEventListener("click", () => {
+      v.expReacted = true;
+      fireAction("acknowledge_incident", v.id, "Reorder placed for customer (same setup)");
+      reorderOrder(v); // identical kitchen, address, courier and item
+      addConfirmCard(v, `Reorder placed · Order ${v.id}`, [`Re-placed ${v.kind.emoji} ${v.kind.label} from ${v.kitchen} to the same address`], "reorder");
+      fadeRemove(card);
+    });
+    card.querySelector(".contact").addEventListener("click", () => {
+      v.expReacted = true;
+      fireAction("acknowledge_incident", v.id, "Contacted customer about cancellation");
+      addConfirmCard(v, `Customer contacted · Order ${v.id}`, ["Reached out to the customer about the cancellation"], "contact");
+      fadeRemove(card);
+    });
+    card.querySelector(".okay").addEventListener("click", () => {
+      v.expReacted = true;
+      card.classList.add("leaving"); setTimeout(() => card.remove(), 300);
+    });
+    attachDismiss(card, null, () => { v.expReacted = true; });
+    wrap.prepend(card);
+    trimCards();
+    pushNotif({ ts: Date.now(), orderId: v.id, type: "expired", title: `Order ${v.id} cancelled`, body: `${v.kind.emoji} ${v.kitchen} · expired` });
+  }
+
+  // Raised when a cancelled order goes unaddressed: the customer complains.
+  const COMPLAINT_QUOTES = [
+    "This is unacceptable — I waited over an hour and got nothing!",
+    "Where is my order?! No one told me it was cancelled.",
+    "I'm never ordering again. Absolutely terrible service.",
+    "You cancelled my order and didn't even refund me?",
+    "I want to speak to someone. This ruined my evening.",
+  ];
+  function addComplaintCard(v) {
+    v.expReacted = true; // one complaint per order
+    v.complained = true;
+    const quote = COMPLAINT_QUOTES[Math.floor(Math.random() * COMPLAINT_QUOTES.length)];
+    v.complaintQuote = quote;
+    mountComplaintCard(v, quote);
+    stats.complaints++;
+    updateStats();
+    pushNotif({ ts: Date.now(), orderId: v.id, type: "complaint", title: `Complaint · Order ${v.id}`, body: `${v.kind.emoji} ${v.kitchen} · customer complaint` });
+    dbComplaint(v, quote);
+    fireAction("acknowledge_incident", v.id, "Customer complaint raised (cancellation unaddressed)");
+  }
+
+  function mountComplaintCard(v, quote) {
+    const wrap = document.getElementById("cards");
+    const card = document.createElement("div");
+    card.className = "card complaint";
+    card.id = "cmp-" + v.id;
+    card.innerHTML = `
+      <div class="head">
+        <span class="dotc cmp"></span>
+        <span class="title">Complaint · Order ${v.id}</span>
+        <span class="kind cmp">😠 Customer</span>
+      </div>
+      <div class="body">${v.kind.emoji} ${v.kitchen} · cancelled with no follow-up.</div>
+      <div class="quote">“${quote}”</div>
+      <div class="exp-status">Resolve the complaint:</div>
+      <div class="acts wrap">
+        <button class="btn apology">🙏 Apology + refund</button>
+        <button class="btn contact">📞 Call customer</button>
+        <button class="btn escalate">⬆︎ Escalate</button>
+      </div>
+      <div class="acts"><button class="btn more">⋯ More</button><button class="btn okay">Dismiss</button></div>`;
+    // Each resolution fires a confirmation notification and clears this card.
+    card.querySelector(".more").addEventListener("click", () => openMore(v, "complaint"));
+    card.querySelector(".apology").addEventListener("click", () => {
+      fireAction("issue_credit", v.id, "Apology sent + refund issued for complaint");
+      dbRefund(v, "Apology + refund issued for complaint");
+      dbResolveComplaint(v, "Apology + refund sent");
+      v.complaintResolved = true;
+      addConfirmCard(v, `Resolved · Order ${v.id}`, [
+        "Full refund issued to the customer",
+        "Apology message sent to the customer",
+      ]);
+      fadeRemove(card);
+    });
+    card.querySelector(".contact").addEventListener("click", () => {
+      v.complaintResolved = true;
+      fireAction("acknowledge_incident", v.id, "Called customer about complaint");
+      addConfirmCard(v, `Customer called · Order ${v.id}`, ["Called the customer about their complaint"], "contact");
+      fadeRemove(card);
+    });
+    card.querySelector(".escalate").addEventListener("click", () => {
+      v.complaintResolved = true;
+      fireAction("acknowledge_incident", v.id, "Complaint escalated to support lead");
+      addConfirmCard(v, `Escalated · Order ${v.id}`, ["Complaint escalated to the support lead"], "escalate");
+      fadeRemove(card);
+    });
+    card.querySelector(".okay").addEventListener("click", () => {
+      card.classList.add("leaving"); setTimeout(() => card.remove(), 300);
+    });
+    attachDismiss(card, null);
+    wrap.prepend(card);
+    trimCards();
+  }
+
+  // Success/confirmation notification
+  // `lines` is an array of short confirmation strings shown with green ticks.
+  function addConfirmCard(v, title, lines, variant) {
+    const wrap = document.getElementById("cards");
+    const card = document.createElement("div");
+    card.className = "card confirm" + (variant ? " v-" + variant : "");
+    const rows = lines.map(l => `<div class="cline"><span class="tick">✓</span> ${l}</div>`).join("");
+    const body = v
+      ? `${v.kind.emoji} ${v.kitchen}`
+      : (lines[0] || "Goodwill refund issued from the operations database");
+    card.innerHTML = `
+      <div class="head">
+        <span class="dotc ok"></span>
+        <span class="title">${title}</span>
+        <span class="kind ok2">✅ Done</span>
+      </div>
+      <div class="body">${body}</div>
+      ${rows}
+      <div class="acts"><button class="btn okay">Dismiss</button></div>`;
+    card.querySelector(".okay").addEventListener("click", () => {
+      card.classList.add("leaving"); setTimeout(() => card.remove(), 300);
+    });
+    attachDismiss(card, null);
+    wrap.prepend(card);
+    trimCards();
+    const orderId = v ? v.id : (title.match(/Order\s+(\S+)/)?.[1] || "");
+    pushNotif({ ts: Date.now(), orderId, type: "confirm", title, body: lines.join(" · ") });
+  }
+
+  function notifyLakebaseRefund(rf, vById) {
+    const orderId = String(rf.order_id || "");
+    if (!orderId) return false;
+    const amt = (rf.amount != null && rf.amount !== "")
+      ? ` $${(+rf.amount).toFixed(2)}` : "";
+    const v = vById.get(orderId);
+    fadeRemoveById("cmp-" + orderId);
+    if (v) {
+      v.refunded = true;
+      v.refundNotified = true;
+      v.complaintResolved = true;
+      addConfirmCard(v, `Refund sent · Order ${orderId}`, [
+        `Refund${amt} issued to the customer`,
+        rf.reason || "Goodwill refund",
+      ]);
+    } else {
+      const kitchen = rf.kitchen || "Kitchen";
+      const kind = rf.kind || "Order";
+      addConfirmCard(null, `Refund sent · Order ${orderId}`, [
+        `Refund${amt} issued to the customer`,
+        `${kind} · ${kitchen}`,
+        rf.reason || "Goodwill refund",
+      ]);
+    }
+    return true;
+  }
+
+  // Auto-reroute: a stuck delivery reroutes itself via the alternate crossing
+  // after a short delay. Clears the delay notification and raises a "rerouting"
+  // notification in its place.
+  function autoReroute(v) {
+    if (v.rerouted || v.status === "cancelled" || v.status === "delivered") return;
+    removeCard(v);
+    addReroutingCard(v);
+    rerouteOrder(v);
+  }
+  function addReroutingCard(v) {
+    const wrap = document.getElementById("cards");
+    const card = document.createElement("div");
+    card.className = "card rerouting";
+    card.innerHTML = `
+      <div class="head">
+        <span class="dotc rr"></span>
+        <span class="title">Order ${v.id} rerouting</span>
+        <span class="kind rr2">↩ Reroute</span>
+      </div>
+      <div class="body">${v.vtype.emoji} ${v.kitchen} · auto-rerouting via ${ALT_NAME}</div>
+      <div class="acts"><button class="btn more">⋯ More</button><button class="btn okay">Dismiss</button></div>`;
+    card.querySelector(".more").addEventListener("click", () => openMore(v, "delay"));
+    card.querySelector(".okay").addEventListener("click", () => { card.classList.add("leaving"); setTimeout(() => card.remove(), 300); });
+    attachDismiss(card, null);
+    wrap.prepend(card);
+    trimCards();
+    pushNotif({ ts: Date.now(), orderId: v.id, type: "reroute", title: `Order ${v.id} rerouting`, body: `${v.kind.emoji} ${v.kitchen} · via ${ALT_NAME}` });
+  }
+
+  // ── Kitchen modal: all current orders from a kitchen (incl. stuck) ──
+  let currentKitchen = null;
+  function orderStatus(v) {
+    if (v.status === "cancelled") return { t: "Cancelled", c: "cancel" };
+    if (v.status === "delivered") return { t: "Delivered", c: "done" };
+    if (v.status === "stuck")    return { t: "Stuck · +" + lateOf(v) + " min", c: "stuck" };
+    if (v.status === "late")     return { t: "Delayed · +" + lateOf(v) + " min", c: "late" };
+    if (v.status === "rerouted") return { t: "Rerouted", c: "reroute" };
+    if (v.status === "routing")  return { t: "Preparing", c: "ok" };
+    return { t: "On the road", c: "ok" };
+  }
+  function openKitchen(k) {
+    currentKitchen = k;
+    const orders = vehicles.filter(v => v.kitchen === k.name && v.status !== "delivered" && v.status !== "cancelled");
+    document.getElementById("kName").textContent = `${k.emoji} ${k.name}`;
+    document.getElementById("kCount").textContent =
+      orders.length + " active order" + (orders.length === 1 ? "" : "s");
+    const wrap = document.getElementById("kOrders");
+    if (!orders.length) {
+      wrap.innerHTML = `<div class="kempty">No active orders right now.</div>`;
+    } else {
+      // stuck / late first so the operator sees problems at the top
+      const rank = { stuck: 0, late: 1, rerouted: 2, enroute: 3, routing: 4 };
+      orders.sort((a, b) => (rank[a.status] ?? 9) - (rank[b.status] ?? 9));
+      wrap.innerHTML = orders.map(v => {
+        const s = orderStatus(v);
+        const cold = v.kind.cold ? " ❄️" : "";
+        return `<div class="korow">
+          <span class="kk-veh">${v.vtype.emoji}</span>
+          <span class="kk-id">${v.id}</span>
+          <span class="kk-kind">${v.kind.emoji} ${v.kind.label}${cold}</span>
+          <span class="kk-status ${s.c}">${s.t}</span>
+          <button class="btn kk-more" data-id="${v.id}">Details</button>
+        </div>`;
+      }).join("");
+      wrap.querySelectorAll(".kk-more").forEach(btn => btn.addEventListener("click", () => {
+        const v = vehicles.find(x => x.id === btn.dataset.id);
+        if (v) { closeKitchen(); openMore(v); }
+      }));
+    }
+    document.getElementById("kmodal").hidden = false;
+  }
+  function closeKitchen() { document.getElementById("kmodal").hidden = true; currentKitchen = null; }
+
+  // ── Sidebar (Orders + Notifications tabs) ──
+  let sidebarOpen = false, sbFilter = "all", sbMode = "orders";
+  let _sbLastRenderAt = 0;
+  function sbMatch(v, f) {
+    if (f === "all") return true;
+    if (f === "active") return v.status === "enroute" || v.status === "routing";
+    if (f === "delayed") return v.status === "stuck" || v.status === "late";
+    if (f === "rerouted") return v.status === "rerouted";
+    if (f === "delivered") return v.status === "delivered";
+    if (f === "cancelled") return v.status === "cancelled";
+    return true;
+  }
+  // Selecting an order in the list highlights it on the map with a floating
+  // callout label (id + kitchen) and a blue ring on its puck. The rest of the
+  // map stays fully visible. Clicking the same row again clears the label.
+  let selectedOrderId = null;
+  let sbClickTimer = null;
+  function applySelectionDim() {
+    // Drop a stale selection if the order is gone (delivered/cancelled/removed).
+    if (selectedOrderId && !vehicles.some(v => v.id === selectedOrderId && v.marker)) {
+      selectedOrderId = null;
+    }
+    // Instead of dimming the rest of the map, we tag the selected order with a
+    // floating callout label so it's easy to spot; everything stays full opacity.
+    for (const v of vehicles) {
+      if (v.marker) v.marker.setOpacity(1);
+      if (v.custDot) v.custDot.setOpacity(1);
+      refreshIcon(v);
+    }
+  }
+  function selectOrder(id) {
+    selectedOrderId = (selectedOrderId === id) ? null : id;
+    applySelectionDim();
+    renderSidebar();
+  }
+
+  function renderSidebar() {
+    _sbLastRenderAt = Date.now();
+    if (sbMode === "notifs") return renderNotifs();
+    return renderOrders();
+  }
+  function renderOrders() {
+    const list = document.getElementById("sbList");
+    const rows = vehicles.filter(v => sbMatch(v, sbFilter)).slice().reverse();
+    document.getElementById("sbCount").textContent = "(" + rows.length + ")";
+    if (!rows.length) { list.innerHTML = `<div class="sb-empty">No orders in this view.</div>`; return; }
+    const sel = selectedOrderId;
+    list.innerHTML = rows.map(v => {
+      const s = orderStatus(v);
+      const cold = v.kind.cold ? " ❄️" : "";
+      const cls = sel ? (v.id === sel ? " sel" : " dim") : "";
+      return `<div class="sb-row${cls}" data-id="${v.id}">
+        <span class="kk-veh">${v.vtype.emoji}</span>
+        <span class="sr-id">${v.id}</span>
+        <span class="sr-kit">${v.kind.emoji} ${v.kitchen}${cold}</span>
+        <span class="kk-status ${s.c}">${s.t}</span>
+      </div>`;
+    }).join("");
+    list.querySelectorAll(".sb-row").forEach(r => {
+      // Single click highlights (dims the rest); double click opens the popup.
+      // A short timer distinguishes the two so a dblclick doesn't also toggle.
+      r.addEventListener("click", () => {
+        if (sbClickTimer) return;
+        const id = r.dataset.id;
+        sbClickTimer = setTimeout(() => { sbClickTimer = null; selectOrder(id); }, 220);
+      });
+      r.addEventListener("dblclick", () => {
+        if (sbClickTimer) { clearTimeout(sbClickTimer); sbClickTimer = null; }
+        const v = vehicles.find(x => x.id === r.dataset.id);
+        if (v) openMore(v);   // popup only — highlighting is single-click's job
+      });
+    });
+  }
+  function renderNotifs() {
+    const list = document.getElementById("sbList");
+    const rows = notifLog.slice().reverse();
+    document.getElementById("sbCount").textContent = "(" + rows.length + ")";
+    if (!rows.length) { list.innerHTML = `<div class="sb-empty">No notifications yet.</div>`; return; }
+    list.innerHTML = rows.map(n => {
+      const v = vehicles.find(x => x.id === n.orderId);
+      const s = v ? orderStatus(v) : { t: "—", c: "cancel" };
+      const ico = n.type === "confirm" ? "✅" : n.type === "complaint" ? "😠" : n.type === "expired" ? "⛔" : n.type === "reroute" ? "↩" : "⚠️";
+      return `<div class="nrow" data-id="${n.orderId}" data-type="${n.type}">
+        <span class="nr-ico">${ico}</span>
+        <span class="nr-body"><span class="nr-title">${n.title}</span><br><span class="nr-time">${fmtClock(n.ts)} · ${n.body}</span></span>
+        <span class="kk-status ${s.c}">${s.t}</span>
+      </div>`;
+    }).join("");
+    const NOTIF_SET = { delayed: "delay", expired: "cancelled", complaint: "complaint", reroute: "delay" };
+    list.querySelectorAll(".nrow").forEach(r => r.addEventListener("click", () => {
+      const v = vehicles.find(x => x.id === r.dataset.id);
+      if (v) openMore(v, NOTIF_SET[r.dataset.type]);   // match the notification's own buttons
+    }));
+  }
+  function openSidebar(mode) {
+    sbMode = mode; sidebarOpen = true;
+    document.getElementById("sidebar").classList.add("open");
+    document.getElementById("sbChev").textContent = "‹";
+    document.querySelectorAll("#sidebar .sb-tab").forEach(t => t.classList.toggle("on", t.dataset.tab === mode));
+    document.getElementById("sbFilters").style.display = mode === "orders" ? "" : "none";
+    renderSidebar();
+  }
+  function toggleSidebar(force) {
+    const open = force !== undefined ? force : !sidebarOpen;
+    if (open) return openSidebar(sbMode);
+    sidebarOpen = false;
+    document.getElementById("sidebar").classList.remove("open");
+    document.getElementById("sbChev").textContent = "›";
+  }
+
+  // ── "More" modal: order details, message driver, chat ──
+  let currentModalV = null;
+  const CHAT_PRESETS = ["Wait 5 min at the bridge", "Reroute via alternate", "Leave at door", "Call the customer", "Return to kitchen"];
+  function openMore(v, forceSet) {
+    currentModalV = v;
+    document.getElementById("mOrderId").textContent = v.id;
+    refreshModalMeta(v);
+    renderModalActions(v, forceSet);
+    renderChat(v);
+    document.getElementById("modal").hidden = false;
+    setTimeout(() => document.getElementById("mMsg").focus(), 50);
+  }
+  function closeModal() { document.getElementById("modal").hidden = true; currentModalV = null; }
+
+  // The modal's action buttons mirror whichever notification the order maps to:
+  // an open/stuck order shows the delay actions, a cancelled order shows the
+  // cancellation actions, and a complaining customer shows the complaint
+  // actions. Same buttons, same handlers as the cards.
+  function modalActionSet(v) {
+    if (v.complained && !v.complaintResolved) return "complaint";
+    if (v.status === "cancelled") return "cancelled";
+    return "delay";
+  }
+  function renderModalActions(v, forceSet) {
+    const box = document.getElementById("mActions");
+    // The popup shows the exact buttons of the notification card that opened it
+    // (passed as forceSet). Falls back to inferring from state (e.g. when opened
+    // from the sidebar or kitchen list).
+    const set = forceSet || modalActionSet(v);
+    if (set === "complaint") {
+      box.innerHTML = `
+        <button class="btn apology" id="mApology">🙏 Apology + refund</button>
+        <button class="btn contact" id="mCall">📞 Call customer</button>
+        <button class="btn escalate" id="mEscalate">⬆︎ Escalate</button>`;
+      box.querySelector("#mApology").addEventListener("click", () => {
+        fireAction("issue_credit", v.id, "Apology sent + refund issued for complaint");
+        dbRefund(v, "Apology + refund issued for complaint");
+        dbResolveComplaint(v, "Apology + refund sent");
+        v.complaintResolved = true;
+        addConfirmCard(v, `Resolved · Order ${v.id}`, [
+          "Full refund issued to the customer",
+          "Apology message sent to the customer",
+        ]);
+        fadeRemoveById("cmp-" + v.id); closeModal();
+      });
+      box.querySelector("#mCall").addEventListener("click", () => {
+        v.complaintResolved = true;
+        fireAction("acknowledge_incident", v.id, "Called customer about complaint");
+        addConfirmCard(v, `Customer called · Order ${v.id}`, ["Called the customer about their complaint"], "contact");
+        fadeRemoveById("cmp-" + v.id); closeModal();
+      });
+      box.querySelector("#mEscalate").addEventListener("click", () => {
+        v.complaintResolved = true;
+        fireAction("acknowledge_incident", v.id, "Complaint escalated to support lead");
+        addConfirmCard(v, `Escalated · Order ${v.id}`, ["Complaint escalated to the support lead"], "escalate");
+        fadeRemoveById("cmp-" + v.id); closeModal();
+      });
+    } else if (set === "cancelled") {
+      box.innerHTML = `
+        <button class="btn refund" id="mRefund">💸 Refund</button>
+        <button class="btn reorder" id="mReorder">🔁 Reorder</button>
+        <button class="btn contact" id="mContact">💬 Contact</button>`;
+      box.querySelector("#mRefund").addEventListener("click", () => {
+        v.expReacted = true;
+        fireAction("issue_credit", v.id, "Full refund issued for cancelled order");
+        dbRefund(v, "Full refund issued for cancelled order");
+        addConfirmCard(v, `Refund issued · Order ${v.id}`, ["Full refund issued to the customer"]);
+        fadeRemoveById("exp-" + v.id); closeModal();
+      });
+      box.querySelector("#mReorder").addEventListener("click", () => {
+        v.expReacted = true;
+        fireAction("acknowledge_incident", v.id, "Reorder placed for customer (same setup)");
+        reorderOrder(v); // identical kitchen, address, courier and item
+        addConfirmCard(v, `Reorder placed · Order ${v.id}`, [`Re-placed ${v.kind.emoji} ${v.kind.label} from ${v.kitchen} to the same address`], "reorder");
+        fadeRemoveById("exp-" + v.id); closeModal();
+      });
+      box.querySelector("#mContact").addEventListener("click", () => {
+        v.expReacted = true;
+        fireAction("acknowledge_incident", v.id, "Contacted customer about cancellation");
+        addConfirmCard(v, `Customer contacted · Order ${v.id}`, ["Reached out to the customer about the cancellation"], "contact");
+        fadeRemoveById("exp-" + v.id); closeModal();
+      });
+    } else {
+      // Delivery reroutes itself automatically now — the only manual action on a
+      // delay notification is to dismiss it.
+      box.innerHTML = `<button class="btn okay" id="mDismiss">Dismiss</button>`;
+      box.querySelector("#mDismiss").addEventListener("click", () => {
+        removeCard(v); closeModal();
+      });
+    }
+  }
+  function refreshModalMeta(v) {
+    const late = openCards.has(v.id) ? lateOf(v) : v.lateBase;
+    const status = v.status === "rerouted" ? "Rerouted" : v.status === "late" ? "Delay ignored"
+      : v.status === "stuck" ? "Stuck at bridge" : v.status === "delivered" ? "Delivered"
+      : v.status === "cancelled" ? "Cancelled (expired)" : v.status;
+    document.getElementById("mDetails").innerHTML = `
+      <div class="d-row"><span>Order</span><b>${v.id}</b></div>
+      <div class="d-row"><span>Type</span><b>${v.kind.emoji} ${v.kind.label}${v.kind.cold ? " ❄️" : ""}</b></div>
+      <div class="d-row"><span>Kitchen</span><b>${v.kitchen}</b></div>
+      <div class="d-row"><span>Courier</span><b>${v.vtype.emoji} ${v.vtype.type}</b></div>
+      <div class="d-row"><span>Promised</span><b>${fmtClock(v.promisedAt)}</b></div>
+      <div class="d-row"><span>Delay</span><b class="late-strong">+${late} min</b></div>
+      <div class="d-row"><span>Max delay</span><b>${v.maxDelay} min</b></div>
+      <div class="d-row"><span>Status</span><b>${status}</b></div>`;
+  }
+  function renderChat(v) {
+    const log = document.getElementById("mChat");
+    log.innerHTML = v.chat.length
+      ? v.chat.map(m => `<div class="msg ${m.who}">${m.text}</div>`).join("")
+      : `<div class="empty">No messages yet — send the driver an instruction.</div>`;
+    log.scrollTop = log.scrollHeight;
+    const presets = document.getElementById("mPresets");
+    presets.innerHTML = CHAT_PRESETS.map((p, i) => `<button class="chip" data-i="${i}">${p}</button>`).join("");
+    presets.querySelectorAll(".chip").forEach(btn =>
+      btn.addEventListener("click", () => sendMsg(v, CHAT_PRESETS[+btn.dataset.i])));
+  }
+  function sendMsg(v, text) {
+    if (!text || !text.trim()) return;
+    text = text.trim();
+    v.chat.push({ who: "ops", text });
+    renderChat(v);
+    const input = document.getElementById("mMsg"); if (input) input.value = "";
+    setTimeout(() => {
+      v.chat.push({ who: "driver", text: driverReply(text) });
+      if (currentModalV === v) renderChat(v);
+    }, 700 + Math.random() * 600);
+    fireAction("acknowledge_incident", v.id, "Ops → driver: " + text);
+  }
+  function driverReply(text) {
+    const t = text.toLowerCase();
+    if (t.includes("reroute") || t.includes("alternate")) return "👍 Rerouting via the alternate crossing now.";
+    if (t.includes("wait") || t.includes("hold")) return "Holding position near the bridge.";
+    if (t.includes("door")) return "Will leave it at the door and send a photo.";
+    if (t.includes("call")) return "Calling the customer now.";
+    if (t.includes("kitchen") || t.includes("return")) return "Heading back to the kitchen.";
+    return "Copy that. 👍";
+  }
+
+  async function rerouteOrder(v) {
+    if (v.status === "cancelled" || v.status === "delivered") return;
+    const cur = posAt(v);
+    v.status = "rerouted"; v.rerouted = true; refreshIcon(v);
+    if (v.custDot) v.custDot.setIcon(dropIcon(false));
+    // Pin the customer-bank approach after ALT so the leg past the alternate
+    // crossing can't route back over the closed main bridge.
+    const custApproach = bankOf(v.customer) === "a" ? APPROACH_A : APPROACH_B;
+    let geo;
+    try { geo = await osrm([cur, ALT, custApproach, v.customer]); }
+    catch (e) { geo = [cur, ALT, custApproach, v.customer]; }
+    Object.assign(v, buildPath(geo));
+    v.traveled = 0; v.crosses = false; v.bridgeDist = null;
+    const line = L.polyline(v.pts, { color: "#af52de", weight: 3, opacity: .7, dashArray: "4 8" }).addTo(routeLayer);
+    setTimeout(() => routeLayer.removeLayer(line), 7000);
+    stats.reroute++;
+    dbStatus(v, "rerouted");
+    fireAction("reroute_driver", v.id, `Rerouted via ${ALT_NAME}`);
+  }
+
+  // ── Fire action to Databricks (non-blocking; keeps the Delta story real) ──
+  // Track in-flight fetches so Cmd+R can abort them instantly. An unloaded page
+  // with hundreds of pending sim POSTs (and OSRM route lookups) was leaving the
+  // tab spinner running forever.
+  let _pageUnloading = false;
+  const _writeAborters = new Set();
+  const _osrmAborters = new Set();
+  let _unloadCtrl = new AbortController();
+  let _simPostActive = 0;
+  let _simPostQueue = [];
+  const SIM_POST_MAX = 3;
+  let _saveSessionIv = null;
+  let _pollIv = null;
+  let _pollBusy = false;
+
+  function preparePageUnload() {
+    if (_pageUnloading) return;
+    _pageUnloading = true;
+    _unloadCtrl.abort();
+    for (const c of _writeAborters) c.abort();
+    _writeAborters.clear();
+    for (const c of _osrmAborters) c.abort();
+    _osrmAborters.clear();
+    _simPostQueue = [];
+    _simPostActive = 0;
+    if (_saveSessionIv) clearInterval(_saveSessionIv);
+    if (_pollIv) clearInterval(_pollIv);
+    clearTimeout(saveSessionTimer);
+  }
+  window.addEventListener("beforeunload", preparePageUnload, { capture: true });
+  window.addEventListener("pagehide", preparePageUnload, { capture: true });
+
+  // Lakebase read polls — long timeout, aborted only on page unload (not at 3s).
+  function pollFetch(url, timeoutMs = 20000) {
+    if (_pageUnloading) return Promise.reject(new DOMException("unloading", "AbortError"));
+    const ctrl = new AbortController();
+    const onUnload = () => ctrl.abort();
+    _unloadCtrl.signal.addEventListener("abort", onUnload);
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    return fetch(url, { signal: ctrl.signal })
+      .finally(() => {
+        clearTimeout(timer);
+        _unloadCtrl.signal.removeEventListener("abort", onUnload);
+      });
+  }
+
+  function trackedFetch(url, opts = {}, timeoutMs = 8000) {
+    if (_pageUnloading) return Promise.reject(new DOMException("unloading", "AbortError"));
+    const ctrl = new AbortController();
+    _writeAborters.add(ctrl);
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    const ext = opts.signal;
+    if (ext) {
+      if (ext.aborted) ctrl.abort();
+      else ext.addEventListener("abort", () => ctrl.abort(), { once: true });
+    }
+    return fetch(url, { ...opts, signal: ctrl.signal })
+      .finally(() => { clearTimeout(timer); _writeAborters.delete(ctrl); });
+  }
+
+  function drainSimPost() {
+    if (_pageUnloading) return;
+    while (_simPostActive < SIM_POST_MAX && _simPostQueue.length) {
+      const { path, payload } = _simPostQueue.shift();
+      _simPostActive++;
+      trackedFetch(path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }, 5000).catch(() => {}).finally(() => {
+        _simPostActive--;
+        drainSimPost();
+      });
+    }
+  }
+
+  function fireAction(action_type, order_id, notes) {
+    trackedFetch("/api/actions/execute", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action_type, order_id, incident_id: "", notes: notes || "" }),
+    }, 5000).catch(() => {});
+  }
+
+  // ── Persist simulation lifecycle to Lakebase (fire-and-forget) ──
+  // Only discrete transitions are written (never per-second ticks), so the
+  // backend holds a real record of every order, status change, refund and
+  // complaint without hammering Postgres.
+  function simPost(path, payload, priority) {
+    if (_pageUnloading) return;
+    const item = { path, payload };
+    if (priority) _simPostQueue.unshift(item);
+    else _simPostQueue.push(item);
+    drainSimPost();
+  }
+  function dbOrder(v) {
+    simPost("/api/sim/order", {
+      order_id: v.id, session_id: sessionId, city: currentCityId || "", kitchen: v.kitchen,
+      vehicle: v.vtype.type, kind: v.kind.label, cold: !!v.kind.cold,
+      cross_river: !!v.crosses, status: v.status, late_min: lateOf(v),
+      max_delay_min: v.maxDelay, placed_at: v.placedAt, promised_at: v.promisedAt,
+    });
+  }
+  function dbStatus(v, status) {
+    simPost("/api/sim/status", { order_id: v.id, status, late_min: lateOf(v) });
+  }
+  // Count a refund once (guards against double-counting the same order across
+  // the in-app path and the Lakebase poll) and add its amount to the running sum.
+  function recordRefundStats(orderId, amount) {
+    if (!orderId || refundedOrderIds.has(orderId)) return false;
+    refundedOrderIds.add(orderId);
+    stats.refunded++;
+    stats.refundTotal += (+amount || 0);
+    updateStats();
+    return true;
+  }
+  // Source of truth for the Refunded stat when Lakebase is live — reconciles
+  // every poll so SQL-issued refunds (query 2) show up even on the first poll.
+  function syncRefundStatsFromDb(summary) {
+    if (!summary) return;
+    const count = Number(summary.count);
+    const total = Number(summary.total);
+    stats.refunded = Number.isFinite(count) ? count : 0;
+    stats.refundTotal = Number.isFinite(total) ? total : 0;
+    refundedOrderIds = new Set(summary.order_ids || []);
+    updateStats();
+  }
+
+  async function pollRefundSummary() {
+    try {
+      const url = "/api/sim/refund-summary?session_id="
+        + encodeURIComponent(sessionId || "");
+      const r = await pollFetch(url);
+      if (!r.ok) return;
+      const data = await r.json();
+      if (data?.summary) syncRefundStatsFromDb(data.summary);
+    } catch (e) {}
+  }
+  function recordRefund(v, amount) {
+    if (v.refunded) return;
+    if (!recordRefundStats(v.id, amount)) return;
+    v.refunded = true;
+  }
+  function dbRefund(v, reason) {
+    // Mark so the Lakebase refund poll doesn't re-notify for a refund the app
+    // just issued itself (it already showed its own confirmation card).
+    v.refundNotified = true;
+    const amount = v.orderValue || 0;
+    recordRefund(v, amount);
+    simPost("/api/sim/refund", { order_id: v.id, reason: reason || "", amount }, true);
+  }
+  function dbComplaint(v, quote) {
+    // Jump the queue — query 2 reads complaints from Lakebase immediately.
+    trackedFetch("/api/sim/complaint", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ order_id: v.id, quote: quote || "" }),
+    }, 5000).catch(() => {});
+  }
+  function dbResolveComplaint(v, resolution) {
+    trackedFetch("/api/sim/complaint", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ order_id: v.id, resolution: resolution }),
+    }, 5000).catch(() => {});
+  }
+
+  // ── Lakebase-driven actions ──
+  // The map polls Lakebase every few seconds. Running plain SQL against the
+  // operations database drives the sim live:
+  //
+  //   -- reroute stuck orders:
+  //   UPDATE orders SET status='rerouted', updated_at=NOW()
+  //   WHERE status='stuck' RETURNING order_id;
+  //
+  //   -- reorder cancelled orders:
+  //   UPDATE orders SET status='reordered', updated_at=NOW()
+  //   WHERE status='cancelled' RETURNING order_id;
+  //
+  //   -- issue a refund (see demos/devconnect-runbooks/sql_queries.sql):
+  //   INSERT INTO refunds (order_id, amount, reason) VALUES (...);
+  //
+  function externalReroute(v) {
+    if (v.rerouted || v.status === "cancelled" || v.status === "delivered") return;
+    removeCard(v);
+    addReroutingCard(v);
+    rerouteOrder(v);
+  }
+  // Mirror query 1 in sql_queries.sql: when route_policies closes the crossing,
+  // reroute stuck/enroute cold orders that are still within their delay budget.
+  function applyRoutingPolicyReroutes() {
+    let n = 0;
+    for (const v of vehicles) {
+      if (v.rerouted || !v.crosses || !v.kind.cold) continue;
+      if (v.status !== "stuck" && v.status !== "late" && v.status !== "enroute") continue;
+      if (lateOf(v) >= v.maxDelay) continue;
+      externalReroute(v);
+      n++;
+    }
+    return n;
+  }
+  function externalReorder(v) {
+    if (v.dbReordered) return;
+    v.dbReordered = true;
+    fadeRemoveById("exp-" + v.id);
+    reorderOrder(v);
+    addConfirmCard(v, `Reorder placed · Order ${v.id}`, [
+      `Re-placed ${v.kind.label} to the same address`,
+      "Fresh delivery dispatched from the operations database",
+    ], "reorder");
+  }
+  let seenRefundIds = null; // seeded on first poll so only NEW refunds notify
+  let refundPollPrimed = false;
+  let policyBridgeClosed = false;
+  let seenPolicyClosed = null;
+  async function pollLakebase() {
+    if (_pageUnloading || _pollBusy || document.hidden) return;
+    _pollBusy = true;
+    try {
+    await pollRefundSummary();
+
+    // Recent refunds for notification cards only (summary carries the stat).
+    try {
+      const refundUrl = "/api/sim/refunds?limit=50&session_id="
+        + encodeURIComponent(sessionId || "");
+      const r = await pollFetch(refundUrl);
+      if (!r.ok) return;
+      const data = await r.json();
+      if (!data || !data.enabled) return;
+      const sessionRefunds = Array.isArray(data.session_refunds) && data.session_refunds.length
+        ? data.session_refunds
+        : (Array.isArray(data.refunds) ? data.refunds : []);
+      if (data.summary) syncRefundStatsFromDb(data.summary);
+      if (!refundPollPrimed) {
+        seenRefundIds = new Set(sessionRefunds.map(x => x.id));
+        refundPollPrimed = true;
+      } else {
+        const vById = new Map(vehicles.map(v => [v.id, v]));
+        let nRef = 0;
+        for (const rf of sessionRefunds.slice().reverse()) {
+          if (seenRefundIds.has(rf.id)) continue;
+          const issuedAt = rf.issued_at ? Date.parse(rf.issued_at) : NaN;
+          if (Number.isFinite(issuedAt) && issuedAt < sessionStartedAt - 10000) {
+            seenRefundIds.add(rf.id);
+            continue;
+          }
+          seenRefundIds.add(rf.id);
+          if (notifyLakebaseRefund(rf, vById)) nRef++;
+        }
+        if (nRef) showBanner("💸", "Refunds issued",
+          `${nRef} refund${nRef > 1 ? "s" : ""} sent straight from the operations database.`);
+      }
+    } catch (e) {}
+
+    if (!vehicles.length) return;
+
+    try {
+      const cityId = currentCityId || "amsterdam";
+      const r = await pollFetch(
+        "/api/sim/route-policy?city=" + encodeURIComponent(cityId));
+      if (!r.ok) return;
+      const data = await r.json();
+      if (data && data.enabled && data.policy) {
+        const closed = data.policy.status === "closed";
+        if (seenPolicyClosed === null) seenPolicyClosed = closed;
+        else if (!seenPolicyClosed && closed) {
+          const xing = data.policy.crossing_name || BRIDGE_NAME;
+          const alt = data.policy.alternate_crossing || ALT_NAME;
+          showBanner("🗄", "Routing policy updated",
+            `${xing} closed in master data — new deliveries use ${alt}.`);
+          const nPol = applyRoutingPolicyReroutes();
+          if (nPol) showBanner("🗄", "Routing policy applied",
+            `${nPol} cold-chain order${nPol > 1 ? "s" : ""} rerouted via ${alt}.`);
+        }
+        seenPolicyClosed = closed;
+        policyBridgeClosed = closed;
+      }
+    } catch (e) {}
+    // order statuses → reroute / reorder
+    try {
+      const r = await pollFetch("/api/sim/order-statuses?limit=2000");
+      if (!r.ok) return;
+      const data = await r.json();
+      if (data && data.enabled && Array.isArray(data.statuses)) {
+        const byId = new Map(data.statuses.map(s => [s.order_id, s.status]));
+        let nRe = 0, nOrd = 0;
+        for (const v of vehicles) {
+          const st = byId.get(v.id);
+          if ((v.status === "stuck" || v.status === "late") && !v.rerouted
+              && st === "rerouted") { externalReroute(v); nRe++; }
+          else if (st === "reordered" && !v.dbReordered) { externalReorder(v); nOrd++; }
+        }
+        if (nRe) showBanner("🗄", "Lakebase update applied",
+          `${nRe} stuck order${nRe > 1 ? "s" : ""} rerouted straight from the operations database.`);
+        if (nOrd) showBanner("🗄", "Lakebase update applied",
+          `${nOrd} cancelled order${nOrd > 1 ? "s" : ""} reordered straight from the operations database.`);
+      }
+    } catch (e) {}
+    } finally {
+      _pollBusy = false;
+    }
+  }
+  function startLakebasePoll() {
+    if (_pollIv) clearInterval(_pollIv);
+    seenRefundIds = null;
+    refundPollPrimed = false;
+    pollLakebase();
+    _pollIv = setInterval(pollLakebase, 2000);
+  }
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && !_pageUnloading) pollLakebase();
+  });
+
+  // ── Controls ──
+  document.getElementById("playBtn").addEventListener("click", e => {
+    running = !running;
+    if (running) { resumeClock(); last = performance.now(); } else { pauseClock(); }
+    e.target.textContent = running ? "⏸ Pause" : "▶ Play";
+    e.target.classList.toggle("primary", running);
+  });
+  document.getElementById("bridgeBtn").addEventListener("click", closeBridge);
+  document.getElementById("speedSeg").addEventListener("click", e => {
+    const btn = e.target.closest("button[data-sim]");
+    if (!btn) return;
+    sim = +btn.dataset.sim;
+    document.querySelectorAll("#speedSeg button").forEach(b => b.classList.toggle("on", b === btn));
+  });
+  document.getElementById("themeSeg").addEventListener("click", e => {
+    const btn = e.target.closest("button[data-theme]");
+    if (!btn) return;
+    applyTheme(btn.dataset.theme);
+  });
+  document.getElementById("orders").addEventListener("input", e => {
+    fleetTarget = +e.target.value;
+    document.getElementById("ordersVal").textContent = fleetTarget;
+    fillFleet();
+    scheduleSaveSession();
+    saveCfg({ city: currentCityId || document.getElementById("cfgCity").value || "", orders: fleetTarget, speed: sim });
+  });
+  document.getElementById("restartBtn").addEventListener("click", restart);
+
+  // Modal controls
+  document.getElementById("mClose").addEventListener("click", closeModal);
+  document.getElementById("modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
+  document.getElementById("mSend").addEventListener("click", () => { if (currentModalV) sendMsg(currentModalV, document.getElementById("mMsg").value); });
+  document.getElementById("mMsg").addEventListener("keydown", e => { if (e.key === "Enter" && currentModalV) sendMsg(currentModalV, e.target.value); });
+  document.getElementById("kClose").addEventListener("click", closeKitchen);
+  document.getElementById("kmodal").addEventListener("click", e => { if (e.target.id === "kmodal") closeKitchen(); });
+  document.getElementById("sbHandle").addEventListener("click", () => toggleSidebar());
+  document.getElementById("sbClose").addEventListener("click", () => toggleSidebar(false));
+  document.querySelector("#sidebar .sb-tabs").addEventListener("click", e => {
+    const tab = e.target.closest(".sb-tab"); if (!tab) return;
+    openSidebar(tab.dataset.tab);
+  });
+  document.getElementById("sbFilters").addEventListener("click", e => {
+    const chip = e.target.closest(".chip"); if (!chip) return;
+    sbFilter = chip.dataset.f;
+    document.querySelectorAll("#sbFilters .chip").forEach(c => c.classList.toggle("on", c === chip));
+    // Changing filters clears any highlighted order (its label may not belong
+    // in the new view).
+    if (selectedOrderId) { selectedOrderId = null; applySelectionDim(); }
+    renderSidebar();
+  });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") { closeModal(); closeKitchen(); toggleSidebar(false); } });
+
+  function seedFleet() { for (let i = 0; i < fleetTarget; i++) setTimeout(() => spawnOrder(false), i * 25); }
+  async function restart() {
+    clearSession();
+    vehicles.forEach(v => { if (v.marker) vehLayer.removeLayer(v.marker); if (v.custDot) custLayer.removeLayer(v.custDot); v.status = "delivered"; });
+    routeLayer.clearLayers(); trailLayer.clearLayers();
+    document.getElementById("cards").innerHTML = "";
+    openCards.clear(); notifLog = []; pendingComplaints = []; closeModal(); closeKitchen();
+    if (sidebarOpen) renderSidebar();
+    if (closeCircle) { map.removeLayer(closeCircle); closeCircle = null; }
+    clearJams();
+    vehicles = []; seq = 0; newSession(); bridgeClosed = false; queue = { a: 0, b: 0 };
+    policyBridgeClosed = false; seenPolicyClosed = null;
+    // Re-open route_policies in Lakebase (query 1 closes it) — same as config Start.
+    const cfg = {
+      city: currentCityId || document.getElementById("cfgCity").value || "",
+      orders: fleetTarget,
+      speed: sim,
+    };
+    saveCfg(cfg);
+    try {
+      await trackedFetch("/api/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(cfg),
+      }, 5000);
+    } catch (e) {}
+    stats = { delivered: 0, reroute: 0, cancelled: 0, reordered: 0, complaints: 0, refunded: 0, refundTotal: 0 };
+    drawBridgeMarker();
+    document.getElementById("bridgeBtn").disabled = false;
+    running = true; document.getElementById("playBtn").textContent = "⏸ Pause"; document.getElementById("playBtn").classList.add("primary");
+    if (!KITCHENS.length) await loadKitchens();
+    drawKitchens();
+    resetClock();
+    seedFleet();
+    updateStats();
+    autoCloseAt = simNow() + 18000;
+    scheduleSaveSession();
+    startLakebasePoll();
+  }
+
+  // ── Configuration screen ──
+  function readCfgSpeed() {
+    const on = document.querySelector("#cfgSpeed button.on");
+    return on ? +on.dataset.sim : 4;
+  }
+  function syncDockControls() {
+    document.getElementById("orders").value = fleetTarget;
+    document.getElementById("ordersVal").textContent = fleetTarget;
+    document.querySelectorAll("#speedSeg button").forEach(b => b.classList.toggle("on", +b.dataset.sim === sim));
+  }
+  async function populateCities() {
+    let list = [];
+    try {
+      const r = await trackedFetch("/api/cities", {}, 3000);
+      list = r.ok ? await r.json() : [];
+    }
+    catch (e) { list = []; }
+    const sel = document.getElementById("cfgCity");
+    if (!list.length) { sel.innerHTML = `<option value="">Amsterdam, Netherlands</option>`; return; }
+    sel.innerHTML = list.map(c => `<option value="${c.id}"${c.active ? " selected" : ""}>${c.flag} ${c.name}</option>`).join("");
+  }
+  // Pause the sim while the setup screen is open. The overlay uses a
+  // backdrop-filter blur; leaving the 60fps animation running underneath
+  // repaints the blur every frame, which dismisses the native <select> and
+  // makes the screen feel like it closes by itself.
+  let setupPrevRunning = false;
+  function openSetup(canClose) {
+    setupPrevRunning = running;
+    if (running) {
+      running = false; pauseClock();
+      const pb = document.getElementById("playBtn");
+      pb.textContent = "▶ Play"; pb.classList.remove("primary");
+    }
+    document.getElementById("setupClose").hidden = !canClose;
+    // reflect current live settings back into the screen
+    document.getElementById("cfgOrders").value = fleetTarget;
+    document.getElementById("cfgOrdersVal").textContent = fleetTarget;
+    document.querySelectorAll("#cfgSpeed button").forEach(b => b.classList.toggle("on", +b.dataset.sim === sim));
+    if (currentCityId) document.getElementById("cfgCity").value = currentCityId;
+    document.getElementById("setup").hidden = false;
+  }
+  function closeSetup() { document.getElementById("setup").hidden = true; }
+  // ✕ / backing out without changing anything: resume the sim if it was running.
+  function cancelSetup() {
+    closeSetup();
+    if (setupPrevRunning) {
+      running = true; resumeClock(); last = performance.now();
+      const pb = document.getElementById("playBtn");
+      pb.textContent = "⏸ Pause"; pb.classList.add("primary");
+    }
+  }
+
+  // Persist config (city / orders / speed) and the live sim snapshot so Cmd+R
+  // resumes the in-progress run — not just the setup screen.
+  const CFG_KEY = "cc_config_v1";
+  const SESSION_KEY = "cc_session_v1";
+  const SESSION_VERSION = 1;
+
+  function serializeVehicle(v) {
+    // Omit route geometry from snapshots — it bloats JSON and blocks refresh when
+    // beforeunload tries to stringify 95+ full OSRM paths. Positions are restored
+    // from traveled + a straight-line rebuild (fast, good enough for resume).
+    return {
+      id: v.id, vtypeType: v.vtype.type, traveled: v.traveled,
+      customer: v.customer, startSide: v.startSide, custSide: v.custSide,
+      crosses: v.crosses, bridgeDist: v.bridgeDist, rerouted: v.rerouted, status: v.status,
+      notified: v.notified, kitchen: v.kitchen, kindId: v.kind.id, promisedMin: v.promisedMin,
+      placedAt: v.placedAt, promisedAt: v.promisedAt, lateBase: v.lateBase, stuckSince: v.stuckSince,
+      chat: v.chat || [], maxDelay: v.maxDelay, orderValue: v.orderValue,
+      willAutoReroute: v.willAutoReroute, rerouteAfter: v.rerouteAfter,
+      refunded: !!v.refunded, refundNotified: !!v.refundNotified,
+      expReacted: !!v.expReacted, complained: !!v.complained,
+      complaintResolved: !!v.complaintResolved, dbReordered: !!v.dbReordered,
+    };
+  }
+
+  function vehicleFromSnapshot(s) {
+    const vtype = VEH_TYPES.find(t => t.type === s.vtypeType) || VEH_TYPES[0];
+    const kind = ORDER_KINDS.find(k => k.id === s.kindId) || ORDER_KINDS[0];
+    const v = {
+      id: s.id, vtype, kind, pts: s.pts, cum: s.cum, total: s.total, traveled: s.traveled || 0,
+      speed: vtype.mps, customer: s.customer, startSide: s.startSide, custSide: s.custSide,
+      crosses: s.crosses, bridgeDist: s.bridgeDist, rerouted: s.rerouted, status: s.status,
+      notified: s.notified, kitchen: s.kitchen, promisedMin: s.promisedMin,
+      placedAt: s.placedAt, promisedAt: s.promisedAt, lateBase: s.lateBase || 0,
+      stuckSince: s.stuckSince || 0, chat: s.chat || [], maxDelay: s.maxDelay,
+      orderValue: s.orderValue, willAutoReroute: s.willAutoReroute, rerouteAfter: s.rerouteAfter,
+      refunded: s.refunded, refundNotified: s.refundNotified, expReacted: s.expReacted,
+      complained: s.complained, complaintResolved: s.complaintResolved, dbReordered: s.dbReordered,
+    };
+    if (!v.pts || !v.cum || v.total == null) {
+      const kitchen = KITCHENS.find(k => k.name === s.kitchen);
+      const start = kitchen ? kitchen.pos : (s.customer || CENTER);
+      const route = s.crosses ? [start, BRIDGE, s.customer] : [start, s.customer];
+      Object.assign(v, buildPath(route));
+    }
+    const pos = posAt(v);
+    v.marker = L.marker(pos, { icon: puckIcon(v), zIndexOffset: 400 }).addTo(vehLayer);
+    cachePuck(v);
+    const stuck = v.status === "stuck" || v.status === "late";
+    v.custDot = L.marker(v.customer, { icon: dropIcon(stuck), zIndexOffset: 200 })
+      .addTo(custLayer)
+      .bindPopup(`<b>Deliver ${v.id}</b><br>${v.vtype.emoji} from ${v.kitchen}`);
+    return v;
+  }
+
+  function restoreDelayCard(v) {
+    const wrap = document.getElementById("cards");
+    const card = document.createElement("div");
+    card.className = "card delay"; card.id = "card-" + v.id;
+    const coldFlag = v.kind.cold
+      ? `<div class="flag cold">❄️ Cold-chain at risk — ${v.kind.label.toLowerCase()} melting</div>` : "";
+    card.innerHTML = `
+      <div class="head">
+        <span class="dotc"></span>
+        <span class="title">Order ${v.id} delayed</span>
+        <span class="kind${v.kind.cold ? " cold" : ""}">${v.kind.emoji} ${v.kind.label}</span>
+      </div>
+      ${coldFlag}
+      <div class="body">${v.vtype.emoji} ${v.kitchen} · stuck at ${BRIDGE_NAME}</div>
+      <div class="meta">Promised ${fmtClock(v.promisedAt)} · <b class="late">+${lateOf(v)} min late</b></div>
+      <div class="acts">
+        <button class="btn more">⋯ More</button>
+        <button class="btn okay">Dismiss</button>
+      </div>`;
+    card.querySelector(".more").addEventListener("click", () => openMore(v, "delay"));
+    card.querySelector(".okay").addEventListener("click", () => removeCard(v));
+    attachDismiss(card, v);
+    wrap.prepend(card);
+    openCards.set(v.id, { v, el: card });
+  }
+
+  function buildSessionSnapshot() {
+    const active = vehicles.filter(isActiveVehicle);
+    if (!active.length) return null;
+    return {
+      version: SESSION_VERSION,
+      city: currentCityId || "",
+      sessionId,
+      sessionStartedAt,
+      seq,
+      bridgeClosed,
+      stats,
+      fleetTarget,
+      sim,
+      running,
+      simNowSnapshot: simNow(),
+      savedAtWall: Date.now(),
+      autoCloseAt,
+      notifLog: notifLog.slice(-120),
+      pendingComplaints: pendingComplaints.map(p => ({ orderId: p.v.id, dueAt: p.dueAt })),
+      kitchens: KITCHENS.map(k => ({
+        name: k.name, neighborhood: k.neighborhood, emoji: k.emoji, pos: k.pos, bank: k.bank,
+      })),
+      vehicles: active.map(serializeVehicle),
+      jams: snapshotJams(),
+    };
+  }
+
+  function persistSessionSnapshot(snap) {
+    const raw = JSON.stringify(snap);
+    try { localStorage.setItem(SESSION_KEY, raw); } catch (e) {}
+    // Session resume is client-side only (localStorage). Do NOT POST to the
+    // server on a timer — it hammered Lakebase and could freeze the app / block
+    // Cmd+R while requests piled up.
+  }
+
+  function saveSession() {
+    if (_pageUnloading) return;
+    const snap = buildSessionSnapshot();
+    if (!snap) return;
+    persistSessionSnapshot(snap);
+  }
+
+  function loadSession() {
+    try {
+      const s = localStorage.getItem(SESSION_KEY);
+      const j = s ? JSON.parse(s) : null;
+      return j && j.version === SESSION_VERSION ? j : null;
+    } catch (e) { return null; }
+  }
+
+  function clearSession() {
+    try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
+    seenRefundIds = null;
+  }
+
+  function restoreClock(state) {
+    if (state.running) {
+      const elapsed = Date.now() - (state.savedAtWall || Date.now());
+      pausedAccum = Date.now() - state.simNowSnapshot - elapsed;
+      pauseStart = 0;
+    } else {
+      pausedAccum = Date.now() - state.simNowSnapshot;
+      pauseStart = Date.now();
+    }
+  }
+
+  function sessionMatchesCfg(session, cfg) {
+    return session && cfg && session.city === (cfg.city || "") && Array.isArray(session.vehicles) && session.vehicles.length;
+  }
+
+  async function resumeSimulation(state, cfg) {
+    fleetTarget = state.fleetTarget || cfg.orders || 45;
+    sim = state.sim || cfg.speed || 4;
+    syncDockControls();
+    closeSetup();
+    await loadCity(state.city || cfg.city);
+
+    if (state.kitchens?.length) {
+      applyKitchenList(state.kitchens);
+    } else {
+      const cached = loadKitchenCache(currentCityId);
+      if (cached) applyKitchenList(cached);
+    }
+
+    sessionId = state.sessionId || sessionId;
+    sessionStartedAt = state.savedAtWall || state.sessionStartedAt || Date.now();
+    seq = state.seq || 0;
+    bridgeClosed = !!state.bridgeClosed;
+    const savedStats = state.stats || {};
+    stats = {
+      delivered: savedStats.delivered || 0,
+      reroute: savedStats.reroute || 0,
+      cancelled: savedStats.cancelled || 0,
+      reordered: savedStats.reordered || 0,
+      complaints: savedStats.complaints || 0,
+      refunded: 0,
+      refundTotal: 0,
+    };
+    notifLog = Array.isArray(state.notifLog) ? state.notifLog : [];
+    autoCloseAt = state.autoCloseAt || 0;
+    restoreClock(state);
+    running = !!state.running;
+
+    vehicles.forEach(v => { if (v.marker) vehLayer.removeLayer(v.marker); if (v.custDot) custLayer.removeLayer(v.custDot); });
+    routeLayer.clearLayers(); trailLayer.clearLayers(); vehLayer.clearLayers(); custLayer.clearLayers();
+    document.getElementById("cards").innerHTML = "";
+    openCards.clear(); pendingComplaints = []; closeModal(); closeKitchen();
+    if (closeCircle) { map.removeLayer(closeCircle); closeCircle = null; }
+    clearJams();
+
+    map.setView(CENTER, 14);
+    drawAltMarker();
+    drawBridgeMarker();
+    if (KITCHENS.length) drawKitchens();
+
+    // Paint orders immediately — no OSRM round-trips on resume.
+    vehicles = state.vehicles
+      .filter(s => s.status !== "delivered" && s.status !== "cancelled")
+      .map(vehicleFromSnapshot);
+    for (const v of vehicles) {
+      if ((v.status === "stuck" || v.status === "late") && v.notified) restoreDelayCard(v);
+    }
+    const vById = new Map(vehicles.map(v => [v.id, v]));
+    pendingComplaints = (state.pendingComplaints || [])
+      .map(p => ({ v: vById.get(p.orderId), dueAt: p.dueAt }))
+      .filter(p => p.v && !p.v.expReacted);
+
+    if (bridgeClosed) {
+      closeCircle = L.circle(BRIDGE, { radius: CLOSE_RADIUS, color: "#ff3b30", fillColor: "#ff3b30", fillOpacity: .12, weight: 2 }).addTo(map);
+      document.getElementById("bridgeBtn").disabled = true;
+      restoreJams(state.jams);
+    } else {
+      document.getElementById("bridgeBtn").disabled = false;
+    }
+
+    const pb = document.getElementById("playBtn");
+    if (running) {
+      pb.textContent = "⏸ Pause"; pb.classList.add("primary");
+      last = performance.now();
+    } else {
+      pb.textContent = "▶ Play"; pb.classList.remove("primary");
+    }
+
+    if (sidebarOpen) renderSidebar();
+    updateStats();
+    topUpFleetAfterResume();
+    startLakebasePoll();
+    saveSession();
+
+    // Kitchens without a cache/snapshot: fetch coords without blocking on OSRM snap.
+    if (!KITCHENS.length) {
+      loadKitchens({ snap: false }).then(() => {
+        drawKitchens();
+        saveKitchenCache(currentCityId, KITCHENS);
+      }).catch(() => {});
+    }
+  }
+
+  let saveSessionTimer = null;
+  function scheduleSaveSession() {
+    clearTimeout(saveSessionTimer);
+    saveSessionTimer = setTimeout(saveSession, 400);
+  }
+  _saveSessionIv = setInterval(saveSession, 3000);
+  function loadCfg() {
+    try { const s = localStorage.getItem(CFG_KEY); return s ? JSON.parse(s) : null; }
+    catch (e) { return null; }
+  }
+  function saveCfg(cfg) {
+    try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch (e) {}
+    // Persist server-side immediately — demo_active_city in UC must match the
+    // picker before warehouse queries (revenue at risk / today vs normal) run.
+    trackedFetch("/api/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(cfg),
+    }, 5000).catch(() => {});
+  }
+  async function loadServerCfg() {
+    try {
+      const r = await trackedFetch("/api/config", {}, 3000);
+      const j = r.ok ? await r.json() : null;
+      return j && j.config ? j.config : null;
+    } catch (e) { return null; }
+  }
+  function applyCfgToSetup(cfg) {
+    const sel = document.getElementById("cfgCity");
+    if (cfg.city && [...sel.options].some(o => o.value === cfg.city)) sel.value = cfg.city;
+    if (cfg.orders) {
+      document.getElementById("cfgOrders").value = cfg.orders;
+      document.getElementById("cfgOrdersVal").textContent = cfg.orders;
+    }
+    if (cfg.speed) {
+      document.querySelectorAll("#cfgSpeed button").forEach(b => b.classList.toggle("on", +b.dataset.sim === cfg.speed));
+    }
+  }
+
+  // Launch (or relaunch) the simulation with the chosen city / orders / speed.
+  async function startSimulation() {
+    clearSession();
+    const cityId = document.getElementById("cfgCity").value;
+    fleetTarget = +document.getElementById("cfgOrders").value;
+    sim = readCfgSpeed();
+    const cfg = { city: cityId, orders: fleetTarget, speed: sim };
+    saveCfg(cfg);
+    try {
+      await trackedFetch("/api/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(cfg),
+      }, 5000);
+    } catch (e) {}
+    syncDockControls();
+    const cityChanged = cityId && cityId !== currentCityId;
+    closeSetup();
+    document.getElementById("subtitle").textContent = "Loading…";
+    if (cityChanged || !currentCityId) { await loadCity(cityId); KITCHENS = []; }
+    // Reset all simulation state
+    vehicles.forEach(v => { if (v.marker) vehLayer.removeLayer(v.marker); if (v.custDot) custLayer.removeLayer(v.custDot); });
+    routeLayer.clearLayers(); trailLayer.clearLayers(); vehLayer.clearLayers(); custLayer.clearLayers();
+    document.getElementById("cards").innerHTML = "";
+    openCards.clear(); notifLog = []; pendingComplaints = []; closeModal(); closeKitchen();
+    if (closeCircle) { map.removeLayer(closeCircle); closeCircle = null; }
+    clearJams();
+    vehicles = []; seq = 0; newSession(); bridgeClosed = false; queue = { a: 0, b: 0 };
+    policyBridgeClosed = false; seenPolicyClosed = null;
+    stats = { delivered: 0, reroute: 0, cancelled: 0, reordered: 0, complaints: 0, refunded: 0, refundTotal: 0 };
+    map.setView(CENTER, 14);
+    drawAltMarker();
+    drawBridgeMarker();
+    document.getElementById("bridgeBtn").disabled = false;
+    if (!KITCHENS.length) {
+      const cached = loadKitchenCache(currentCityId);
+      if (cached) applyKitchenList(cached);
+      else await loadKitchens({ snap: false });
+    }
+    drawKitchens();
+    if (sidebarOpen) renderSidebar();
+    running = true;
+    document.getElementById("playBtn").textContent = "⏸ Pause";
+    document.getElementById("playBtn").classList.add("primary");
+    resetClock();
+    seedFleet();
+    updateStats();
+    autoCloseAt = simNow() + 18000;
+    scheduleSaveSession();
+    startLakebasePoll();
+    if (!loadKitchenCache(currentCityId)) {
+      loadKitchens({ snap: true }).then(() => drawKitchens()).catch(() => {});
+    }
+  }
+
+  document.getElementById("cfgOrders").addEventListener("input", e => {
+    document.getElementById("cfgOrdersVal").textContent = e.target.value;
+  });
+  document.getElementById("cfgSpeed").addEventListener("click", e => {
+    const btn = e.target.closest("button[data-sim]"); if (!btn) return;
+    document.querySelectorAll("#cfgSpeed button").forEach(b => b.classList.toggle("on", b === btn));
+  });
+  document.getElementById("setupStart").addEventListener("click", startSimulation);
+  document.getElementById("setupClose").addEventListener("click", cancelSetup);
+  document.getElementById("configBtn").addEventListener("click", () => openSetup(true));
+  document.getElementById("stopCataBtn").addEventListener("click", stopCatastrophe);
+
+  // ── Boot ── resume saved config + in-progress sim when possible; only prompt
+  // with the setup screen on first run (no saved config). The ⚙️ button reopens it.
+  // Default to the Arcade look on first run; remember the last valid choice.
+  applyTheme((() => { try { const s = localStorage.getItem(THEME_KEY); return THEME_TILES[s] ? s : "arcade"; } catch (e) { return "arcade"; } })());
+  setBuildTag();
+  requestAnimationFrame(frame);
+  window.__ccOnAgentPanel = (open) => {
+    if (open && typeof map !== "undefined") setTimeout(() => map.invalidateSize({ animate: false }), 0);
+  };
+  running = false;
+  document.getElementById("playBtn").textContent = "▶ Play";
+  document.getElementById("playBtn").classList.remove("primary");
+  (async () => {
+    const fresh = new URLSearchParams(location.search).has("fresh");
+    if (fresh) clearSession();
+    await populateCities();
+    const saved = loadCfg() || await loadServerCfg();
+    const session = fresh ? null : loadSession();
+    if (saved) {
+      applyCfgToSetup(saved);
+      if (!fresh && session && Array.isArray(session.vehicles) && session.vehicles.length
+          && sessionMatchesCfg(session, saved)) {
+        await resumeSimulation(session, saved);
+      } else {
+        await startSimulation();
+      }
+    } else {
+      openSetup(false);
+    }
+  })();
+  </script>
+
+  <!-- ── Agent panel (Act 2): natural-language runbook agent ─────────────── -->
+  <button id="agentToggle" title="Open the ops agent">
+    <span class="dot" id="agentDot"></span> Ask the agent
+  </button>
+  <div id="agentPanel" aria-hidden="true">
+    <div class="agent-head">
+      <h2>Ops Agent</h2>
+      <div class="meta" id="agentMeta">connecting…</div>
+      <button class="close" id="agentClose" title="Close">✕</button>
+    </div>
+    <div class="agent-log" id="agentLog"></div>
+    <div class="agent-suggest" id="agentSuggest">
+      <button data-q="Reroute the stuck cold orders, then refund the open complaints.">Reroute + refund</button>
+      <button data-q="How much revenue is at risk right now?">Revenue at risk</button>
+      <button data-q="How bad is today compared to a normal day?">Today vs normal</button>
+      <button data-q="We're out of mozzarella — pull it from the menu and confirm the menu is consistent.">Pull mozzarella from menu</button>
+    </div>
+    <div class="agent-input">
+      <input id="agentMsg" placeholder="Tell the agent what to do…" autocomplete="off" />
+      <button id="agentSend">Send</button>
+    </div>
+  </div>
+
+  <script>
+  // Self-contained agent panel. Talks to /api/agent/* only; deliberately shares
+  // nothing with the simulation script above so the agent stays swappable.
+  (function () {
+    const panel   = document.getElementById("agentPanel");
+    const toggle  = document.getElementById("agentToggle");
+    const closeBtn= document.getElementById("agentClose");
+    const logEl   = document.getElementById("agentLog");
+    const input   = document.getElementById("agentMsg");
+    const sendBtn = document.getElementById("agentSend");
+    const metaEl  = document.getElementById("agentMeta");
+    const dotEl   = document.getElementById("agentDot");
+    const suggest = document.getElementById("agentSuggest");
+    const history = [];
+    let busy = false;
+    const agentAborter = new AbortController();
+    window.addEventListener("beforeunload", () => agentAborter.abort(), { capture: true });
+    window.addEventListener("pagehide", () => agentAborter.abort(), { capture: true });
+
+    function esc(s) {
+      return String(s == null ? "" : s)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+    function scrollDown() { logEl.scrollTop = logEl.scrollHeight; }
+
+    function addMsg(text, cls) {
+      const d = document.createElement("div");
+      d.className = "agent-msg " + cls;
+      if (cls === "bot") {
+        const safe = esc(text);
+        d.innerHTML = safe
+          .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+          .replace(/^---$/gm, "");
+      } else {
+        d.textContent = text;
+      }
+      logEl.appendChild(d);
+      scrollDown();
+      return d;
+    }
+
+    function stepCols(rows) {
+      const keys = new Set();
+      for (const row of rows) {
+        if (!row || typeof row !== "object") continue;
+        for (const k of Object.keys(row)) keys.add(k);
+      }
+      return [...keys];
+    }
+
+    function fmtCell(v) {
+      if (v == null || v === "") return "—";
+      if (typeof v === "object") return esc(JSON.stringify(v));
+      return esc(v);
+    }
+
+    function stepEmptyMessage(step) {
+      const id = step.query_id || "";
+      if (id === "eightysix_ingredient") {
+        return "<strong>Transaction committed.</strong> This procedure updates inventory " +
+          "and menu availability in one atomic UC commit — it intentionally returns no rows. " +
+          "Use the after-check step for the proof.";
+      }
+      if (id === "ingredient_stock_before" || id === "ingredient_after_check") {
+        return "<strong>No rows returned.</strong> Check that <code>kitchen_inventory</code> and " +
+          "<code>menu_availability</code> are seeded for the active city in UC, and that " +
+          "<code>demo_active_city</code> matches your sim.";
+      }
+      if (id === "revenue_at_risk" || id === "today_vs_normal") {
+        return "<strong>No data returned.</strong> The UC mirror of live orders is probably " +
+          "empty or stale — check Lakebase <code>orders</code> and UC " +
+          "<code>catastrophe_live_orders</code>, and that <code>demo_active_city</code> " +
+          "matches your picker.";
+      }
+      if (id === "active_crossing_status") {
+        return "<strong>No data returned.</strong> The UC function may not exist yet " +
+          "(create it in Act 2 via Genie Code) or <code>demo_active_city</code> " +
+          "does not match your sim city.";
+      }
+      if (id === "reroute_stuck_cold_orders") {
+        return "<strong>No orders rerouted.</strong> No stuck cold orders in the current " +
+          "session, or they are already past their delay window.";
+      }
+      if (id === "refund_open_complaints") {
+        return "<strong>No refunds issued.</strong> No open complaints matched, or the " +
+          "Lakebase function failed (check <code>catastrophe_lakebase.catastrophe_hist_refunds</code> " +
+          "exists and complaints are in Lakebase).";
+      }
+      return "<strong>No data returned.</strong> The tool ran successfully but the result set was empty.";
+    }
+
+    function addStep(step) {
+      const wrap = document.createElement("div");
+      const backend = step.backend === "warehouse" ? "warehouse" : "lakebase";
+      const rows = Array.isArray(step.rows) ? step.rows : [];
+      const rowCount = Math.max(Number(step.row_count) || 0, rows.length);
+      const cols = stepCols(rows);
+      const hasRows = cols.length > 0;
+      const isProcedure = step.query_id === "eightysix_ingredient" && !step.error;
+      wrap.className = "agent-step"
+        + (step.error ? " err-step" : isProcedure ? " ok-step" : (rowCount === 0 ? " warn" : ""));
+      let html = '<div class="st-head"><span class="tag ' + backend + '">' +
+        esc(backend) + '</span>' + esc(step.title || step.query_id) +
+        (step.ingredient ? ' <span class="ing-tag">' + esc(step.ingredient) + '</span>' : '') +
+        '<span class="n">' + (step.error ? "error" :
+          isProcedure ? "committed" :
+          (rowCount + (rowCount === 1 ? " row" : " rows"))) + '</span></div>';
+      if (step.error) {
+        html += '<div class="st-err">' + esc(step.error) + '</div>';
+      } else if (hasRows) {
+        html += '<div class="st-wrap"><table><thead><tr>' +
+          cols.map(c => "<th>" + esc(c) + "</th>").join("") + '</tr></thead><tbody>' +
+          rows.map(r => "<tr>" + cols.map(c => "<td>" + fmtCell(r[c]) + "</td>").join("") + "</tr>").join("") +
+          '</tbody></table></div>';
+      } else if (rowCount > 0) {
+        html += '<div class="st-empty"><strong>Rows missing from response.</strong> ' +
+          'The tool reported ' + rowCount + ' row' + (rowCount === 1 ? '' : 's') +
+          ' but the table payload was empty — likely a warehouse result-parsing issue ' +
+          '(fixed in the latest app build).</div>';
+      } else if (isProcedure) {
+        html += '<div class="st-ok">' + stepEmptyMessage(step) + '</div>';
+      } else {
+        html += '<div class="st-empty">' + stepEmptyMessage(step) + '</div>';
+      }
+      wrap.innerHTML = html;
+      logEl.appendChild(wrap);
+      scrollDown();
+    }
+
+    function addSteps(steps) {
+      if (!steps.length) return;
+      const label = document.createElement("div");
+      label.className = "agent-steps-label";
+      label.textContent = "Actions run";
+      logEl.appendChild(label);
+      steps.forEach(addStep);
+      scrollDown();
+    }
+
+    async function loadInfo() {
+      try {
+        const r = await fetch("/api/agent/info", { signal: agentAborter.signal });
+        const info = await r.json();
+        if (info.available) {
+          dotEl.classList.remove("off");
+          metaEl.innerHTML = (info.via_gateway ? '<span class="gw">AI Gateway</span><br>' : "") + esc(info.model);
+        } else {
+          dotEl.classList.add("off");
+          metaEl.textContent = "agent unavailable";
+        }
+      } catch (e) {
+        dotEl.classList.add("off");
+        metaEl.textContent = "agent unavailable";
+      }
+    }
+
+    async function send(text) {
+      const message = (text != null ? text : input.value).trim();
+      if (!message || busy) return;
+      if (dotEl.classList.contains("off")) {
+        addMsg("Agent unavailable — check the AI Gateway model service (" +
+          (metaEl.textContent || "command-agent") + ") exists and the app SP has EXECUTE.", "err");
+        return;
+      }
+      busy = true; sendBtn.disabled = true; input.value = "";
+      addMsg(message, "user");
+      const typing = document.createElement("div");
+      typing.className = "agent-typing";
+      typing.textContent = "working…";
+      logEl.appendChild(typing); scrollDown();
+      const chatTimeout = AbortSignal.timeout ? AbortSignal.timeout(120000) : null;
+      const signal = chatTimeout
+        ? AbortSignal.any([agentAborter.signal, chatTimeout])
+        : agentAborter.signal;
+      try {
+        const r = await fetch("/api/agent/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message, history }),
+          signal,
+        });
+        typing.remove();
+        if (!r.ok) {
+          const err = await r.json().catch(() => ({}));
+          const detail = err.detail;
+          addMsg(
+            (typeof detail === "string" ? detail : JSON.stringify(detail))
+            || ("Request failed (" + r.status + ")"),
+            "err"
+          );
+          return;
+        }
+        const data = await r.json();
+        if (data.reply) addMsg(data.reply, "bot");
+        addSteps(data.steps || []);
+        history.push({ role: "user", content: message });
+        if (data.reply) history.push({ role: "assistant", content: data.reply });
+      } catch (e) {
+        typing.remove();
+        if (e && e.name === "AbortError" && chatTimeout && chatTimeout.aborted) {
+          addMsg("Agent request timed out (120s). The AI Gateway call may be slow or stuck.", "err");
+        } else if (e && e.name === "AbortError") {
+          addMsg("Agent request cancelled.", "err");
+        } else {
+          addMsg("Could not reach the agent. The app may be overloaded — try again in a few seconds.", "err");
+        }
+      } finally {
+        busy = false; sendBtn.disabled = false; input.focus();
+      }
+    }
+
+    function openPanel() {
+      panel.classList.add("open");
+      panel.setAttribute("aria-hidden", "false");
+      document.body.classList.add("agent-open");
+      if (window.__ccOnAgentPanel) window.__ccOnAgentPanel(true);
+      toggle.classList.remove("show");
+      if (!logEl.childElementCount) {
+        addMsg("I run the vetted ops queries for you — reroute stuck orders, issue goodwill refunds, size the revenue at risk, or pull an ingredient from the menu. What do you need?", "bot");
+      }
+      input.focus();
+    }
+    function closePanel() {
+      panel.classList.remove("open");
+      panel.setAttribute("aria-hidden", "true");
+      document.body.classList.remove("agent-open");
+      if (window.__ccOnAgentPanel) window.__ccOnAgentPanel(false);
+      toggle.classList.add("show");
+    }
+
+    // "Activate agentic" reveals the (big, centered) agent button, then retires
+    // itself — the reveal is the whole point of Act 2's hand-off to the agent.
+    const activateBtn = document.getElementById("activateAgentBtn");
+    if (activateBtn) {
+      activateBtn.addEventListener("click", () => {
+        toggle.classList.add("show");
+        activateBtn.remove();
+      });
+    }
+
+    toggle.addEventListener("click", openPanel);
+    closeBtn.addEventListener("click", closePanel);
+    sendBtn.addEventListener("click", () => send());
+    input.addEventListener("keydown", e => { if (e.key === "Enter") send(); });
+    document.addEventListener("keydown", e => {
+      if (e.key === "Escape" && panel.classList.contains("open")) closePanel();
+    });
+    suggest.querySelectorAll("button").forEach(b =>
+      b.addEventListener("click", () => { openPanel(); send(b.dataset.q); }));
+
+    loadInfo();
+  })();
+  </script>
+</body>
+</html>
