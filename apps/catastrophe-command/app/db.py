@@ -227,6 +227,12 @@ def _ensure_schema() -> None:
         )""",
         # Add the refund amount to any pre-existing refunds table.
         "ALTER TABLE refunds ADD COLUMN IF NOT EXISTS amount NUMERIC(10,2)",
+        # Scope refunds to a sim run. order_id (CK-001…) is reused across demos;
+        # without session_id the Refunded $ total keeps absorbing older runs.
+        "ALTER TABLE refunds ADD COLUMN IF NOT EXISTS session_id TEXT",
+        "ALTER TABLE refunds ADD COLUMN IF NOT EXISTS city TEXT",
+        "CREATE INDEX IF NOT EXISTS idx_refunds_session ON refunds(session_id)",
+        "CREATE INDEX IF NOT EXISTS idx_refunds_session_city ON refunds(session_id, city)",
         """CREATE TABLE IF NOT EXISTS complaints (
             id           BIGSERIAL PRIMARY KEY,
             order_id     TEXT NOT NULL,
@@ -276,7 +282,7 @@ def _ensure_schema() -> None:
         # ── Vetted runbook actions as Postgres functions (Act 2) ──────────────
         # The catastrophe agent (app/agent.py) does NOT embed SQL; it calls these
         # by name (`SELECT * FROM reroute_stuck_cold_orders()` / `... refund_...`).
-        # Bodies mirror Q1/Q2 in demos/devconnect-runbooks/sql_queries.sql. These
+        # Bodies mirror 1-lakebase-reroute-orders / 2-lakebase-issue-fair-refund. These
         # write DML + RETURN a table, which UC functions cannot do — hence they
         # live here in Lakebase Postgres, created (idempotently) on app boot by
         # the app SP (superuser in the project). `#variable_conflict use_column`
@@ -355,13 +361,13 @@ def _ensure_schema() -> None:
                     ROUND(AVG(r.refund_amount)::numeric, 2) AS avg_refund,
                     ROUND(PERCENTILE_CONT(0.9)
                           WITHIN GROUP (ORDER BY r.refund_amount)::numeric, 2) AS p90_refund
-                FROM catastrophe_lakebase.catastrophe_hist_refunds r
+                FROM lakebase.bronze_hist_refunds r
                 GROUP BY r.city_id, r.kind
             ),
             complainers AS (
                 SELECT
                     c.id AS complaint_id, c.order_id,
-                    o.city, o.kitchen, o.kind AS kind_label, o.cold,
+                    o.session_id, o.city, o.kitchen, o.kind AS kind_label, o.cold,
                     CASE o.kind
                         WHEN 'Hot food'  THEN 'hot'
                         WHEN 'Groceries' THEN 'grocery'
@@ -377,6 +383,8 @@ def _ensure_schema() -> None:
                 SELECT
                     cm.complaint_id,
                     cm.order_id,
+                    cm.session_id,
+                    cm.city,
                     cm.kitchen,
                     ROUND(
                         LEAST(
@@ -394,10 +402,11 @@ def _ensure_schema() -> None:
                       AND h.kind    = cm.kind_code
             ),
             ins AS (
-                INSERT INTO refunds (order_id, amount, reason)
+                INSERT INTO refunds (order_id, amount, reason, session_id, city)
                 SELECT ofr.order_id, ofr.refund_offer,
                        'Goodwill refund $' || ofr.refund_offer || ' — ' || ofr.kitchen ||
-                       ' historical average for this location'
+                       ' historical average for this location',
+                       ofr.session_id, ofr.city
                 FROM offer ofr
                 RETURNING refunds.order_id, refunds.amount
             ),
@@ -515,6 +524,8 @@ def upsert_order(o: dict[str, Any]) -> None:
           late_min      = EXCLUDED.late_min,
           max_delay_min = EXCLUDED.max_delay_min,
           cross_river   = EXCLUDED.cross_river,
+          placed_at     = EXCLUDED.placed_at,
+          promised_at   = EXCLUDED.promised_at,
           updated_at    = NOW()
         """,
         (
@@ -540,10 +551,20 @@ def add_status(order_id: str, status: str, late_min: int = 0) -> None:
     )
 
 
-def add_refund(order_id: str, reason: str = "", amount: float | None = None) -> None:
+def add_refund(order_id: str, reason: str = "", amount: float | None = None,
+               session_id: str = "", city: str = "") -> None:
     _exec(
-        "INSERT INTO refunds (order_id, amount, reason) VALUES (%s, %s, %s)",
-        (order_id, amount, reason),
+        """
+        INSERT INTO refunds (order_id, amount, reason, session_id, city)
+        VALUES (%s, %s, %s, %s, %s)
+        """,
+        (
+            order_id,
+            amount,
+            reason,
+            (session_id or "").strip(),
+            (city or "").strip().lower(),
+        ),
     )
 
 
@@ -705,26 +726,29 @@ def recent_refunds(limit: int = 500) -> list[dict[str, Any]]:
     )
 
 
-def session_refunds(session_id: str | None = None, limit: int = 200) -> list[dict[str, Any]]:
-    """Refunds whose order_id belongs to the active sim session (browser or latest)."""
-    preferred = (session_id or "").strip()
-    latest = _latest_session_id()
-    candidates: list[str] = []
-    for sid in (preferred, latest):
-        if sid and sid not in candidates:
-            candidates.append(sid)
-    for sid in candidates:
+def session_refunds(
+    session_id: str | None = None,
+    city: str | None = None,
+    limit: int = 200,
+) -> list[dict[str, Any]]:
+    """Refunds for the active sim session (+ city). Falls back to session-only."""
+    sid = (session_id or "").strip()
+    city_id = (city or "").strip().lower()
+    if not sid:
+        return []
+    if city_id:
         rows = _rows(
             """
             SELECT r.id, r.order_id, r.amount, r.reason, r.issued_at,
                    o.kitchen, o.kind
             FROM refunds r
-            JOIN orders o ON o.order_id = r.order_id
-            WHERE o.session_id = %s
+            LEFT JOIN orders o
+                   ON o.order_id = r.order_id AND o.session_id = r.session_id
+            WHERE r.session_id = %s AND LOWER(COALESCE(r.city, '')) = %s
             ORDER BY r.id DESC
             LIMIT %s
             """,
-            (sid, limit),
+            (sid, city_id, limit),
         )
         if rows:
             return rows
@@ -733,17 +757,18 @@ def session_refunds(session_id: str | None = None, limit: int = 200) -> list[dic
         SELECT r.id, r.order_id, r.amount, r.reason, r.issued_at,
                o.kitchen, o.kind
         FROM refunds r
-        JOIN orders o ON o.order_id = r.order_id
-        WHERE r.issued_at > NOW() - INTERVAL '3 hours'
+        LEFT JOIN orders o
+               ON o.order_id = r.order_id AND o.session_id = r.session_id
+        WHERE r.session_id = %s
         ORDER BY r.id DESC
         LIMIT %s
         """,
-        (limit,),
+        (sid, limit),
     )
 
 
 def _latest_session_id() -> str:
-    """Session of the most recently touched order in the active city — same scope as sql_queries.sql Q2."""
+    """Session of the most recently touched order in the active city — same scope as 2-lakebase-issue-fair-refund."""
     rows = _rows(
         """
         WITH active AS (
@@ -765,69 +790,72 @@ def _latest_session_id() -> str:
     return str(sid).strip() if sid is not None else ""
 
 
-def _refunds_for_session(session_id: str) -> list[dict[str, Any]]:
-    if not session_id:
+def _refunds_for_session(session_id: str, city: str = "") -> list[dict[str, Any]]:
+    sid = (session_id or "").strip()
+    if not sid:
         return []
+    city_id = (city or "").strip().lower()
+    if city_id:
+        return _rows(
+            """
+            SELECT r.id, r.order_id, r.amount
+            FROM refunds r
+            WHERE r.session_id = %s AND LOWER(COALESCE(r.city, '')) = %s
+            ORDER BY r.id
+            """,
+            (sid, city_id),
+        )
     return _rows(
         """
         SELECT r.id, r.order_id, r.amount
         FROM refunds r
-        WHERE r.order_id IN (
-            SELECT o.order_id FROM orders o WHERE o.session_id = %s
-        )
+        WHERE r.session_id = %s
         ORDER BY r.id
         """,
-        (session_id,),
+        (sid,),
     )
 
 
-def session_refund_summary(session_id: str | None = None) -> dict[str, Any]:
-    """Count + dollar total for refunds in the active sim run.
+def session_refund_summary(
+    session_id: str | None = None,
+    city: str | None = None,
+) -> dict[str, Any]:
+    """Count + dollar total for the current sim only.
 
-  Query 2 (sql_queries.sql) scopes to the latest session_id in Lakebase.
-  The browser also passes its sessionId — try both and return whichever has
-  refunds (usually the same; when they diverge, prefer the non-empty count)."""
-    preferred = (session_id or "").strip()
-    latest = _latest_session_id()
-    candidates: list[str] = []
-    for sid in (latest, preferred):
-        if sid and sid not in candidates:
-            candidates.append(sid)
-    if not candidates:
-        return {"session_id": "", "count": 0, "total": 0.0, "order_ids": []}
+    Requires an explicit session_id from the browser. Never falls back to
+    "latest session in Lakebase" — that mixed Replay runs and prior demos into
+    the Refunded counter.
 
-    best_sid = candidates[0]
-    best_rows: list[dict[str, Any]] = []
-    for sid in candidates:
-        rows = _refunds_for_session(sid)
-        if len(rows) > len(best_rows):
-            best_sid, best_rows = sid, rows
+    Prefer session+city when that has rows; otherwise fall back to session-only
+    so a missing/mismatched ``city`` on refund rows doesn't pin the UI at 0.
+    """
+    sid = (session_id or "").strip()
+    city_id = (city or "").strip().lower()
+    empty = {"session_id": sid, "city": city_id, "count": 0, "total": 0.0, "order_ids": []}
+    if not sid:
+        return empty
 
-    # Session id on orders can lag behind the browser while sim POSTs drain.
-    # If Q2 already wrote refunds but the join returned nothing, count recent
-    # refunds so the demo stat still moves (same 3-hour window as a tour stop).
+    best_rows = _refunds_for_session(sid, city_id) if city_id else []
     if not best_rows:
-        best_rows = _rows(
-            """
-            SELECT id, order_id, amount FROM refunds
-            WHERE issued_at > NOW() - INTERVAL '3 hours'
-            ORDER BY id
-            """
-        )
-        best_sid = latest or preferred
+        best_rows = _refunds_for_session(sid, "")
 
     total = 0.0
     order_ids: list[str] = []
+    seen: set[str] = set()
     for row in best_rows:
         oid = row.get("order_id")
         if oid:
-            order_ids.append(str(oid))
+            s = str(oid)
+            if s not in seen:
+                seen.add(s)
+                order_ids.append(s)
         try:
             total += float(row.get("amount") or 0)
         except (TypeError, ValueError):
             pass
     return {
-        "session_id": best_sid,
+        "session_id": sid,
+        "city": city_id,
         "count": len(best_rows),
         "total": round(total, 2),
         "order_ids": order_ids,
@@ -879,20 +907,6 @@ def order_statuses(limit: int = 1000) -> list[dict[str, Any]]:
     orders to 'rerouted' makes those vehicles reroute on screen."""
     return _rows(
         "SELECT order_id, status FROM orders ORDER BY updated_at DESC LIMIT %s",
-        (limit,),
-    )
-
-
-def orders_for_warehouse_mirror(limit: int = 5000) -> list[dict[str, Any]]:
-    """Recent Lakebase orders mirrored into UC for warehouse read queries (Q3/Q4)."""
-    return _rows(
-        """
-        SELECT order_id, session_id, city, status, kind, late_min, updated_at
-        FROM orders
-        WHERE updated_at > NOW() - INTERVAL '6 hours'
-        ORDER BY updated_at DESC
-        LIMIT %s
-        """,
         (limit,),
     )
 

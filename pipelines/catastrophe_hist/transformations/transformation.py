@@ -5,15 +5,15 @@ from pyspark.sql.window import Window
 # ============================================================
 # Catastrophe Hist Aggregation Pipeline
 #
-# Medallion architecture — Bronze → Silver → Gold
-# Sources: {HIST_CATALOG}.{HIST_SCHEMA}.catastrophe_hist_* tables
+# Medallion architecture — Bronze (UC Delta) → Silver → Gold
+# Sources: {HIST_CATALOG}.{HIST_SCHEMA}.bronze_hist_* tables
 # Target:  {pipeline catalog}.{pipeline schema}  (set on the pipeline;
-#          the Catastrophe_History_Pipeline stage uses {CATALOG}.lakeflow)
+#          the Catastrophe_History_Pipeline stage uses {CATALOG}.orders)
 #
 # Source catalog/schema come from the pipeline configuration so nothing is
 # pinned to a single catalog:
 #   HIST_CATALOG -> ${CATALOG}          (e.g. the run's catalog)
-#   HIST_SCHEMA  -> ${SIMULATOR_SCHEMA} (e.g. "simulator")
+#   HIST_SCHEMA  -> orders              (orders medallion schema)
 # ============================================================
 
 HIST_CATALOG = spark.conf.get("HIST_CATALOG")
@@ -25,36 +25,36 @@ def _src(table: str) -> str:
 
 
 # ============================================================
-# BRONZE LAYER — Raw pass-through views
+# BRONZE LAYER — Pass-through views over UC bronze_hist_* tables
 # Reads directly from the {HIST_CATALOG}.{HIST_SCHEMA} source tables.
 # No transformations applied; schema preserved as-is.
 # These are lightweight temporary views (not persisted to UC).
 # ============================================================
 
 
-@dlt.view(name="bronze_orders", comment="Raw catastrophe_hist_orders source table.")
+@dlt.view(name="bronze_orders", comment="Pass-through of UC bronze_hist_orders.")
 def bronze_orders():
-    return spark.read.table(_src("catastrophe_hist_orders"))
+    return spark.read.table(_src("bronze_hist_orders"))
 
 
-@dlt.view(name="bronze_order_events", comment="Raw catastrophe_hist_order_events source table.")
+@dlt.view(name="bronze_order_events", comment="Pass-through of UC bronze_hist_order_events.")
 def bronze_order_events():
-    return spark.read.table(_src("catastrophe_hist_order_events"))
+    return spark.read.table(_src("bronze_hist_order_events"))
 
 
-@dlt.view(name="bronze_refunds", comment="Raw catastrophe_hist_refunds source table.")
+@dlt.view(name="bronze_refunds", comment="Pass-through of UC bronze_hist_refunds.")
 def bronze_refunds():
-    return spark.read.table(_src("catastrophe_hist_refunds"))
+    return spark.read.table(_src("bronze_hist_refunds"))
 
 
-@dlt.view(name="bronze_complaints", comment="Raw catastrophe_hist_complaints source table.")
+@dlt.view(name="bronze_complaints", comment="Pass-through of UC bronze_hist_complaints.")
 def bronze_complaints():
-    return spark.read.table(_src("catastrophe_hist_complaints"))
+    return spark.read.table(_src("bronze_hist_complaints"))
 
 
-@dlt.view(name="bronze_actions", comment="Raw catastrophe_hist_actions source table.")
+@dlt.view(name="bronze_actions", comment="Pass-through of UC bronze_hist_actions.")
 def bronze_actions():
-    return spark.read.table(_src("catastrophe_hist_actions"))
+    return spark.read.table(_src("bronze_hist_actions"))
 
 
 # ============================================================

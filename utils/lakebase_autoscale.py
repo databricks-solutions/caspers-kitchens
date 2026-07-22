@@ -290,14 +290,17 @@ def create_postgres_database(
     *,
     project_id: str,
     database_id: str,
+    postgres_database: str | None = None,
     branch_id: str = "production",
     owner_role: str | None = None,
 ) -> dict[str, Any]:
     """Create a Postgres database in ``projects/{project_id}/branches/{branch_id}``.
 
-    ``database_id`` becomes the resource id AND the Postgres-side database
-    name; per the SDK doc it must be 4-63 chars and RFC-1123 DNS-safe
-    (alphanumerics + hyphens, NO underscores).
+    ``database_id`` is the RFC-1123 resource id (hyphens, no underscores).
+    ``postgres_database`` is the SQL database name and may contain underscores.
+    It defaults to ``database_id`` for existing callers. The default Lakebase
+    database therefore uses resource id ``databricks-postgres`` and SQL name
+    ``databricks_postgres``.
 
     ``owner_role`` is the full resource path of an existing Postgres role
     (``projects/{p}/branches/{b}/roles/{r}``).  If ``None``, defaults to the
@@ -309,6 +312,7 @@ def create_postgres_database(
     from databricks.sdk.service.postgres import Database, DatabaseDatabaseSpec
 
     parent = f"projects/{project_id}/branches/{branch_id}"
+    postgres_database = postgres_database or database_id
     if owner_role is None:
         owner_role = get_current_user_role_path(
             w, project_id=project_id, branch_id=branch_id,
@@ -321,7 +325,7 @@ def create_postgres_database(
         parent=parent,
         database=Database(
             spec=DatabaseDatabaseSpec(
-                postgres_database=database_id,
+                postgres_database=postgres_database,
                 role=owner_role,
             )
         ),
@@ -335,7 +339,7 @@ def create_postgres_database(
         "name": _database_resource_name(
             project_id, database_id, branch_id=branch_id
         ),
-        "spec": {"postgres_database": database_id, "role": owner_role},
+        "spec": {"postgres_database": postgres_database, "role": owner_role},
     }
 
 
@@ -409,6 +413,7 @@ def get_or_create_postgres_database(
     *,
     project_id: str,
     database_id: str,
+    postgres_database: str | None = None,
     branch_id: str = "production",
     owner_role: str | None = None,
 ) -> tuple[dict[str, Any], bool]:
@@ -431,6 +436,7 @@ def get_or_create_postgres_database(
                 w,
                 project_id=project_id,
                 database_id=database_id,
+                postgres_database=postgres_database,
                 branch_id=branch_id,
                 owner_role=owner_role,
             ),

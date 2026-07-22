@@ -521,7 +521,7 @@ targets:
           enable_serverless_compute: true
           warehouse_type: PRO
       # AI/BI dashboard for Demo 3 (analyst view). Datasets use unqualified
-      # simulator.* tables; dataset_catalog injects ${var.catalog} at deploy.
+      # metadata.* / orders.* tables; dataset_catalog injects ${var.catalog} at deploy.
       dashboards:
         catastrophe_command_center:
           display_name: "Delivery Catastrophe Command Center (${var.catalog})"
@@ -540,8 +540,9 @@ targets:
               default: ${var.catalog}
             - name: EVENTS_VOLUME
               default: events
+            # Dimensions + catastrophe config/live ops tables (was "simulator").
             - name: SIMULATOR_SCHEMA
-              default: simulator
+              default: metadata
             - name: START_DAY
               default: "70"
             - name: SPEED_MULTIPLIER
@@ -571,8 +572,8 @@ targets:
               default: ""
             # Historical analytics dataset (stages/catastrophe_history.ipynb).
             # Total synthetic orders across all 13 cities and the number of days
-            # of history to generate.  Delta tables land in {CATALOG}.{SIMULATOR
-            # _SCHEMA} as catastrophe_hist_*.  Tune down for a quick deploy.
+            # of history to generate.  Delta tables land in {CATALOG}.orders as
+            # bronze_hist_*.  Tune down for a quick deploy.
             - name: HISTORY_TARGET_ORDERS
               default: "2000000"
             - name: HISTORY_DAYS
@@ -593,9 +594,10 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/lakebase_project
 
-            # Generates the large historical analytics dataset (catastrophe_hist_*
-            # Delta tables).  Self-contained (kitchens derived from the registry),
-            # so it only needs the catalog/schema from Canonical_Data and runs in
+            # Generates the large historical analytics dataset (bronze_hist_*
+            # Delta tables in {CATALOG}.orders).  Self-contained (kitchens derived
+            # from the registry),
+            # so it only needs the catalog from Canonical_Data and runs in
             # parallel with Lakebase_Project.
             - task_key: Catastrophe_History
               depends_on:
@@ -603,7 +605,7 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/catastrophe_history
 
-            # Sync catastrophe_hist_orders + catastrophe_hist_refunds into Lakebase
+            # Sync bronze_hist_orders + bronze_hist_refunds into Lakebase
             # (databricks_postgres) for devconnect runbook queries 2–6.
             - task_key: Catastrophe_Hist_Lakebase
               depends_on:
@@ -612,11 +614,11 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/catastrophe_hist_lakebase
 
-            # Rolls the catastrophe_hist_* Delta tables into a Bronze → Silver →
-            # Gold medallion in {CATALOG}.lakeflow via a serverless Lakeflow
-            # pipeline.  Needs the source tables, so it depends on
-            # Catastrophe_History; runs in parallel with Catastrophe_Command
-            # (the app does not consume the gold tables).
+            # Rolls the bronze_hist_* Delta tables into Silver → Gold in
+            # {CATALOG}.orders via a serverless Lakeflow pipeline.  Needs the
+            # source tables, so it depends on Catastrophe_History; runs in
+            # parallel with Catastrophe_Command (the app does not consume the
+            # gold tables).
             - task_key: Catastrophe_History_Pipeline
               depends_on:
                 - task_key: Catastrophe_History
@@ -630,9 +632,9 @@ targets:
               notebook_task:
                 notebook_path: ${workspace.root_path}/stages/catastrophe_command
 
-            # Last: enable UC catalog-managed commits on simulator Delta tables
-            # (dimensions, catastrophe_*, catastrophe_hist_*). Skips lakeflow —
-            # DLT outputs there are views. Devconnect target only.
+            # Last: enable UC catalog-managed commits on metadata Delta tables
+            # (dimensions, catastrophe_*) and orders.bronze_hist_* facts.
+            # Skips DLT silver/gold views/MVs in orders. Devconnect target only.
             - task_key: Catalog_Commits
               depends_on:
                 - task_key: Catastrophe_Command

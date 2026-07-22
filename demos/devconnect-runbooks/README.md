@@ -13,12 +13,12 @@ This runbook is for the standalone catastrophe command-center demo on target `de
     DE: sure, when do you need it? I can get it for you tomorrow afternoon
     You: I need it NOW
 
-3. Good, we got the query — let's use it. Source: `demos/devconnect-runbooks/sql_queries.sql`. Run in Lakebase:
-   - **query 1**(reroute once) → let complaints stack → **query 2** (refunds). Explain Lakebase.
+3. Good, we got the query — let's use it. Source: `demos/devconnect-runbooks/`. Run in Lakebase:
+   - **`1-lakebase-reroute-orders.sql`** (reroute once) → let complaints stack → **`2-lakebase-issue-fair-refund.sql`**. Explain Lakebase.
 
-4. Open SQL warehouse (`{catalog}-devconnect-ops`), run **query 3** ($ at risk) → **query 4** (today vs normal). Read-only on UC — `simulator.catastrophe_hist_orders` + `simulator.catastrophe_live_orders`. Explain LTAP
+4. Open SQL warehouse (`{catalog}-devconnect-ops`), run **`3-warehouse-estimate-revenue-at-risk.sql`** → **`4-warehouse-compare-today-vs-normal.sql`**. Read-only on UC — Lakebase CDF `lb_orders_history` + `orders.bronze_hist_orders`. Explain LTAP
 
-5. While customers are still complaining and we've got things a bit under control, look at the kitchen. They're struggling to get supplies because of the collapse in the city. We need to safely update the menu based on inventory — here's where transactions come in. Execute **query 5a → 5 → 5b** on the **SQL warehouse**; explain transactions. Explain managed tables and trasactions
+5. While customers are still complaining and we've got things a bit under control, look at the kitchen. They're struggling to get supplies because of the collapse in the city. We need to safely update the menu based on inventory — here's where transactions come in. Execute **`5-warehouse-transactions-remove-menu-items.sql`** (blocks 5a → 5 → 5b) on the **SQL warehouse**; explain transactions. Explain managed tables and trasactions
 
 6. **Optional** [WIP] We need more accurate information about the environment. We have it in a different system in Iceberg. Let's make that data available in this app — connect to the new data from the Iceberg table. TBU, explain managed commit and UC.
 
@@ -28,20 +28,21 @@ This runbook is for the standalone catastrophe command-center demo on target `de
 
 We got really lucky. Next time the DE won't pick up. Let's make sure the playbook runs without the DE in the loop, without giving up the safety of vetted SQL.
 
-1. We already have the parts — the SQL queries our DE wrote in part 1. Let's stop running them by hand and add an AI agent that calls them from a plain-English request. Show the SQL registered as UC functions. Governed by UC. Source: <catalog>.catastrophe_ai.functions
+1. We already have the parts — the SQL queries our DE wrote in part 1. Let's stop running them by hand and add an AI agent that calls them from a plain-English request. Show the SQL registered as UC functions. Governed by UC. Source: <catalog>.ai.functions
 
 2. Build the agent in the app. Type "reroute the stuck cold orders, then refund the open complaints" → it chains the exact SQL, now callable in plain English by anyone.
 
 3. That's cool, but we want to add new stuff — use Genie Code to build a new UC function. Open the workspace, Genie Code → paste prompt → check the new function.
 
 ```
-Create UC function devconnect.catastrophe_ai.active_crossing_status(). Read-only. For whichever city is currently active in the app, return that city's choke-point crossing information. One row back: city_id, bridge_name, alternate_crossing, river. Follow the same pattern as the other functions in devconnect.catastrophe_ai. Grant EXECUTE to the same grantees already on devconnect.catastrophe_ai.revenue_at_risk.
+Create UC function that return the current city choke-point information.
 ```
+Note: select <catalog>.ai schema when talking to Genie Code, it's wired to create objects in the current schema 
 
 4. Show `agent.py`. We're not going to edit it manually — we'll use a coding agent to update the file. But how do we make sure we're doing it the right way? Omnigent. Go to `/omnigent`, **New session** → host **Sandbox** → paste prompt.
 
 ```
-Add active_crossing_status to QUERY_CATALOG in apps/catastrophe-command/app/agent.py — warehouse tool, calls catastrophe_ai.active_crossing_status().
+Add <add function name> apps/catastrophe-command/app/agent.py the same way as other functions.
 ```
 
 5. Policies — the session from step 4 already ran under guardrails.
@@ -66,8 +67,7 @@ Crisis averted, but the managers aren't celebrating. "We can't be this exposed. 
 But you can also build one yourself. Here is the prompt:
 
 ```
-Create a dark-themed "Delivery Catastrophe Command Center" dashboard with custom Vega-Lite visualizations using devconnect.simulator tables (catastrophe_live_orders, catastrophe_hist_orders, demo_active_city).
-Include: revenue at risk bullet chart (by order status), today vs normal comparison chart, food type risk radial chart, historical daily trend area chart (orders/disrupted/cancelled), and a status × food type heatmap. All datasets should join demo_active_city for dynamic city filtering. Use a war-room theme (dark canvas, red/orange severity palette, Space Grotesk font).
+Create a dark-themed "Delivery Catastrophe Command Center" dashboard with custom visualizations. Make it look cool.
 ```
 
 Point to the custom visualizations — and that you can analyze dashboards with Genie Code.
@@ -114,11 +114,7 @@ First demo gave one operator the data. Second demo gave them an agent. Third dem
         - session_cost_budget: max_cost_usd: 5, ask_thresholds_usd: 0.25, 1.0
         - block_dangerous_shell_commands
    - checkout the repo
-
-5. **CDF Lakebase**
-   - enable CDF on the lakebase instance to lakehouse https://docs.databricks.com/aws/en/oltp/projects/lakebase-cdf
-   - source: databricks_postgres.public, destination: <catalog>.catastrophe_lakebase.
-   - TODO: enable API: 20/07 You can now programmatically manage Lakebase CDF! API support has landed, and cli and TF should already work as well. DABs to follow on. The APIs are now in beta along with the rest of Lakebase management APIs. I know this unblocks quite a few of you.
+5. **Instructions for Genie Code** add instuctions to genie code
 
 
 ```bash

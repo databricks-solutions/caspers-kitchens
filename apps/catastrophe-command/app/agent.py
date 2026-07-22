@@ -13,7 +13,7 @@ This file is deliberately ONE self-contained, swappable unit:
   The query bodies live with the deployment, so they ship and version with the
   bundle:
     * `warehouse` actions call UC SQL functions + one UC procedure in
-      `{catalog}.catastrophe_ai`, created by stages/catastrophe_command.ipynb.
+      `{catalog}.ai`, created by stages/catastrophe_command.ipynb.
     * `lakebase` actions call Postgres functions in the app's Postgres `public`
       schema, created by the app's db.py on boot.
   The agent just references them by name (`SELECT * FROM ...fn()` /
@@ -41,15 +41,15 @@ log = logging.getLogger("catastrophe_command.agent")
 
 # Unity Catalog schema that holds the deployed warehouse actions (functions +
 # procedure). Must match stages/catastrophe_command.ipynb.
-UC_SCHEMA = "catastrophe_ai"
+UC_SCHEMA = "ai"
 
 # The stock / 86 actions take an ingredient argument (Q5 generalized to "86 any
 # product"). These are the ingredients seeded by stages/catastrophe_command.ipynb
 # (`_INGREDIENTS`); listed in the tool description to steer the LLM, but the arg
 # is a free string (normalized before it reaches SQL), so an unknown product
 # simply 86s nothing rather than erroring.
-KNOWN_INGREDIENTS = ["mozzarella", "beef_patty", "romaine", "milk"]
-DEFAULT_INGREDIENT = "mozzarella"
+KNOWN_INGREDIENTS = ["burger_buns", "beef_patty", "romaine", "milk"]
+DEFAULT_INGREDIENT = "burger_buns"
 _INGREDIENT_ARG_DESC = (
     "Ingredient/product to act on. Known ingredients: "
     + ", ".join(KNOWN_INGREDIENTS)
@@ -80,10 +80,11 @@ def _ingredient_from_text(text: str) -> str | None:
 # Vetted action catalog — each entry references ONE pre-deployed SQL object by
 # name and becomes exactly one OpenAI tool the LLM may call. No SQL bodies live
 # here (see module docstring): `warehouse` actions invoke UC functions/procedure
-# in `{catalog}.catastrophe_ai` (the `{catalog}` placeholder is resolved at call
+# in `{catalog}.ai` (the `{catalog}` placeholder is resolved at call
 # time from the app's CATALOG env); `lakebase` actions invoke Postgres functions
 # in the app's Postgres `public` schema. The bodies mirror
-# demos/devconnect-runbooks/sql_queries.sql.
+# demos/devconnect-runbooks/{1-lakebase-reroute-orders,2-lakebase-issue-fair-refund}.sql
+# and the warehouse UC functions mirror 3–5.
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _sanitize_cell(value: Any) -> Any:
@@ -142,19 +143,19 @@ QUERY_CATALOG: list[dict[str, Any]] = [
         "invoke": f"SELECT * FROM {{catalog}}.{UC_SCHEMA}.revenue_at_risk()",
     },
     {
-        "id": "today_vs_normal",
-        "title": "Today vs a normal day",
+        "id": "compare_orders_today_vs_baseline",
+        "title": "Compare orders today vs baseline",
         "backend": "warehouse",
         "description": (
             "Read-only. Compare this run against a normal day in this city: order "
             "count, cancel %, disrupted % (stuck/rerouted) and average lateness for "
             "today vs the 90-day historical average. Use to explain how bad today is."
         ),
-        "invoke": f"SELECT * FROM {{catalog}}.{UC_SCHEMA}.today_vs_normal()",
+        "invoke": f"SELECT * FROM {{catalog}}.{UC_SCHEMA}.compare_orders_today_vs_baseline()",
     },
     {
-        "id": "ingredient_stock_before",
-        "title": "Ingredient stock + menu (before)",
+        "id": "ingredient_availability",
+        "title": "Ingredient availability",
         "backend": "warehouse",
         "ingredient_arg": True,
         "description": (
@@ -163,11 +164,11 @@ QUERY_CATALOG: list[dict[str, Any]] = [
             "this BEFORE pulling the ingredient from the menu to show the "
             "before/after of the transaction."
         ),
-        "invoke": f"SELECT * FROM {{catalog}}.{UC_SCHEMA}.ingredient_stock_before('{{ingredient}}')",
+        "invoke": f"SELECT * FROM {{catalog}}.{UC_SCHEMA}.ingredient_availability('{{ingredient}}')",
     },
     {
-        "id": "eightysix_ingredient",
-        "title": "Pull an ingredient from the menu (atomic transaction)",
+        "id": "remove_ingredient_from_menu",
+        "title": "Remove ingredient from menu",
         "backend": "warehouse",
         "ingredient_arg": True,
         "description": (
@@ -178,11 +179,11 @@ QUERY_CATALOG: list[dict[str, Any]] = [
             "can't cross the closed bridge and the kitchen runs out of that "
             "ingredient. Returns no rows; follow with the 'after' consistency check."
         ),
-        "invoke": f"CALL {{catalog}}.{UC_SCHEMA}.eightysix_ingredient('{{ingredient}}')",
+        "invoke": f"CALL {{catalog}}.{UC_SCHEMA}.remove_ingredient_from_menu('{{ingredient}}')",
     },
     {
-        "id": "ingredient_after_check",
-        "title": "Ingredient consistency check (after)",
+        "id": "check_menu_consistency",
+        "title": "Check menu consistency",
         "backend": "warehouse",
         "ingredient_arg": True,
         "description": (
@@ -190,7 +191,7 @@ QUERY_CATALOG: list[dict[str, Any]] = [
             "held: its stock, dishes still marked available, and the count of "
             "inconsistent rows (available dish with zero stock) — which MUST be 0."
         ),
-        "invoke": f"SELECT * FROM {{catalog}}.{UC_SCHEMA}.ingredient_after_check('{{ingredient}}')",
+        "invoke": f"SELECT * FROM {{catalog}}.{UC_SCHEMA}.check_menu_consistency('{{ingredient}}')",
     },
 ]
 
@@ -199,9 +200,9 @@ _CATALOG_BY_ID = {q["id"]: q for q in QUERY_CATALOG}
 # When the LLM fires the 86 workflow as parallel tool calls, API return order is
 # not guaranteed — execute before → CALL → after so the demo narrative holds.
 _INGREDIENT_WORKFLOW_ORDER = {
-    "ingredient_stock_before": 0,
-    "eightysix_ingredient": 1,
-    "ingredient_after_check": 2,
+    "ingredient_availability": 0,
+    "remove_ingredient_from_menu": 1,
+    "check_menu_consistency": 2,
 }
 
 # Default Unity AI Gateway model service: ``{catalog}.default.command-agent``.
@@ -234,7 +235,7 @@ SYSTEM_PROMPT = (
     "- For the 'out of stock' story, request ALL THREE tools TOGETHER in a "
     "SINGLE turn (as parallel tool calls, in this order): the 'before' stock "
     "check, the atomic pull-from-menu action, then the 'after' consistency "
-    "check — all for the SAME ingredient the operator named (default mozzarella "
+    "check — all for the SAME ingredient the operator named (default burger_buns "
     "if none is given). Always pass that ingredient explicitly in each tool's "
     "`ingredient` argument (e.g. {\"ingredient\": \"milk\"}). Do NOT wait for one "
     "result before requesting the next; they don't depend on each other and "

@@ -41,7 +41,7 @@ def _startup() -> None:
         _mirror_active_city_to_uc(str(cfg["city"]))
 
 CATALOG = os.environ.get("DATABRICKS_CATALOG", "devconnect")
-SIMULATOR_SCHEMA = os.environ.get("SIMULATOR_SCHEMA", "simulator")
+SIMULATOR_SCHEMA = os.environ.get("SIMULATOR_SCHEMA", "metadata")
 WAREHOUSE_ID = os.environ.get("DATABRICKS_WAREHOUSE_ID", "")
 DEFAULT_SCENARIO = os.environ.get("CATASTROPHE_SCENARIO", "bridge_outage")
 CATASTROPHE_SEED = os.environ.get("CATASTROPHE_SEED", "2026")
@@ -343,6 +343,8 @@ class RefundEvent(BaseModel):
     order_id: str
     reason: str = ""
     amount: float | None = None
+    session_id: str = ""
+    city: str = ""
 
 
 class ComplaintEvent(BaseModel):
@@ -369,7 +371,6 @@ class AgentChat(BaseModel):
 # Last-used demo config. Persisted to Lakebase with an in-process fallback so a
 # refresh can skip the setup screen when localStorage is blocked/partitioned.
 _LAST_CONFIG: dict[str, Any] | None = None
-_LAST_ORDERS_MIRROR_AT = 0.0
 
 
 def _sql_str(value: str) -> str:
@@ -398,47 +399,6 @@ def _mirror_active_city_to_uc(city_id: str) -> None:
         log.warning(f"demo_active_city UC mirror skipped: {e.detail}")
     except Exception as e:
         log.warning(f"demo_active_city UC mirror skipped: {e}")
-
-
-def _mirror_live_orders_to_uc(*, force: bool = False) -> None:
-    """Best-effort: warehouse query 3 reads catastrophe_live_orders on Lakehouse."""
-    global _LAST_ORDERS_MIRROR_AT
-    if not WAREHOUSE_ID:
-        return
-    now = time.time()
-    if not force and now - _LAST_ORDERS_MIRROR_AT < 5:
-        return
-    rows = db.orders_for_warehouse_mirror()
-    if not rows:
-        log.warning("catastrophe_live_orders UC mirror skipped: no Lakebase orders to mirror")
-        return
-    vals: list[str] = []
-    for r in rows:
-        oid = _sql_str(str(r.get("order_id", "")))
-        sid = _sql_str(str(r.get("session_id") or ""))
-        city = _sql_str(str(r.get("city") or ""))
-        st = _sql_str(str(r.get("status") or ""))
-        kind = _sql_str(str(r.get("kind") or ""))
-        late = int(r.get("late_min") or 0)
-        ts = r.get("updated_at")
-        if hasattr(ts, "isoformat"):
-            ts_lit = f"timestamp '{ts.isoformat().replace('T', ' ')[:19]}'"
-        else:
-            ts_lit = "current_timestamp()"
-        vals.append(f"('{oid}', '{sid}', '{city}', '{st}', '{kind}', {late}, {ts_lit})")
-    try:
-        _query(
-            f"""
-            CREATE OR REPLACE TABLE {CATALOG}.{SIMULATOR_SCHEMA}.catastrophe_live_orders AS
-            SELECT * FROM VALUES {", ".join(vals)}
-            AS t(order_id, session_id, city, status, kind, late_min, updated_at)
-            """
-        )
-        _LAST_ORDERS_MIRROR_AT = now
-    except HTTPException as e:
-        log.warning(f"catastrophe_live_orders UC mirror skipped: {e.detail}")
-    except Exception as e:
-        log.warning(f"catastrophe_live_orders UC mirror skipped: {e}")
 
 
 ACTION_LABELS: dict[str, str] = {
@@ -827,10 +787,14 @@ def cities_api() -> list[dict[str, Any]]:
 
 
 @app.get("/api/city")
-def city_api(id: str = Query(default="")) -> dict[str, Any]:
+def city_api(
+    city: str = Query(default=""),
+    id: str = Query(default=""),  # legacy alias; prefer `city=`
+) -> dict[str, Any]:
     """City geography (bridge choke, reroute, banks, regions) for the map. With
-    no id, returns the deploy-time active city; with an id, computes that city."""
-    cid = id.strip().lower()
+    no city, returns the deploy-time active city; with a city id, computes that
+    city. Prefer ?city= over ?id= — some gateways mishandle the bare `id` query."""
+    cid = (city or id or "").strip().lower()
     if cid and cid in _CITIES:
         return _city_config_for(cid)
     return _city_config()
@@ -1073,7 +1037,9 @@ def sim_status(body: StatusEvent) -> dict[str, Any]:
 
 @app.post("/api/sim/refund")
 def sim_refund(body: RefundEvent) -> dict[str, Any]:
-    db.add_refund(body.order_id, body.reason, body.amount)
+    db.add_refund(
+        body.order_id, body.reason, body.amount, body.session_id, body.city,
+    )
     return {"ok": True, "persisted": db.enabled()}
 
 
@@ -1101,17 +1067,20 @@ def sim_order_statuses(limit: int = Query(1000, ge=1, le=5000)) -> dict[str, Any
     """Lightweight status feed the map polls so SQL run directly on Lakebase
     (e.g. flipping stuck orders to 'rerouted' or 'reordered') is reflected live
     on screen."""
-    _mirror_live_orders_to_uc()
     return {"enabled": db.enabled(), "statuses": db.order_statuses(limit)}
 
 
 @app.get("/api/sim/refund-summary")
-def refund_summary(session_id: str = Query(default="")) -> dict[str, Any]:
+def refund_summary(
+    session_id: str = Query(default=""),
+    city: str = Query(default=""),
+) -> dict[str, Any]:
     """Lightweight refund totals for the stats panel (no row list)."""
     sid = session_id.strip() or None
+    city_id = city.strip() or None
     return {
         "enabled": db.enabled(),
-        "summary": db.session_refund_summary(sid),
+        "summary": db.session_refund_summary(sid, city_id),
     }
 
 
@@ -1119,16 +1088,24 @@ def refund_summary(session_id: str = Query(default="")) -> dict[str, Any]:
 def sim_refunds(
     limit: int = Query(500, ge=1, le=2000),
     session_id: str = Query(default=""),
+    city: str = Query(default=""),
+    include_summary: bool = Query(default=True),
 ) -> dict[str, Any]:
-    """Recent refunds feed the map polls so a refund issued directly on Lakebase
-    surfaces as a 'refund sent' notification on screen."""
+    """Session refunds for notification cards (+ optional summary).
+
+    Pass ``include_summary=false`` when the client already polls
+    ``/api/sim/refund-summary`` — saves a second Lakebase round-trip.
+    """
     sid = session_id.strip() or None
-    return {
+    city_id = city.strip() or None
+    session_rows = db.session_refunds(sid, city_id, limit)
+    out: dict[str, Any] = {
         "enabled": db.enabled(),
-        "refunds": db.recent_refunds(limit),
-        "session_refunds": db.session_refunds(sid, limit),
-        "summary": db.session_refund_summary(sid),
+        "session_refunds": session_rows,
     }
+    if include_summary:
+        out["summary"] = db.session_refund_summary(sid, city_id)
+    return out
 
 
 @app.get("/api/sim/summary")
@@ -1241,19 +1218,15 @@ async def agent_chat(body: AgentChat) -> dict[str, Any]:
             status_code=503,
             detail="Agent unavailable — workspace auth could not be resolved.",
         )
-    # The agent's `warehouse` actions (revenue_at_risk / today_vs_normal /
-    # ingredient checks) read the UC mirror of the live Lakebase state. That
-    # mirror is normally refreshed by the map polling /api/sim/order-statuses,
-    # so if the operator talks to the agent while the map isn't actively polling
-    # the queries see a stale/empty table. Refresh it here (best-effort) so the
-    # agent always reads current data. Throttled + no-op on empty inside.
+    # Warehouse actions (revenue_at_risk / compare_orders_today_vs_baseline) read Lakebase CDF
+    # via lb_orders_history and filter on demo_active_city — keep that in sync
+    # with the picker before the agent runs.
     try:
         cfg = _LAST_CONFIG or db.get_config()
         if cfg and cfg.get("city"):
             _mirror_active_city_to_uc(str(cfg["city"]))
-        _mirror_live_orders_to_uc(force=True)
     except Exception as e:  # noqa: BLE001
-        log.warning(f"Pre-agent UC mirror refresh skipped: {e}")
+        log.warning(f"Pre-agent demo_active_city refresh skipped: {e}")
     try:
         # Run off FastAPI's sync-route threadpool. The sim fires dozens of
         # blocking POSTs during the catastrophe; a sync agent_chat would queue

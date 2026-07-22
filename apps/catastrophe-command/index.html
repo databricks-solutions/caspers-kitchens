@@ -200,18 +200,45 @@
 
     /* ---- Order-delay cards (right) ---- */
     #cards {
-      position: absolute; z-index: 1100; top: 16px; right: 16px; width: min(320px, 90vw);
-      display: flex; flex-direction: column; gap: 10px; max-height: calc(100vh - 32px); overflow-y: auto;
-      padding-bottom: 8px;
+      /* Stop above the Leaflet +/- control so cards never sit on top of zoom. */
+      position: absolute; z-index: 1100; top: 16px; right: 16px; bottom: 100px;
+      width: min(320px, 90vw);
+      /* Full notifications only. pointer-events:none on the empty column so
+         anything below still reaches the map; cards themselves stay clickable. */
+      display: flex; flex-direction: column; gap: 8px;
+      overflow: hidden; pointer-events: none;
+      padding: 4px 6px 4px 4px; scrollbar-gutter: stable;
     }
-    #cards::-webkit-scrollbar { display: none; }
+    #cards .card, #cards #cardOverflow { pointer-events: auto; }
+    #cards::-webkit-scrollbar { width: 6px; }
+    #cards::-webkit-scrollbar-track { background: transparent; }
+    #cards::-webkit-scrollbar-thumb { background: rgba(142,166,214,.7); border-radius: 999px; }
+    .leaflet-bottom.leaflet-right {
+      z-index: 1200 !important;
+      margin-bottom: 12px;
+      margin-right: 12px;
+    }
+    .leaflet-control-zoom {
+      border: none !important;
+      box-shadow: 0 6px 18px rgba(0,0,0,.35) !important;
+    }
+    .leaflet-control-zoom a {
+      width: 40px !important; height: 40px !important; line-height: 40px !important;
+      font-size: 20px !important;
+    }
     .card {
-      position: relative;
+      position: relative; flex: 0 0 auto;
       background: rgba(255,255,255,.86); backdrop-filter: blur(10px) saturate(160%);
       -webkit-backdrop-filter: blur(10px) saturate(160%);
       border-radius: 18px; box-shadow: 0 10px 30px rgba(0,0,0,.16); border: 1px solid rgba(255,255,255,.6);
       padding: 12px 14px; animation: cardIn .35s cubic-bezier(.2,.9,.3,1.2);
     }
+    #cardOverflow {
+      flex: 0 0 auto; border: 1px solid rgba(255,255,255,.4); border-radius: 10px;
+      padding: 9px 10px; background: rgba(20,10,46,.94); color: #d6e0fa;
+      font: inherit; font-weight: 700; cursor: pointer;
+    }
+    #cardOverflow[hidden] { display: none; }
     .card .card-x {
       position: absolute; top: 9px; right: 9px; width: 22px; height: 22px; border: none; border-radius: 50%;
       background: rgba(0,0,0,.06); color: #636366; font-size: 12px; line-height: 1; cursor: pointer; z-index: 2;
@@ -425,21 +452,27 @@
 
     .fab-row {
       position: absolute; z-index: 1000; bottom: 16px; left: 16px;
-      display: flex; gap: 8px; align-items: center;
+      display: flex; gap: 8px; align-items: stretch;
+      width: min(260px, calc(100vw - 32px)); box-sizing: border-box;
     }
     .config-fab {
       position: static;
+      display: inline-flex; align-items: center; justify-content: center;
+      height: 44px; box-sizing: border-box; white-space: nowrap;
       background: rgba(255,255,255,.82); backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px); border: 1px solid var(--line);
       border-radius: 12px; padding: 8px 12px; font-size: 12px; font-weight: 600;
       color: var(--muted); cursor: pointer; box-shadow: 0 6px 20px rgba(0,0,0,.12);
     }
     .config-fab:hover { color: var(--ink); }
+    .config-fab:not(.fab-icon) { flex: 1; }
+    .config-fab.fab-icon { width: 44px; padding: 0; font-size: 18px; }
     /* Discreet "undo the disaster" button — small, muted, sits by the gear. */
-    .stop-cata-fab { padding: 8px 10px; opacity: .5; }
+    .stop-cata-fab { opacity: .5; }
     .stop-cata-fab:hover { opacity: 1; color: #248a3d; }
     .legend {
-      position: absolute; z-index: 1000; bottom: 60px; left: 16px;
+      position: absolute; z-index: 1000; bottom: 68px; left: 16px;
+      width: min(260px, calc(100vw - 32px)); box-sizing: border-box;
       background: rgba(255,255,255,.82); backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px); border-radius: 14px; padding: 10px 12px;
       font-size: 11px; box-shadow: 0 6px 20px rgba(0,0,0,.12); line-height: 1.7;
@@ -448,8 +481,10 @@
     .swatch { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
 
     /* Configuration screen (city / order volume / initial speed) */
+    /* No backdrop-filter here: blur + map rAF repaints dismiss the native <select>
+       mid-pick (city snaps back to Amsterdam). Solid dim is enough. */
     .setup { position: absolute; inset: 0; z-index: 4000; display: flex; align-items: center; justify-content: center;
-      background: rgba(18,20,26,.55); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+      background: rgba(18,20,26,.72); }
     .setup[hidden] { display: none; }
     .setup-card { width: min(460px, 92vw); background: rgba(255,255,255,.98); border-radius: 24px;
       box-shadow: 0 40px 100px rgba(0,0,0,.45); padding: 26px 26px 22px;
@@ -525,21 +560,27 @@
       font-family: 'VT323', ui-monospace, monospace; font-size: 16px;
     }
     body[data-theme="arcade"] #map { background: #060213; }
-    /* Clean dark board: keep streets readable, nudge the whole map cool-blue. */
+    /* Arcade splits the dark map and its labels into separate tile layers.
+       Brighten road geometry gently, then drive labels to crisp projector-safe
+       white without washing out the rest of the map. */
     body[data-theme="arcade"] .leaflet-tile-pane {
-      filter: contrast(1.06) saturate(1.15) brightness(.98) hue-rotate(-8deg); }
+      filter: brightness(1.35) contrast(1.18) saturate(.9); }
+    body[data-theme="arcade"] .arcade-map-labels {
+      filter: sepia(.7) saturate(1.25) hue-rotate(350deg) brightness(1.75) contrast(1.3);
+      opacity: .82;
+    }
     /* Subtle single-colour neon grid on generous cells (not a busy plaid). */
     body[data-theme="arcade"] #map::after {
       content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 250;
       background-image:
-        linear-gradient(rgba(0,229,255,.10) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,229,255,.10) 1px, transparent 1px);
+        linear-gradient(rgba(0,229,255,.14) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,229,255,.14) 1px, transparent 1px);
       background-size: 72px 72px; mix-blend-mode: screen;
     }
     /* Smooth blue vignette that fades the edges into the HUD. */
     body[data-theme="arcade"] #map::before {
       content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 255;
-      background: radial-gradient(ellipse at center, transparent 60%, rgba(5,1,20,.55) 100%);
+      background: radial-gradient(ellipse at center, transparent 70%, rgba(5,1,20,.18) 100%);
     }
     /* Neon glow on every route / trail / bridge line. */
     body[data-theme="arcade"] .leaflet-overlay-pane path { filter: drop-shadow(0 0 3px rgba(0,229,255,.85)); }
@@ -945,9 +986,9 @@
   </div>
 
   <div class="fab-row">
-    <button id="configBtn" class="config-fab">⚙️ Change configuration</button>
-    <button id="activateAgentBtn" class="config-fab" title="Bring up the ops agent">🤖 Activate agentic</button>
-    <button id="stopCataBtn" class="config-fab stop-cata-fab" title="Reset the catastrophe (reopen the crossing)">✔ Stop</button>
+    <button id="configBtn" class="config-fab fab-icon" title="Change configuration" aria-label="Change configuration">⚙️</button>
+    <button id="activateAgentBtn" class="config-fab" title="Activate the ops agent">🤖 Agent</button>
+    <button id="stopCataBtn" class="config-fab fab-icon stop-cata-fab" title="Reset the catastrophe (reopen the crossing)" aria-label="Stop catastrophe">⏹️</button>
   </div>
 
   <div class="legend">
@@ -968,7 +1009,7 @@
     </div>
   </div>
 
-  <div id="cards"></div>
+  <div id="cards"><button id="cardOverflow" hidden></button></div>
 
   <div id="modal" class="modal-overlay" hidden>
     <div class="modal-card">
@@ -1005,7 +1046,7 @@
   </div>
 
   <script>
-  const BUILD_ID = "2026-07-21g-catastrophe-alert";
+  const BUILD_ID = "2026-07-22ae-fresh-url";
   const CATASTROPHE_ALERT_MS = 5000;
   let bannerTimer = null, catastropheAlertTimer = null;
   let catastropheAlertShowing = false, jamTrafficMsgPending = false;
@@ -1023,21 +1064,67 @@
       catastropheAlertShowing = false;
     }, CATASTROPHE_ALERT_MS);
   }
+  function dismissCatastropheAlert() {
+    document.getElementById("catastrophe-alert").classList.remove("show");
+    catastropheAlertShowing = false;
+    jamTrafficMsgPending = false;
+    clearTimeout(catastropheAlertTimer);
+  }
   // central river crossing that "closes"; the reroute uses a nearby parallel
   // crossing. Banks (a/b), approaches and customer regions are derived from the
-  // two bridge coordinates server-side. Vehicles follow real streets via OSRM.
+  // two bridge coordinates. Vehicles follow real streets via OSRM.
   // ────────────────────────────────────────────────────────────────
-  // Fallback = Amsterdam (mirrors the registry) if /api/city is unavailable.
-  const CITY_FALLBACK = {
-    id: "amsterdam", name: "Amsterdam, Netherlands", flag: "🇳🇱", river: "Amstel",
-    center: [52.351755, 4.909375],
-    bridge: { name: "Berlagebrug", coord: [52.34734, 4.9127] },
-    alt: { name: "Nieuwe Amstelbrug", coord: [52.35617, 4.90605] },
-    regions: { a: [52.342459177553344, 4.895332789164471], b: [52.35222082244666, 4.930067210835529] },
-    approaches: { a: [52.34651401466287, 4.909760933550911], b: [52.34816598533713, 4.915639066449089] },
-    close_radius_m: 120,
-    catastrophe: { icon: "🌉", title: "Berlagebrug structural failure", desc: "The Berlagebrug's bascule mechanism seized and a span support cracked. The Amstel crossing is shut for emergency structural checks.", label: "closed" },
+  // Local registry mirrors apps/catastrophe-command/app/main.py (_CITIES +
+  // _CITY_CATASTROPHES). City switching must work even if /api/city is slow,
+  // cached wrong, or returns the deploy-time default (Amsterdam).
+  const CITY_GEO = {
+    amsterdam:     { name: "Amsterdam, Netherlands", flag: "🇳🇱", river: "Amstel",         bridge_name: "Berlagebrug",                    bridge: [52.34734, 4.91270],   alt_name: "Nieuwe Amstelbrug",          alt: [52.35617, 4.90605],   r: 120, catastrophe: { icon: "🌉", title: "Berlagebrug structural failure", desc: "The Berlagebrug's bascule mechanism seized and a span support cracked. The Amstel crossing is shut for emergency structural checks.", label: "closed" } },
+    montreal:      { name: "Montreal, QC",           flag: "🇨🇦", river: "St. Lawrence",    bridge_name: "Jacques Cartier Bridge",         bridge: [45.52144, -73.54056], alt_name: "Victoria Bridge",            alt: [45.48699, -73.54471], r: 220, catastrophe: { icon: "🧊", title: "Ice storm shuts the Jacques Cartier Bridge", desc: "Freezing rain has glazed the deck and ice is falling from the superstructure. The St. Lawrence crossing is fully closed.", label: "iced over" } },
+    sao_paulo:     { name: "São Paulo, Brazil",      flag: "🇧🇷", river: "Pinheiros",       bridge_name: "Ponte Estaiada",                 bridge: [-23.61211, -46.69962],alt_name: "Ponte Cidade Jardim",        alt: [-23.58684, -46.69217],r: 200, catastrophe: { icon: "🌊", title: "Flash flood on Marginal Pinheiros", desc: "A torrential downpour has flooded the Pinheiros riverside; the Ponte Estaiada approaches are underwater.", label: "flooded" } },
+    vienna:        { name: "Vienna, Austria",        flag: "🇦🇹", river: "Danube",          bridge_name: "Reichsbrücke",                   bridge: [48.22802, 16.40921],  alt_name: "Floridsdorfer Brücke",       alt: [48.24944, 16.38958],  r: 220, catastrophe: { icon: "🌉", title: "Reichsbrücke pier collapse", desc: "A pier has given way and a span has dropped into the Danube. The Reichsbrücke is gone.", label: "collapsed" } },
+    warsaw:        { name: "Warsaw, Poland",         flag: "🇵🇱", river: "Vistula",         bridge_name: "Poniatowski Bridge",             bridge: [52.23565, 21.03829],  alt_name: "Świętokrzyski Bridge",       alt: [52.24147, 21.03331],  r: 200, catastrophe: { icon: "💣", title: "WWII bomb found by the Poniatowski Bridge", desc: "Construction crews uncovered unexploded WWII ordnance. A bomb-disposal cordon has closed the Vistula crossing.", label: "cordoned off" } },
+    paris:         { name: "Paris, France",          flag: "🇫🇷", river: "Seine",           bridge_name: "Pont de la Concorde",            bridge: [48.86338, 2.31960],   alt_name: "Pont Alexandre III",         alt: [48.86347, 2.31352],   r: 130, catastrophe: { icon: "📢", title: "Protest blocks the Pont de la Concorde", desc: "A mass manifestation has flooded Place de la Concorde and blocked the Seine crossing.", label: "blocked" } },
+    washington_dc: { name: "Washington, DC",         flag: "🇺🇸", river: "Potomac",         bridge_name: "Francis Scott Key Bridge",       bridge: [38.90456, -77.06885], alt_name: "Theodore Roosevelt Bridge",  alt: [38.89229, -77.05984], r: 200, catastrophe: { icon: "🚓", title: "Security lockdown on the Key Bridge", desc: "A presidential motorcade and Secret Service closure have sealed the Francis Scott Key Bridge over the Potomac.", label: "locked down" } },
+    boston:        { name: "Boston, MA",             flag: "🇺🇸", river: "Charles",         bridge_name: "Longfellow Bridge",              bridge: [42.36144, -71.07361], alt_name: "Harvard Bridge",             alt: [42.35455, -71.09130], r: 170, catastrophe: { icon: "🚇", title: "Red Line derailment on the Longfellow", desc: "An MBTA train has derailed on the Longfellow Bridge, which carries the Red Line over the Charles. The bridge is closed.", label: "derailed" } },
+    bangalore:     { name: "Bangalore, India",       flag: "🇮🇳", river: "Outer Ring Road", bridge_name: "Silk Board Junction",            bridge: [12.91582, 77.62404],  alt_name: "Agara Junction",             alt: [12.92214, 77.64794],  r: 200, catastrophe: { icon: "🚗", title: "Silk Board gridlock meltdown", desc: "Monsoon waterlogging has turned the Silk Board Junction into total gridlock across the Outer Ring Road.", label: "gridlocked" } },
+    seoul:         { name: "Seoul, South Korea",     flag: "🇰🇷", river: "Han",             bridge_name: "Banpo Bridge",                   bridge: [37.51456, 126.99651], alt_name: "Hannam Bridge",              alt: [37.52671, 127.01338], r: 260, catastrophe: { icon: "🚗", title: "Major accident on the Banpo Bridge", desc: "A multi-vehicle pile-up has blocked all lanes across the Han River on the Banpo Bridge.", label: "blocked" } },
+    tokyo:         { name: "Tokyo, Japan",           flag: "🇯🇵", river: "Sumida",          bridge_name: "Kachidoki Bridge",               bridge: [35.66226, 139.77490], alt_name: "Eitai Bridge",               alt: [35.67664, 139.78615], r: 200, catastrophe: { icon: "📡", title: "Seismic sensor malfunction shuts the Kachidoki Bridge", desc: "A faulty seismic sensor triggered a false earthquake alert; the Kachidoki Bridge over the Sumida was automatically shut and awaits inspection.", label: "closed" } },
+    chicago:       { name: "Chicago, IL",            flag: "🇺🇸", river: "Chicago River",   bridge_name: "DuSable Bridge",                 bridge: [41.88882, -87.62439], alt_name: "Wells Street Bridge",        alt: [41.88755, -87.63399], r: 140, catastrophe: { icon: "🌉", title: "DuSable Bridge stuck open", desc: "A bascule-lift malfunction during a boat run has left the DuSable Bridge jammed upright over the Chicago River.", label: "stuck open" } },
+    minneapolis:   { name: "Minneapolis, MN",        flag: "🇺🇸", river: "Mississippi",     bridge_name: "I-35W St. Anthony Falls Bridge", bridge: [44.97948, -93.24479], alt_name: "Hennepin Avenue Bridge",     alt: [44.98533, -93.26386], r: 200, catastrophe: { icon: "❄️", title: "Blizzard pile-up on I-35W", desc: "Whiteout conditions have caused a chain-reaction crash on the I-35W St. Anthony Falls Bridge over the Mississippi.", label: "blocked" } },
   };
+  function _metersPerDeg(lat) {
+    return [111320.0, 111320.0 * Math.cos(lat * Math.PI / 180)];
+  }
+  function _offsetLatLon(point, eastM, northM) {
+    const [mlat, mlon] = _metersPerDeg(point[0]);
+    return [point[0] + northM / mlat, point[1] + eastM / mlon];
+  }
+  function _acrossRiverUnit(bridge, alt) {
+    const [mlat, mlon] = _metersPerDeg(bridge[0]);
+    const dx = (alt[1] - bridge[1]) * mlon;
+    const dy = (alt[0] - bridge[0]) * mlat;
+    const length = Math.hypot(dx, dy);
+    if (length < 1) return [1, 0];
+    return [-dy / length, dx / length];
+  }
+  function cityConfigFor(cityId) {
+    const city = CITY_GEO[cityId];
+    if (!city) return null;
+    const bridge = city.bridge, alt = city.alt;
+    const center = [(bridge[0] + alt[0]) / 2, (bridge[1] + alt[1]) / 2];
+    const [px, py] = _acrossRiverUnit(bridge, alt);
+    return {
+      id: cityId, name: city.name, flag: city.flag, river: city.river,
+      center,
+      bridge: { name: city.bridge_name, coord: bridge.slice() },
+      alt: { name: city.alt_name, coord: alt.slice() },
+      regions: { a: _offsetLatLon(bridge, px * 1300, py * 1300), b: _offsetLatLon(bridge, -px * 1300, -py * 1300) },
+      approaches: { a: _offsetLatLon(bridge, px * 220, py * 220), b: _offsetLatLon(bridge, -px * 220, -py * 220) },
+      close_radius_m: city.r,
+      catastrophe: city.catastrophe,
+    };
+  }
+  const CITY_FALLBACK = cityConfigFor("amsterdam");
   let BRIDGE, ALT, BRIDGE_NAME, ALT_NAME, RIVER, CITY_NAME, CATA;
   let APPROACH_A, APPROACH_B, REGION_A, REGION_B, CENTER, CLOSE_RADIUS;
 
@@ -1056,26 +1143,56 @@
 
   let currentCityId = null;
   async function loadCity(id) {
-    let c;
-    const url = id ? "/api/city?id=" + encodeURIComponent(id) : "/api/city";
-    try {
-      const r = await trackedFetch(url, {}, 3000);
-      c = r.ok ? await r.json() : null;
+    const want = (id || "").trim().toLowerCase();
+    let c = null;
+    // Prefer local geography for the requested id — never trust a response that
+    // belongs to a different city (cached deploy-time Amsterdam is the failure mode).
+    if (want && CITY_GEO[want]) {
+      c = cityConfigFor(want);
+    } else {
+      const url = want
+        ? "/api/city?city=" + encodeURIComponent(want)
+        : "/api/city";
+      try {
+        const r = await trackedFetch(url, {}, 3000);
+        c = r.ok ? await r.json() : null;
+      } catch (e) { c = null; }
+      if (c && want && c.id && c.id !== want) c = null;
+      if ((!c || !c.bridge) && want) c = cityConfigFor(want);
     }
-    catch (e) { c = null; }
     applyCity(c && c.bridge ? c : CITY_FALLBACK);
-    currentCityId = (c && c.id) ? c.id : (id || currentCityId);
+    currentCityId = (c && c.id) ? c.id : (want || currentCityId);
   }
 
   const FOOD = ["🍔","🍕","🍜","🌮","🍣","🥗","🍛","🍝","🥙","🧆","🍤","🥘","🍱","🌯","🍗","🧀"];
-  const KITCHENS_FALLBACK = [
-    { name: "Casper's De Pijp",         lat: 52.35450, lon: 4.89180 },
-    { name: "Casper's Rivierenbuurt",   lat: 52.34700, lon: 4.90500 },
-    { name: "Casper's Amsteldijk",      lat: 52.35200, lon: 4.90100 },
-    { name: "Casper's Watergraafsmeer", lat: 52.35120, lon: 4.93000 },
-    { name: "Casper's Oost",            lat: 52.35950, lon: 4.92000 },
-    { name: "Casper's Amstelkwartier",  lat: 52.34650, lon: 4.91750 },
+  const KITCHEN_AREA_NAMES = [
+    "Downtown", "Riverside", "Old Town", "Harbour", "Uptown", "Midtown",
   ];
+  function kitchensFallbackForActiveCity() {
+    // Never drop Amsterdam kitchens onto Montreal (etc.) when the API fails.
+    if (currentCityId === "amsterdam" || !CENTER) {
+      return [
+        { name: "Casper's De Pijp",         lat: 52.35450, lon: 4.89180 },
+        { name: "Casper's Rivierenbuurt",   lat: 52.34700, lon: 4.90500 },
+        { name: "Casper's Amsteldijk",      lat: 52.35200, lon: 4.90100 },
+        { name: "Casper's Watergraafsmeer", lat: 52.35120, lon: 4.93000 },
+        { name: "Casper's Oost",            lat: 52.35950, lon: 4.92000 },
+        { name: "Casper's Amstelkwartier",  lat: 52.34650, lon: 4.91750 },
+      ];
+    }
+    const out = [];
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 6) * Math.PI * 2;
+      const dist = 900 + (i % 3) * 350;
+      const [lat, lon] = _offsetLatLon(CENTER, dist * Math.cos(angle), dist * Math.sin(angle));
+      out.push({
+        name: `Casper's ${KITCHEN_AREA_NAMES[i % KITCHEN_AREA_NAMES.length]}`,
+        neighborhood: KITCHEN_AREA_NAMES[i % KITCHEN_AREA_NAMES.length],
+        lat, lon,
+      });
+    }
+    return out;
+  }
   let KITCHENS = [];
   const VEH_TYPES = [
     { type: "bike",    emoji: "🚲", mps: 4.5 },
@@ -1111,6 +1228,11 @@
   // ── Map ──
   const map = L.map("map", { zoomControl: false, attributionControl: false }).setView(CENTER, 15);
   let tileLayer = L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { maxZoom: 20, subdomains: "abcd" }).addTo(map);
+  map.createPane("arcadeLabels");
+  map.getPane("arcadeLabels").style.zIndex = "350";
+  map.getPane("arcadeLabels").style.pointerEvents = "none";
+  map.getPane("arcadeLabels").classList.add("arcade-map-labels");
+  let labelLayer = null;
   L.control.zoom({ position: "bottomright" }).addTo(map);
 
   const routeLayer   = L.layerGroup().addTo(map);
@@ -1121,16 +1243,27 @@
 
   // ── Themes ── Classic (light Apple) and Arcade (dark neon game board).
   const THEME_TILES = {
-    classic: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-    arcade:  "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+    classic: {
+      base: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+    },
+    arcade: {
+      base: "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png",
+      labels: "https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png",
+    },
   };
   const VEH_COLORS = { bike: "#34c759", car: "#0a84ff", scooter: "#ff9f0a" };
   const THEME_KEY = "cc_theme_v1";
   let currentTheme = "classic", cuteTheme = false;
-  function setBasemap(url) {
+  function setBasemap(themeTiles) {
     if (tileLayer) map.removeLayer(tileLayer);
-    tileLayer = L.tileLayer(url, { maxZoom: 20, subdomains: "abcd" }).addTo(map);
+    if (labelLayer) { map.removeLayer(labelLayer); labelLayer = null; }
+    tileLayer = L.tileLayer(themeTiles.base, { maxZoom: 20, subdomains: "abcd" }).addTo(map);
     if (tileLayer.bringToBack) tileLayer.bringToBack();
+    if (themeTiles.labels) {
+      labelLayer = L.tileLayer(themeTiles.labels, {
+        maxZoom: 20, subdomains: "abcd", pane: "arcadeLabels",
+      }).addTo(map);
+    }
   }
   function cachePuck(v) {
     v.puckEl = (v.marker && v.marker._icon) ? v.marker._icon.querySelector(".puck") : null;
@@ -1213,6 +1346,12 @@
     const dlon = (b[1]-a[1]) * RE * Math.cos(rad((a[0]+b[0])/2));
     return Math.hypot(dlat, dlon);
   }
+  // Squared meter distance — skip Math.hypot when only comparing to a radius.
+  function mdist2(a, b) {
+    const dlat = (b[0]-a[0]) * RE;
+    const dlon = (b[1]-a[1]) * RE * Math.cos(rad((a[0]+b[0])/2));
+    return dlat * dlat + dlon * dlon;
+  }
   function buildPath(pts) {
     const cum = [0];
     for (let i = 1; i < pts.length; i++) cum.push(cum[i-1] + mdist(pts[i-1], pts[i]));
@@ -1284,24 +1423,53 @@
   }
 
   // ── Real street routing via OSRM (public demo server) ──
+  // Cap concurrent calls. Spawning a full fleet (~45) in one burst trips the
+  // public demo rate limit and every failed route falls back to straight lines.
   const routeCache = new Map();
+  const OSRM_CONCURRENCY = 4;
+  let _osrmInflight = 0;
+  const _osrmWaiters = [];
+  function _osrmAcquire() {
+    if (_osrmInflight < OSRM_CONCURRENCY) { _osrmInflight++; return Promise.resolve(); }
+    return new Promise(resolve => _osrmWaiters.push(resolve));
+  }
+  function _osrmRelease() {
+    const next = _osrmWaiters.shift();
+    if (next) next();
+    else _osrmInflight = Math.max(0, _osrmInflight - 1);
+  }
   async function osrm(coords) {
     if (_pageUnloading) throw new Error("unloading");
     const key = coords.map(c => c[0].toFixed(4) + "," + c[1].toFixed(4)).join(";");
     if (routeCache.has(key)) return routeCache.get(key);
     const path = coords.map(c => c[1] + "," + c[0]).join(";");
     const url = `https://router.project-osrm.org/route/v1/driving/${path}?overview=full&geometries=geojson`;
+    await _osrmAcquire();
     const ctrl = new AbortController();
     _osrmAborters.add(ctrl);
     try {
-      const r = await fetch(url, { signal: ctrl.signal });
-      if (!r.ok) throw new Error("osrm " + r.status);
-      const j = await r.json();
-      if (!j.routes || !j.routes[0]) throw new Error("no route");
-      const geo = j.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
-      cachePut(routeCache, key, geo);
-      return geo;
-    } finally { _osrmAborters.delete(ctrl); }
+      let lastErr = null;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        if (_pageUnloading) throw new Error("unloading");
+        try {
+          const r = await fetch(url, { signal: ctrl.signal });
+          if (!r.ok) throw new Error("osrm " + r.status);
+          const j = await r.json();
+          if (!j.routes || !j.routes[0]) throw new Error("no route");
+          const geo = j.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+          cachePut(routeCache, key, geo);
+          return geo;
+        } catch (e) {
+          lastErr = e;
+          if (e && e.name === "AbortError") throw e;
+          if (attempt === 0) await new Promise(r => setTimeout(r, 350 + Math.random() * 250));
+        }
+      }
+      throw lastErr || new Error("osrm failed");
+    } finally {
+      _osrmAborters.delete(ctrl);
+      _osrmRelease();
+    }
   }
   // Distance along a route where it first enters the closure zone (or null)
   function bridgeDistOf(v) {
@@ -1322,7 +1490,8 @@
 
   // Load kitchens for the active city from catastrophe_kitchens (via API) and
   // snap them to real roads (generated coords can land in water).
-  const KITCHEN_CACHE_KEY = "cc_kitchens_v1";
+  // v2 invalidates caches polluted by the old cross-city async race.
+  const KITCHEN_CACHE_KEY = "cc_kitchens_v2";
   function kitchenCacheKey(cityId) {
     return `${KITCHEN_CACHE_KEY}:${cityId || "default"}`;
   }
@@ -1347,19 +1516,22 @@
     const el = document.getElementById("buildTag");
     if (el) el.textContent = `build ${BUILD_ID}`;
   }
-  function applyKitchenList(kitchens) {
+  function applyKitchenList(kitchens, cityId = currentCityId) {
+    // A fetch/OSRM snap from the previous city may finish after the operator
+    // starts another city. Never let that stale result move the current map.
+    if (cityId && cityId !== currentCityId) return false;
     KITCHENS = kitchens;
     const shortCity = (CITY_NAME || "").split(",")[0];
     document.getElementById("subtitle").textContent = subtitleText(shortCity, KITCHENS.length);
     const pts = KITCHENS.map(k => k.pos).concat([BRIDGE, ALT]);
     if (pts.length) map.fitBounds(L.latLngBounds(pts).pad(0.2));
+    return true;
   }
   async function loadKitchens({ snap = true } = {}) {
     const cityId = currentCityId || "";
     const cached = loadKitchenCache(cityId);
     if (cached) {
-      applyKitchenList(cached);
-      return;
+      return applyKitchenList(cached, cityId);
     }
     let rows;
     const url = cityId ? "/api/kitchens?city=" + encodeURIComponent(cityId) : "/api/kitchens";
@@ -1367,7 +1539,7 @@
       const r = await trackedFetch(url, {}, 3000);
       rows = r.ok ? await r.json() : null;
     } catch (e) { rows = null; }
-    if (!rows || !rows.length) rows = KITCHENS_FALLBACK;
+    if (!rows || !rows.length) rows = kitchensFallbackForActiveCity();
     let positions;
     if (snap) {
       positions = await snapAll(rows.map(k => [Number(k.lat), Number(k.lon)]), 8);
@@ -1381,8 +1553,9 @@
         pos, bank: bankOf(pos),
       };
     });
-    applyKitchenList(kitchens);
+    if (!applyKitchenList(kitchens, cityId)) return false;
     saveKitchenCache(cityId, kitchens);
+    return true;
   }
 
   // ── State ──
@@ -1405,11 +1578,92 @@
   // complaint notification is raised for the same order.
   let pendingComplaints = [];
   const COMPLAINT_DELAY_MS = 10000;
-  const CARDS_MAX = 35;
+  const CARDS_MAX = 5; // full cards only — older ones live in the sidebar history
+  let _cardStackBusy = false;
+  let _cardStackRaf = 0;
+  function scheduleRefreshCardStack() {
+    if (_cardStackBusy || _cardStackRaf) return;
+    _cardStackRaf = requestAnimationFrame(() => {
+      _cardStackRaf = 0;
+      refreshCardStack();
+    });
+  }
+  function refreshCardStack() {
+    if (_cardStackBusy) return;
+    const wrap = document.getElementById("cards");
+    if (!wrap) return;
+    _cardStackBusy = true;
+    try {
+      let overflow = document.getElementById("cardOverflow");
+      if (!overflow) {
+        overflow = document.createElement("button");
+        overflow.id = "cardOverflow";
+        wrap.appendChild(overflow);
+      }
+      const cards = Array.from(wrap.querySelectorAll(":scope > .card"));
+      if (wrap.lastElementChild !== overflow) wrap.appendChild(overflow);
+
+      cards.forEach(c => { c.hidden = false; });
+
+      if (!cards.length) {
+        overflow.hidden = true;
+        return;
+      }
+
+      // Measure one card at a time against the free column height. Showing all
+      // cards first made complaint cards report huge heights and left fit≈1,
+      // so with CARDS_MAX=35 the button permanently said "+33 more".
+      const gap = 8;
+      const btnH = 44;
+      const available = Math.max(120, wrap.clientHeight - 8);
+      let fit = 0;
+      let used = 0;
+      for (let i = 0; i < cards.length; i++) {
+        const h = cards[i].offsetHeight || 0;
+        const remaining = cards.length - (i + 1);
+        const reserveBtn = remaining > 0 ? gap + btnH : 0;
+        if (used + h + reserveBtn > available && fit > 0) break;
+        fit = i + 1;
+        used += h + gap;
+      }
+      if (!fit) fit = 1;
+
+      cards.forEach((c, i) => { c.hidden = i >= fit; });
+      const hiddenCards = Math.max(0, cards.length - fit);
+      // History beyond the live stack (notifLog keeps the long trail).
+      const historyExtra = Math.max(0, notifLog.length - cards.length);
+      const more = hiddenCards + historyExtra;
+      overflow.hidden = more <= 0;
+      // Cap display when history fills (notifLog max 200) — skip "+197 more".
+      overflow.textContent = more <= 0
+        ? ""
+        : more > 99
+          ? "too much to scroll · open history"
+          : `+${more} more · open history`;
+    } finally {
+      _cardStackBusy = false;
+    }
+  }
   function trimCards() {
     const wrap = document.getElementById("cards");
-    while (wrap.children.length > CARDS_MAX) wrap.lastElementChild.remove();
+    const cards = Array.from(wrap.querySelectorAll(":scope > .card"));
+    cards.slice(CARDS_MAX).forEach(card => card.remove());
+    scheduleRefreshCardStack();
   }
+  const cardStack = document.getElementById("cards");
+  // childList only — never subtree (textContent on #cardOverflow used to loop).
+  // Coalesce bursts of inserts into one rAF so we don't force a reflow per card.
+  new MutationObserver(() => {
+    if (_cardStackBusy) return;
+    scheduleRefreshCardStack();
+  }).observe(cardStack, { childList: true });
+  window.addEventListener("resize", () => scheduleRefreshCardStack());
+  // Delegate: Replay / restart wipe #cards.innerHTML and recreate #cardOverflow
+  // without listeners. A direct addEventListener on the first button dies then.
+  cardStack.addEventListener("click", e => {
+    if (!e.target.closest("#cardOverflow")) return;
+    openSidebar("notifs");
+  });
   function pushNotif(entry) {
     notifLog.push(entry);
     if (notifLog.length > 200) notifLog.splice(0, notifLog.length - 200);
@@ -1449,7 +1703,7 @@
   }
   function fillFleet() {
     const need = fleetTarget - activeCount();
-    for (let i = 0; i < need; i++) setTimeout(() => spawnOrder(bridgeClosed), i * 25);
+    for (let i = 0; i < need; i++) setTimeout(() => spawnOrder(bridgeClosed), i * 80);
   }
   function topUpFleetAfterResume() {
     fillFleet();
@@ -1473,6 +1727,34 @@
   function dropIcon(stuck) {
     return L.divIcon({ className: "", iconSize: [22, 22], iconAnchor: [11, 20],
       html: `<div class="drop${stuck ? " stuck" : ""}">📍</div>` });
+  }
+
+  function forceStuckAtBridge(v) {
+    if (!v.total || v.total <= 0) v.total = 100;
+    if (v.bridgeDist == null || v.bridgeDist >= v.total * 0.9) v.bridgeDist = v.total * 0.5;
+    const ahead = vehicles.reduce((n, o) =>
+      n + (o !== v && o.status === "stuck" && o.startSide === v.startSide ? 1 : 0), 0);
+    const slot = Math.min(ahead, 14);
+    v.traveled = Math.max(0, v.bridgeDist - QUEUE_BUFFER - slot * QUEUE_SPACING);
+    v.status = "stuck";
+    if (!v.stuckSince) v.stuckSince = simNow();
+    if (v.marker) v.marker.setLatLng(posAt(v));
+    refreshIcon(v);
+    if (v.custDot) v.custDot.setIcon(dropIcon(true));
+    if (!v.notified) { v.notified = true; addDelayCard(v); dbStatus(v, "stuck"); }
+  }
+  // When the catastrophe hits, every in-flight cross-river order piles up at the
+  // bridge immediately — don't wait for them to reach bridgeDist on their own.
+  function stampedeCrossingOrders() {
+    for (const v of vehicles) {
+      if (!v.crosses || v.rerouted || v.status === "delivered" || v.status === "cancelled") continue;
+      if (v.status !== "enroute" && v.status !== "routing") continue;
+      if (policyBridgeClosed && v.kind.cold && lateOf(v) < v.maxDelay) {
+        externalReroute(v);
+        continue;
+      }
+      forceStuckAtBridge(v);
+    }
   }
 
   // `tmpl` (optional) reuses an existing order's setup — same kitchen, delivery
@@ -1517,11 +1799,14 @@
       .bindPopup(`<b>Deliver ${v.id}</b><br>${v.vtype.emoji} from ${v.kitchen}`);
     vehicles.push(v);
 
-    const bridgeBlocked = bridgeClosed || policyBridgeClosed;
+    const bridgeBlocked = bridgeClosed;
     // When rerouting via ALT, also pin the approach on the customer's bank after
     // ALT so the second leg can't drift back over the closed main bridge (OSRM
     // doesn't know it's shut).
     const custApproach = bankOf(customer) === "a" ? APPROACH_A : APPROACH_B;
+    // When the UI catastrophe is live, new cross-river orders spawn on the ALT
+    // route. Lakebase policy closure alone (query 1) must NOT reroute spawns
+    // before the bridge goes down — that was starving the delay pile-up.
     const route = crossWanted
       ? (bridgeBlocked ? [kitchen.pos, ALT, custApproach, customer] : [kitchen.pos, BRIDGE, customer])
       : [kitchen.pos, customer];
@@ -1577,18 +1862,28 @@
   // ── Animation loop ──
   let last = performance.now();
   let _lastStatsAt = 0;         // throttles the per-frame updateStats() call
+  let _lastSessionSaveAt = 0;   // throttled progress persist (replaces setInterval)
+  let _lastServerSessionAt = 0; // Lakebase session mirror (max ~every 15s)
   function frame(now) {
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     if (running) {
+      const checkJams = jams.length > 0;
+      const jamSlow = jams.length >= 8 ? 0.12 : 0.18;
       for (const v of vehicles) {
         if (v.status !== "enroute" && v.status !== "rerouted") continue;
         // Crawl through active traffic-jam zones so congestion is visible.
         // Rerouted orders took the alternate crossing to escape the bridge
         // congestion, so they move at full speed (don't get dragged down by
         // the jam zones the reroute was meant to avoid).
-        const cong = (jams.length && !v.rerouted) ? jamFactorAt(posAt(v)) : 1;
+        // posAt once per vehicle per frame — reused for jam check + marker.
+        let pos = null;
+        let cong = 1;
+        if (checkJams && !v.rerouted) {
+          pos = posAt(v);
+          cong = jamFactorAt(pos, jamSlow);
+        }
         v.traveled += v.speed * dt * sim * cong;
-        const crossingBlocked = bridgeClosed || policyBridgeClosed;
+        const crossingBlocked = bridgeClosed;
         if (v.crosses && !v.rerouted && crossingBlocked && v.traveled > v.bridgeDist - QUEUE_BUFFER) {
           // route_policies closed in Lakebase (query 1): cold-chain still deliverable
           // must use the alternate crossing instead of piling up at the bridge.
@@ -1596,11 +1891,14 @@
             externalReroute(v);
             continue;
           }
-          // Policy closed but the UI bridge is still up and this isn't a cold
-          // reroute candidate: let it cross normally (fall through), don't clog.
+          // Policy closed but the UI bridge is still up: let it cross normally.
           if (!bridgeClosed) {
             if (v.traveled >= v.total) { deliver(v); }
-            else { if (v.marker) v.marker.setLatLng(posAt(v)); if (cuteTheme) cuteMotion(v, posAt(v), now); }
+            else {
+              pos = posAt(v);
+              if (v.marker) v.marker.setLatLng(pos);
+              if (cuteTheme) cuteMotion(v, pos, now);
+            }
             continue;
           }
           v.status = "stuck";
@@ -1612,22 +1910,26 @@
             n + (o !== v && o.status === "stuck" && o.startSide === v.startSide ? 1 : 0), 0);
           const slot = Math.min(ahead, 14);
           v.traveled = Math.max(0, v.bridgeDist - QUEUE_BUFFER - slot * QUEUE_SPACING);
-          if (v.marker) v.marker.setLatLng(posAt(v)); refreshIcon(v);
+          pos = posAt(v);
+          if (v.marker) v.marker.setLatLng(pos); refreshIcon(v);
           if (v.custDot) v.custDot.setIcon(dropIcon(true));
           if (!v.notified) { v.notified = true; addDelayCard(v); dbStatus(v, "stuck"); }
           continue;
         }
         if (v.traveled >= v.total) { deliver(v); continue; }
-        const pos = posAt(v);
+        // traveled advanced — recompute pos (jam path reused a pre-move pos).
+        pos = posAt(v);
         if (v.marker) v.marker.setLatLng(pos);
         if (cuteTheme) cuteMotion(v, pos, now);
       }
-      // updateStats() does 2 full vehicle scans + 8 DOM writes. Running it every
-      // frame (~60fps) is ~480 forced style/layout writes/sec, which bogs down the
-      // whole UI (and delays notification inserts). Discrete events (deliver /
-      // reroute / refund / cancel) still call it immediately for instant counts;
-      // this per-frame call only needs to catch enroute↔stuck drift, so ~5fps.
+      // updateStats() does vehicle scans + DOM writes. Discrete events still call
+      // it immediately; this per-frame call only catches enroute↔stuck drift.
       if (now - _lastStatsAt > 200) { updateStats(); _lastStatsAt = now; }
+      // Persist traveled progress via the same debounced path as event saves.
+      if (now - _lastSessionSaveAt > 3000) {
+        _lastSessionSaveAt = now;
+        scheduleSaveSession();
+      }
     }
     requestAnimationFrame(frame);
   }
@@ -1654,8 +1956,12 @@
   }
 
   function updateStats() {
-    const active = vehicles.filter(v => v.status === "enroute" || v.status === "rerouted" || v.status === "routing").length;
-    const delayed = vehicles.filter(v => v.status === "stuck" || v.status === "late").length;
+    let active = 0, delayed = 0;
+    for (const v of vehicles) {
+      const s = v.status;
+      if (s === "enroute" || s === "rerouted" || s === "routing") active++;
+      else if (s === "stuck" || s === "late") delayed++;
+    }
     document.getElementById("sActive").textContent = active;
     document.getElementById("sDelivered").textContent = stats.delivered;
     document.getElementById("sDelayed").textContent = delayed;
@@ -1681,6 +1987,7 @@
       (CATA && CATA.title) || `${BRIDGE_NAME} out`,
       (CATA && CATA.desc) || `The ${RIVER} crossing is out. Deliveries across the river are stuck and traffic is building up.`,
     );
+    stampedeCrossingOrders();
     startJams();
     scheduleSaveSession();
   }
@@ -1691,6 +1998,7 @@
   function stopCatastrophe() {
     bridgeClosed = false;
     autoCloseAt = 0;
+    dismissCatastropheAlert();
     policyBridgeClosed = false; seenPolicyClosed = null;
     if (closeCircle) { map.removeLayer(closeCircle); closeCircle = null; }
     clearJams();
@@ -1778,9 +2086,12 @@
   }
   // Congestion factor at a point: vehicles crawl through active jam zones.
   // Gets worse the more zones are active, so gridlock intensifies over time.
-  function jamFactorAt(pos) {
+  // Caller may pass precomputed slowFactor (avoids re-checking jams.length).
+  function jamFactorAt(pos, slowFactor) {
+    const slow = slowFactor != null ? slowFactor : (jams.length >= 8 ? 0.12 : 0.18);
     for (const j of jams) {
-      if (mdist(pos, j.center) < j.radius) return jams.length >= 8 ? 0.12 : 0.18;
+      const r = j.radius;
+      if (mdist2(pos, j.center) < r * r) return slow;
     }
     return 1;
   }
@@ -1833,7 +2144,7 @@
     // screen) and most ride on to cancellation → complaints. The ones that do
     // auto-reroute linger a long time first, so the standing "stuck" count is
     // high. Recovering the rest is what the Lakebase reroute query is for.
-    v.willAutoReroute = Math.random() < 0.3;
+    v.willAutoReroute = Math.random() < 0.08;
     v.rerouteAfter = v.lateBase + 8 + Math.floor(Math.random() * 8);
     const coldFlag = v.kind.cold
       ? `<div class="flag cold">❄️ Cold-chain at risk — ${v.kind.label.toLowerCase()} melting</div>` : "";
@@ -2491,12 +2802,17 @@
   let _simPostActive = 0;
   let _simPostQueue = [];
   const SIM_POST_MAX = 3;
-  let _saveSessionIv = null;
-  let _pollIv = null;
-  let _pollBusy = false;
+  let _refundPollIv = null;
+  let _statusPollIv = null;
+  let _refundPollBusy = false;
+  let _statusPollBusy = false;
 
   function preparePageUnload() {
     if (_pageUnloading) return;
+    // Flush progress FIRST — setting _pageUnloading / clearing the debounce
+    // used to cancel the pending save, so Cmd+R often resumed a stale (or
+    // empty) snapshot and boot fell through to startSimulation() = full wipe.
+    try { flushSessionNow(); } catch (e) {}
     _pageUnloading = true;
     _unloadCtrl.abort();
     for (const c of _writeAborters) c.abort();
@@ -2505,8 +2821,8 @@
     _osrmAborters.clear();
     _simPostQueue = [];
     _simPostActive = 0;
-    if (_saveSessionIv) clearInterval(_saveSessionIv);
-    if (_pollIv) clearInterval(_pollIv);
+    if (_refundPollIv) clearInterval(_refundPollIv);
+    if (_statusPollIv) clearInterval(_statusPollIv);
     clearTimeout(saveSessionTimer);
   }
   window.addEventListener("beforeunload", preparePageUnload, { capture: true });
@@ -2601,22 +2917,17 @@
     if (!summary) return;
     const count = Number(summary.count);
     const total = Number(summary.total);
-    stats.refunded = Number.isFinite(count) ? count : 0;
-    stats.refundTotal = Number.isFinite(total) ? total : 0;
+    // Ignore failed/empty polls that would wipe a known-good counter. A real
+    // Lakebase INSERT always increases count; never apply a drop-to-zero from
+    // a transient DB read miss unless we already showed zero.
+    if (!Number.isFinite(count) || !Number.isFinite(total)) return;
+    if (count === 0 && stats.refunded > 0) return;
+    stats.refunded = count;
+    stats.refundTotal = total;
     refundedOrderIds = new Set(summary.order_ids || []);
     updateStats();
   }
 
-  async function pollRefundSummary() {
-    try {
-      const url = "/api/sim/refund-summary?session_id="
-        + encodeURIComponent(sessionId || "");
-      const r = await pollFetch(url);
-      if (!r.ok) return;
-      const data = await r.json();
-      if (data?.summary) syncRefundStatsFromDb(data.summary);
-    } catch (e) {}
-  }
   function recordRefund(v, amount) {
     if (v.refunded) return;
     if (!recordRefundStats(v.id, amount)) return;
@@ -2628,7 +2939,10 @@
     v.refundNotified = true;
     const amount = v.orderValue || 0;
     recordRefund(v, amount);
-    simPost("/api/sim/refund", { order_id: v.id, reason: reason || "", amount }, true);
+    simPost("/api/sim/refund", {
+      order_id: v.id, reason: reason || "", amount,
+      session_id: sessionId || "", city: currentCityId || "",
+    }, true);
   }
   function dbComplaint(v, quote) {
     // Jump the queue — query 2 reads complaints from Lakebase immediately.
@@ -2658,7 +2972,7 @@
   //   UPDATE orders SET status='reordered', updated_at=NOW()
   //   WHERE status='cancelled' RETURNING order_id;
   //
-  //   -- issue a refund (see demos/devconnect-runbooks/sql_queries.sql):
+  //   -- issue a refund (see demos/devconnect-runbooks/2-lakebase-issue-fair-refund.sql):
   //   INSERT INTO refunds (order_id, amount, reason) VALUES (...);
   //
   function externalReroute(v) {
@@ -2667,7 +2981,7 @@
     addReroutingCard(v);
     rerouteOrder(v);
   }
-  // Mirror query 1 in sql_queries.sql: when route_policies closes the crossing,
+  // Mirror 1-lakebase-reroute-orders: when route_policies closes the crossing,
   // reroute stuck/enroute cold orders that are still within their delay budget.
   function applyRoutingPolicyReroutes() {
     let n = 0;
@@ -2694,102 +3008,137 @@
   let refundPollPrimed = false;
   let policyBridgeClosed = false;
   let seenPolicyClosed = null;
-  async function pollLakebase() {
-    if (_pageUnloading || _pollBusy || document.hidden) return;
-    _pollBusy = true;
-    try {
-    await pollRefundSummary();
 
-    // Recent refunds for notification cards only (summary carries the stat).
+  // Refund counter + notification cards — own cadence, never blocked by
+  // route-policy / order-statuses (those used to run sequentially behind one
+  // `_pollBusy` flag and stretch update latency to 10–15s under write load).
+  async function pollRefunds() {
+    if (_pageUnloading || _refundPollBusy || document.hidden) return;
+    if (!sessionId) return;
+    _refundPollBusy = true;
     try {
-      const refundUrl = "/api/sim/refunds?limit=50&session_id="
-        + encodeURIComponent(sessionId || "");
-      const r = await pollFetch(refundUrl);
+      const qs = "session_id=" + encodeURIComponent(sessionId || "")
+        + "&city=" + encodeURIComponent(currentCityId || "");
+      // One call: summary drives the Refunded counter, rows drive banners.
+      const r = await pollFetch("/api/sim/refunds?limit=50&include_summary=true&" + qs, 8000);
       if (!r.ok) return;
       const data = await r.json();
       if (!data || !data.enabled) return;
-      const sessionRefunds = Array.isArray(data.session_refunds) && data.session_refunds.length
-        ? data.session_refunds
-        : (Array.isArray(data.refunds) ? data.refunds : []);
       if (data.summary) syncRefundStatsFromDb(data.summary);
+      const sessionRefunds = Array.isArray(data.session_refunds)
+        ? data.session_refunds
+        : [];
       if (!refundPollPrimed) {
         seenRefundIds = new Set(sessionRefunds.map(x => x.id));
         refundPollPrimed = true;
-      } else {
-        const vById = new Map(vehicles.map(v => [v.id, v]));
-        let nRef = 0;
-        for (const rf of sessionRefunds.slice().reverse()) {
-          if (seenRefundIds.has(rf.id)) continue;
-          const issuedAt = rf.issued_at ? Date.parse(rf.issued_at) : NaN;
-          if (Number.isFinite(issuedAt) && issuedAt < sessionStartedAt - 10000) {
-            seenRefundIds.add(rf.id);
-            continue;
-          }
+        return;
+      }
+      const vById = new Map(vehicles.map(v => [v.id, v]));
+      let nRef = 0;
+      for (const rf of sessionRefunds.slice().reverse()) {
+        if (seenRefundIds.has(rf.id)) continue;
+        const issuedAt = rf.issued_at ? Date.parse(rf.issued_at) : NaN;
+        if (Number.isFinite(issuedAt) && issuedAt < sessionStartedAt - 10000) {
           seenRefundIds.add(rf.id);
-          if (notifyLakebaseRefund(rf, vById)) nRef++;
+          continue;
         }
-        if (nRef) showBanner("💸", "Refunds issued",
-          `${nRef} refund${nRef > 1 ? "s" : ""} sent straight from the operations database.`);
+        seenRefundIds.add(rf.id);
+        if (notifyLakebaseRefund(rf, vById)) nRef++;
       }
-    } catch (e) {}
-
-    if (!vehicles.length) return;
-
-    try {
-      const cityId = currentCityId || "amsterdam";
-      const r = await pollFetch(
-        "/api/sim/route-policy?city=" + encodeURIComponent(cityId));
-      if (!r.ok) return;
-      const data = await r.json();
-      if (data && data.enabled && data.policy) {
-        const closed = data.policy.status === "closed";
-        if (seenPolicyClosed === null) seenPolicyClosed = closed;
-        else if (!seenPolicyClosed && closed) {
-          const xing = data.policy.crossing_name || BRIDGE_NAME;
-          const alt = data.policy.alternate_crossing || ALT_NAME;
-          showBanner("🗄", "Routing policy updated",
-            `${xing} closed in master data — new deliveries use ${alt}.`);
-          const nPol = applyRoutingPolicyReroutes();
-          if (nPol) showBanner("🗄", "Routing policy applied",
-            `${nPol} cold-chain order${nPol > 1 ? "s" : ""} rerouted via ${alt}.`);
-        }
-        seenPolicyClosed = closed;
-        policyBridgeClosed = closed;
-      }
-    } catch (e) {}
-    // order statuses → reroute / reorder
-    try {
-      const r = await pollFetch("/api/sim/order-statuses?limit=2000");
-      if (!r.ok) return;
-      const data = await r.json();
-      if (data && data.enabled && Array.isArray(data.statuses)) {
-        const byId = new Map(data.statuses.map(s => [s.order_id, s.status]));
-        let nRe = 0, nOrd = 0;
-        for (const v of vehicles) {
-          const st = byId.get(v.id);
-          if ((v.status === "stuck" || v.status === "late") && !v.rerouted
-              && st === "rerouted") { externalReroute(v); nRe++; }
-          else if (st === "reordered" && !v.dbReordered) { externalReorder(v); nOrd++; }
-        }
-        if (nRe) showBanner("🗄", "Lakebase update applied",
-          `${nRe} stuck order${nRe > 1 ? "s" : ""} rerouted straight from the operations database.`);
-        if (nOrd) showBanner("🗄", "Lakebase update applied",
-          `${nOrd} cancelled order${nOrd > 1 ? "s" : ""} reordered straight from the operations database.`);
-      }
-    } catch (e) {}
+      if (nRef) showBanner("💸", "Refunds issued",
+        `${nRef} refund${nRef > 1 ? "s" : ""} sent straight from the operations database.`);
+    } catch (e) {
     } finally {
-      _pollBusy = false;
+      _refundPollBusy = false;
     }
   }
+
+  async function pollStatuses() {
+    if (_pageUnloading || _statusPollBusy || document.hidden || !vehicles.length) return;
+    _statusPollBusy = true;
+    try {
+      // Parallel — don't serialize route-policy behind order-statuses.
+      const cityId = currentCityId || "amsterdam";
+      const [policyRes, statusRes] = await Promise.all([
+        pollFetch("/api/sim/route-policy?city=" + encodeURIComponent(cityId), 8000)
+          .catch(() => null),
+        pollFetch("/api/sim/order-statuses?limit=2000", 8000)
+          .catch(() => null),
+      ]);
+
+      if (policyRes && policyRes.ok) {
+        try {
+          const data = await policyRes.json();
+          if (data && data.enabled && data.policy) {
+            const closed = data.policy.status === "closed";
+            if (seenPolicyClosed === null) seenPolicyClosed = closed;
+            else if (!seenPolicyClosed && closed && bridgeClosed) {
+              const xing = data.policy.crossing_name || BRIDGE_NAME;
+              const alt = data.policy.alternate_crossing || ALT_NAME;
+              showBanner("🗄", "Routing policy updated",
+                `${xing} closed in master data — new deliveries use ${alt}.`);
+              const nPol = applyRoutingPolicyReroutes();
+              if (nPol) showBanner("🗄", "Routing policy applied",
+                `${nPol} cold-chain order${nPol > 1 ? "s" : ""} rerouted via ${alt}.`);
+            }
+            seenPolicyClosed = closed;
+            policyBridgeClosed = closed;
+          }
+        } catch (e) {}
+      }
+
+      if (statusRes && statusRes.ok) {
+        try {
+          const data = await statusRes.json();
+          if (data && data.enabled && Array.isArray(data.statuses)) {
+            const byId = new Map(data.statuses.map(s => [s.order_id, s.status]));
+            let nRe = 0, nOrd = 0;
+            for (const v of vehicles) {
+              const st = byId.get(v.id);
+              if ((v.status === "stuck" || v.status === "late") && !v.rerouted
+                  && st === "rerouted") { externalReroute(v); nRe++; }
+              else if (st === "reordered" && !v.dbReordered) { externalReorder(v); nOrd++; }
+            }
+            if (nRe) showBanner("🗄", "Lakebase update applied",
+              `${nRe} stuck order${nRe > 1 ? "s" : ""} rerouted straight from the operations database.`);
+            if (nOrd) showBanner("🗄", "Lakebase update applied",
+              `${nOrd} cancelled order${nOrd > 1 ? "s" : ""} reordered straight from the operations database.`);
+          }
+        } catch (e) {}
+      }
+    } finally {
+      _statusPollBusy = false;
+    }
+  }
+
   function startLakebasePoll() {
-    if (_pollIv) clearInterval(_pollIv);
+    if (_refundPollIv) clearInterval(_refundPollIv);
+    if (_statusPollIv) clearInterval(_statusPollIv);
     seenRefundIds = null;
     refundPollPrimed = false;
-    pollLakebase();
-    _pollIv = setInterval(pollLakebase, 2000);
+    pollRefunds();
+    pollStatuses();
+    // Refunds every 1s on their own busy flag — status/policy cannot starve them.
+    _refundPollIv = setInterval(pollRefunds, 1000);
+    _statusPollIv = setInterval(pollStatuses, 2000);
   }
   document.addEventListener("visibilitychange", () => {
-    if (!document.hidden && !_pageUnloading) pollLakebase();
+    if (_pageUnloading) return;
+    if (document.visibilityState === "hidden") {
+      // Flush before refresh/tab-switch — fires earlier than pagehide and still
+      // allows async trackedFetch to reach Lakebase.
+      try {
+        const snap = buildSessionSnapshot();
+        if (snap) {
+          persistSessionSnapshot(snap, { toServer: false });
+          _lastServerSessionAt = 0;
+          saveSession();
+        }
+      } catch (e) {}
+      return;
+    }
+    pollRefunds();
+    pollStatuses();
   });
 
   // ── Controls ──
@@ -2844,9 +3193,11 @@
   });
   document.addEventListener("keydown", e => { if (e.key === "Escape") { closeModal(); closeKitchen(); toggleSidebar(false); } });
 
-  function seedFleet() { for (let i = 0; i < fleetTarget; i++) setTimeout(() => spawnOrder(false), i * 25); }
+  function seedFleet() { for (let i = 0; i < fleetTarget; i++) setTimeout(() => spawnOrder(false), i * 80); }
   async function restart() {
     clearSession();
+    autoCloseAt = 0;
+    dismissCatastropheAlert();
     vehicles.forEach(v => { if (v.marker) vehLayer.removeLayer(v.marker); if (v.custDot) custLayer.removeLayer(v.custDot); v.status = "delivered"; });
     routeLayer.clearLayers(); trailLayer.clearLayers();
     document.getElementById("cards").innerHTML = "";
@@ -2856,6 +3207,7 @@
     clearJams();
     vehicles = []; seq = 0; newSession(); bridgeClosed = false; queue = { a: 0, b: 0 };
     policyBridgeClosed = false; seenPolicyClosed = null;
+    jamFormMsgShown = false; jamEaseMsgShown = false;
     // Re-open route_policies in Lakebase (query 1 closes it) — same as config Start.
     const cfg = {
       city: currentCityId || document.getElementById("cfgCity").value || "",
@@ -2871,6 +3223,7 @@
       }, 5000);
     } catch (e) {}
     stats = { delivered: 0, reroute: 0, cancelled: 0, reordered: 0, complaints: 0, refunded: 0, refundTotal: 0 };
+    refundedOrderIds = new Set();
     drawBridgeMarker();
     document.getElementById("bridgeBtn").disabled = false;
     running = true; document.getElementById("playBtn").textContent = "⏸ Pause"; document.getElementById("playBtn").classList.add("primary");
@@ -2882,6 +3235,12 @@
     autoCloseAt = simNow() + 18000;
     scheduleSaveSession();
     startLakebasePoll();
+    let _earlySaveN = 0;
+    const _earlySaveIv = setInterval(() => {
+      if (_pageUnloading || ++_earlySaveN > 8) { clearInterval(_earlySaveIv); return; }
+      _lastServerSessionAt = 0;
+      saveSession();
+    }, 700);
   }
 
   // ── Configuration screen ──
@@ -2902,13 +3261,15 @@
     }
     catch (e) { list = []; }
     const sel = document.getElementById("cfgCity");
-    if (!list.length) { sel.innerHTML = `<option value="">Amsterdam, Netherlands</option>`; return; }
+    if (!list.length) {
+      list = Object.keys(CITY_GEO).map(cid => ({
+        id: cid, name: CITY_GEO[cid].name, flag: CITY_GEO[cid].flag, active: cid === "amsterdam",
+      }));
+    }
     sel.innerHTML = list.map(c => `<option value="${c.id}"${c.active ? " selected" : ""}>${c.flag} ${c.name}</option>`).join("");
   }
-  // Pause the sim while the setup screen is open. The overlay uses a
-  // backdrop-filter blur; leaving the 60fps animation running underneath
-  // repaints the blur every frame, which dismisses the native <select> and
-  // makes the screen feel like it closes by itself.
+  // Pause the sim while the setup screen is open so the native <select> can
+  // keep focus (map animation under the overlay used to dismiss the picker).
   let setupPrevRunning = false;
   function openSetup(canClose) {
     setupPrevRunning = running;
@@ -2990,6 +3351,35 @@
     return v;
   }
 
+  async function rehydrateStreetRoutes(list) {
+    await Promise.all((list || []).map(async (v) => {
+      if (!v || !v.customer) return;
+      if (v.status === "delivered" || v.status === "cancelled" || v.status === "routing") return;
+      const kitchen = KITCHENS.find(k => k.name === v.kitchen);
+      const start = kitchen ? kitchen.pos : ((v.pts && v.pts[0]) || CENTER);
+      const custApproach = bankOf(v.customer) === "a" ? APPROACH_A : APPROACH_B;
+      const useAlt = !!v.rerouted || (bridgeClosed && !!v.crosses);
+      const waypoints = useAlt
+        ? [start, ALT, custApproach, v.customer]
+        : v.crosses
+          ? [start, BRIDGE, v.customer]
+          : [start, v.customer];
+      const frac = v.total > 0 ? Math.min(1, Math.max(0, v.traveled / v.total)) : 0;
+      try {
+        const geo = await osrm(waypoints);
+        if (!vehicles.includes(v)) return;
+        Object.assign(v, buildPath(geo));
+        v.traveled = frac * v.total;
+        v.bridgeDist = bridgeDistOf(v);
+        if (v.bridgeDist == null) v.bridgeDist = nearestBridgeCum(v);
+        if (v.crosses && (v.bridgeDist == null || v.bridgeDist >= v.total * 0.9)) {
+          v.bridgeDist = v.total * 0.5;
+        }
+        if (v.marker) v.marker.setLatLng(posAt(v));
+      } catch (e) {}
+    }));
+  }
+
   function restoreDelayCard(v) {
     const wrap = document.getElementById("cards");
     const card = document.createElement("div");
@@ -3033,42 +3423,107 @@
       simNowSnapshot: simNow(),
       savedAtWall: Date.now(),
       autoCloseAt,
-      notifLog: notifLog.slice(-120),
+      // Keep snapshot small — Apps iframe localStorage quotas are tiny; kitchens
+      // reload from cache and notif history is disposable across refresh.
+      notifLog: notifLog.slice(-30),
       pendingComplaints: pendingComplaints.map(p => ({ orderId: p.v.id, dueAt: p.dueAt })),
-      kitchens: KITCHENS.map(k => ({
-        name: k.name, neighborhood: k.neighborhood, emoji: k.emoji, pos: k.pos, bank: k.bank,
-      })),
       vehicles: active.map(serializeVehicle),
       jams: snapshotJams(),
     };
   }
 
-  function persistSessionSnapshot(snap) {
-    const raw = JSON.stringify(snap);
-    try { localStorage.setItem(SESSION_KEY, raw); } catch (e) {}
-    // Session resume is client-side only (localStorage). Do NOT POST to the
-    // server on a timer — it hammered Lakebase and could freeze the app / block
-    // Cmd+R while requests piled up.
+  async function pushSessionToServer(snap) {
+    // Do NOT use trackedFetch here — preparePageUnload aborts those, which
+    // cancelled the visibilitychange flush on Cmd+R. Plain fetch with its own
+    // timeout so the Lakebase write can finish during teardown.
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
+    try {
+      const r = await fetch("/api/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session: snap }),
+        signal: ctrl.signal,
+        credentials: "same-origin",
+        keepalive: true,
+      });
+      return !!r && r.ok;
+    } catch (e) {
+      return false;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  function persistSessionSnapshot(snap, { toServer = false, syncUnload = false } = {}) {
+    let raw;
+    try { raw = JSON.stringify(snap); } catch (e) { return; }
+    try { localStorage.setItem(SESSION_KEY, raw); } catch (e) {
+      // QuotaExceeded in partitioned Apps iframes — server is the source of truth.
+      try { localStorage.removeItem(SESSION_KEY); } catch (e2) {}
+    }
+    try { sessionStorage.setItem(SESSION_KEY, raw); } catch (e) {}
+    if (!toServer) return;
+    if (syncUnload) {
+      try {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", "/api/session", false);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.withCredentials = true;
+        xhr.send(JSON.stringify({ session: snap }));
+      } catch (e) {}
+      return;
+    }
+    pushSessionToServer(snap);
+  }
+
+  function flushSessionNow() {
+    const snap = buildSessionSnapshot();
+    if (!snap) return;
+    persistSessionSnapshot(snap, { toServer: true, syncUnload: true });
   }
 
   function saveSession() {
     if (_pageUnloading) return;
     const snap = buildSessionSnapshot();
     if (!snap) return;
-    persistSessionSnapshot(snap);
+    const now = Date.now();
+    const toServer = !_lastServerSessionAt || (now - _lastServerSessionAt > 2000);
+    if (toServer) _lastServerSessionAt = now;
+    persistSessionSnapshot(snap, { toServer });
   }
 
   function loadSession() {
+    for (const store of [sessionStorage, localStorage]) {
+      try {
+        const s = store.getItem(SESSION_KEY);
+        const j = s ? JSON.parse(s) : null;
+        if (j && j.version === SESSION_VERSION && Array.isArray(j.vehicles) && j.vehicles.length) {
+          return j;
+        }
+      } catch (e) {}
+    }
+    return null;
+  }
+
+  async function loadServerSession() {
     try {
-      const s = localStorage.getItem(SESSION_KEY);
-      const j = s ? JSON.parse(s) : null;
-      return j && j.version === SESSION_VERSION ? j : null;
+      const r = await trackedFetch("/api/session", {}, 8000);
+      if (!r.ok) return null;
+      const j = await r.json();
+      const s = j && j.session;
+      return s && s.version === SESSION_VERSION && Array.isArray(s.vehicles) && s.vehicles.length
+        ? s : null;
     } catch (e) { return null; }
   }
 
   function clearSession() {
     try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
+    try { sessionStorage.removeItem(SESSION_KEY); } catch (e) {}
     seenRefundIds = null;
+    // Don't DELETE the server row here — a refresh race between clear and the
+    // first post-Start save was leaving /api/session empty. Overwrite on the
+    // next successful save instead. Replay/Start still get a new sessionId.
   }
 
   function restoreClock(state) {
@@ -3083,7 +3538,17 @@
   }
 
   function sessionMatchesCfg(session, cfg) {
-    return session && cfg && session.city === (cfg.city || "") && Array.isArray(session.vehicles) && session.vehicles.length;
+    if (!session || !Array.isArray(session.vehicles) || !session.vehicles.length) return false;
+    if (!cfg) return true;
+    const sc = String(session.city || "").toLowerCase();
+    const cc = String(cfg.city || "").toLowerCase();
+    return !sc || !cc || sc === cc;
+  }
+
+  function pickNewerSession(a, b) {
+    if (!a) return b || null;
+    if (!b) return a;
+    return (a.savedAtWall || 0) >= (b.savedAtWall || 0) ? a : b;
   }
 
   async function resumeSimulation(state, cfg) {
@@ -3092,6 +3557,18 @@
     syncDockControls();
     closeSetup();
     await loadCity(state.city || cfg.city);
+    policyBridgeClosed = false; seenPolicyClosed = null;
+    try {
+      await trackedFetch("/api/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          city: state.city || cfg.city || currentCityId || "",
+          orders: fleetTarget,
+          speed: sim,
+        }),
+      }, 5000);
+    } catch (e) {}
 
     if (state.kitchens?.length) {
       applyKitchenList(state.kitchens);
@@ -3138,6 +3615,10 @@
     for (const v of vehicles) {
       if ((v.status === "stuck" || v.status === "late") && v.notified) restoreDelayCard(v);
     }
+    // Snapshots omit OSRM polylines (localStorage size). Rebind street routes
+    // in the background so cars don't keep crawling kitchen→bridge→customer
+    // as straight lines after a refresh/redeploy.
+    rehydrateStreetRoutes(vehicles.slice());
     const vById = new Map(vehicles.map(v => [v.id, v]));
     pendingComplaints = (state.pendingComplaints || [])
       .map(p => ({ v: vById.get(p.orderId), dueAt: p.dueAt }))
@@ -3167,7 +3648,8 @@
 
     // Kitchens without a cache/snapshot: fetch coords without blocking on OSRM snap.
     if (!KITCHENS.length) {
-      loadKitchens({ snap: false }).then(() => {
+      loadKitchens({ snap: false }).then(applied => {
+        if (!applied) return;
         drawKitchens();
         saveKitchenCache(currentCityId, KITCHENS);
       }).catch(() => {});
@@ -3179,7 +3661,6 @@
     clearTimeout(saveSessionTimer);
     saveSessionTimer = setTimeout(saveSession, 400);
   }
-  _saveSessionIv = setInterval(saveSession, 3000);
   function loadCfg() {
     try { const s = localStorage.getItem(CFG_KEY); return s ? JSON.parse(s) : null; }
     catch (e) { return null; }
@@ -3216,6 +3697,8 @@
   // Launch (or relaunch) the simulation with the chosen city / orders / speed.
   async function startSimulation() {
     clearSession();
+    autoCloseAt = 0;
+    dismissCatastropheAlert();
     const cityId = document.getElementById("cfgCity").value;
     fleetTarget = +document.getElementById("cfgOrders").value;
     sim = readCfgSpeed();
@@ -3229,10 +3712,12 @@
       }, 5000);
     } catch (e) {}
     syncDockControls();
-    const cityChanged = cityId && cityId !== currentCityId;
     closeSetup();
     document.getElementById("subtitle").textContent = "Loading…";
-    if (cityChanged || !currentCityId) { await loadCity(cityId); KITCHENS = []; }
+    // Always (re)apply the picker city — skipping when cityId === currentCityId
+    // left Amsterdam geography stuck after a failed earlier load.
+    await loadCity(cityId);
+    KITCHENS = [];
     // Reset all simulation state
     vehicles.forEach(v => { if (v.marker) vehLayer.removeLayer(v.marker); if (v.custDot) custLayer.removeLayer(v.custDot); });
     routeLayer.clearLayers(); trailLayer.clearLayers(); vehLayer.clearLayers(); custLayer.clearLayers();
@@ -3242,7 +3727,9 @@
     clearJams();
     vehicles = []; seq = 0; newSession(); bridgeClosed = false; queue = { a: 0, b: 0 };
     policyBridgeClosed = false; seenPolicyClosed = null;
+    jamFormMsgShown = false; jamEaseMsgShown = false;
     stats = { delivered: 0, reroute: 0, cancelled: 0, reordered: 0, complaints: 0, refunded: 0, refundTotal: 0 };
+    refundedOrderIds = new Set();
     map.setView(CENTER, 14);
     drawAltMarker();
     drawBridgeMarker();
@@ -3263,8 +3750,21 @@
     autoCloseAt = simNow() + 18000;
     scheduleSaveSession();
     startLakebasePoll();
+    // Force early server snapshots while the fleet is still spawning — don't
+    // wait for the 3s frame cadence (refresh before that = empty resume).
+    let _earlySaveN = 0;
+    const _earlySaveIv = setInterval(() => {
+      if (_pageUnloading || ++_earlySaveN > 8) {
+        clearInterval(_earlySaveIv);
+        return;
+      }
+      _lastServerSessionAt = 0;
+      saveSession();
+    }, 700);
     if (!loadKitchenCache(currentCityId)) {
-      loadKitchens({ snap: true }).then(() => drawKitchens()).catch(() => {});
+      loadKitchens({ snap: true }).then(applied => {
+        if (applied) drawKitchens();
+      }).catch(() => {});
     }
   }
 
@@ -3285,6 +3785,7 @@
   // Default to the Arcade look on first run; remember the last valid choice.
   applyTheme((() => { try { const s = localStorage.getItem(THEME_KEY); return THEME_TILES[s] ? s : "arcade"; } catch (e) { return "arcade"; } })());
   setBuildTag();
+  requestAnimationFrame(refreshCardStack);
   requestAnimationFrame(frame);
   window.__ccOnAgentPanel = (open) => {
     if (open && typeof map !== "undefined") setTimeout(() => map.invalidateSize({ animate: false }), 0);
@@ -3292,20 +3793,39 @@
   running = false;
   document.getElementById("playBtn").textContent = "▶ Play";
   document.getElementById("playBtn").classList.remove("primary");
+
   (async () => {
-    const fresh = new URLSearchParams(location.search).has("fresh");
-    if (fresh) clearSession();
+    // `?fresh=1` used to clear/ignore the session on every page load. Because
+    // that query parameter remains in the browser URL, Cmd+R could never
+    // resume. Replay/Start are the explicit reset controls; strip this legacy
+    // flag and always attempt resume during boot.
+    const bootUrl = new URL(location.href);
+    if (bootUrl.searchParams.has("fresh")) {
+      bootUrl.searchParams.delete("fresh");
+      history.replaceState(null, "", bootUrl.pathname + bootUrl.search + bootUrl.hash);
+    }
     await populateCities();
     const saved = loadCfg() || await loadServerCfg();
-    const session = fresh ? null : loadSession();
-    if (saved) {
+    // Prefer whichever snapshot is newer — Apps iframe storage is flaky, so
+    // Lakebase is often the only copy that survives refresh.
+    let local = loadSession();
+    let remote = await loadServerSession();
+    let session = pickNewerSession(local, remote);
+    if (session && sessionMatchesCfg(session, saved || { city: session.city })) {
+      if (saved) applyCfgToSetup(saved);
+      else applyCfgToSetup({
+        city: session.city || "",
+        orders: session.fleetTarget || 45,
+        speed: session.sim || 4,
+      });
+      await resumeSimulation(session, saved || {
+        city: session.city || "",
+        orders: session.fleetTarget || 45,
+        speed: session.sim || 4,
+      });
+    } else if (saved) {
       applyCfgToSetup(saved);
-      if (!fresh && session && Array.isArray(session.vehicles) && session.vehicles.length
-          && sessionMatchesCfg(session, saved)) {
-        await resumeSimulation(session, saved);
-      } else {
-        await startSimulation();
-      }
+      openSetup(false);
     } else {
       openSetup(false);
     }
@@ -3327,7 +3847,7 @@
       <button data-q="Reroute the stuck cold orders, then refund the open complaints.">Reroute + refund</button>
       <button data-q="How much revenue is at risk right now?">Revenue at risk</button>
       <button data-q="How bad is today compared to a normal day?">Today vs normal</button>
-      <button data-q="We're out of mozzarella — pull it from the menu and confirm the menu is consistent.">Pull mozzarella from menu</button>
+      <button data-q="We're out of burger buns — pull it from the menu and confirm the menu is consistent.">Pull burger buns from menu</button>
     </div>
     <div class="agent-input">
       <input id="agentMsg" placeholder="Tell the agent what to do…" autocomplete="off" />
@@ -3393,21 +3913,20 @@
 
     function stepEmptyMessage(step) {
       const id = step.query_id || "";
-      if (id === "eightysix_ingredient") {
+      if (id === "remove_ingredient_from_menu") {
         return "<strong>Transaction committed.</strong> This procedure updates inventory " +
           "and menu availability in one atomic UC commit — it intentionally returns no rows. " +
           "Use the after-check step for the proof.";
       }
-      if (id === "ingredient_stock_before" || id === "ingredient_after_check") {
+      if (id === "ingredient_availability" || id === "check_menu_consistency") {
         return "<strong>No rows returned.</strong> Check that <code>kitchen_inventory</code> and " +
           "<code>menu_availability</code> are seeded for the active city in UC, and that " +
           "<code>demo_active_city</code> matches your sim.";
       }
-      if (id === "revenue_at_risk" || id === "today_vs_normal") {
-        return "<strong>No data returned.</strong> The UC mirror of live orders is probably " +
-          "empty or stale — check Lakebase <code>orders</code> and UC " +
-          "<code>catastrophe_live_orders</code>, and that <code>demo_active_city</code> " +
-          "matches your picker.";
+      if (id === "revenue_at_risk" || id === "compare_orders_today_vs_baseline") {
+        return "<strong>No data returned.</strong> Check Lakebase CDF " +
+          "<code>lakebase.lb_orders_history</code> has current orders, " +
+          "and that <code>demo_active_city</code> matches your picker.";
       }
       if (id === "active_crossing_status") {
         return "<strong>No data returned.</strong> The UC function may not exist yet " +
@@ -3420,7 +3939,7 @@
       }
       if (id === "refund_open_complaints") {
         return "<strong>No refunds issued.</strong> No open complaints matched, or the " +
-          "Lakebase function failed (check <code>catastrophe_lakebase.catastrophe_hist_refunds</code> " +
+          "Lakebase function failed (check <code>lakebase.bronze_hist_refunds</code> " +
           "exists and complaints are in Lakebase).";
       }
       return "<strong>No data returned.</strong> The tool ran successfully but the result set was empty.";
@@ -3433,7 +3952,7 @@
       const rowCount = Math.max(Number(step.row_count) || 0, rows.length);
       const cols = stepCols(rows);
       const hasRows = cols.length > 0;
-      const isProcedure = step.query_id === "eightysix_ingredient" && !step.error;
+      const isProcedure = step.query_id === "remove_ingredient_from_menu" && !step.error;
       wrap.className = "agent-step"
         + (step.error ? " err-step" : isProcedure ? " ok-step" : (rowCount === 0 ? " warn" : ""));
       let html = '<div class="st-head"><span class="tag ' + backend + '">' +
