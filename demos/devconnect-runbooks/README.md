@@ -8,7 +8,7 @@ This runbook is for the standalone catastrophe command-center demo on target `de
 
 1. Open the app, start the simulation — everything collapses. Try to click on individual orders; it's impossible. We need help.
 
-2. Open Slack — ask the data engineer to help (we'll have a video or a random Slack thread):
+2. Call Data Engineer:
     You: heyyy, we have emergency here, could you please write a sql for me to reroute all orders that have frozen goods if they are still can be delivered?
     DE: sure, when do you need it? I can get it for you tomorrow afternoon
     You: I need it NOW
@@ -16,13 +16,12 @@ This runbook is for the standalone catastrophe command-center demo on target `de
 3. Good, we got the query — let's use it. Source: `demos/devconnect-runbooks/`. Run in Lakebase:
    - **`1-lakebase-reroute-orders.sql`** (reroute once) → let complaints stack → **`2-lakebase-issue-fair-refund.sql`**. Explain Lakebase.
 
-4. Open SQL warehouse (`{catalog}-devconnect-ops`), run **`3-warehouse-estimate-revenue-at-risk.sql`** → **`4-warehouse-compare-today-vs-normal.sql`**. Read-only on UC — Lakebase CDF `lb_orders_history` + `orders.bronze_hist_orders`. Explain LTAP
+4. Open SQL warehouse (`devconnect-reyden`), run **`3-warehouse-estimate-revenue-at-risk.sql`** → **`4-warehouse-compare-today-vs-normal.sql`**. Read-only on UC — Lakebase CDF `lb_orders_history` + `orders.bronze_hist_orders`. Explain LTAP
 
-5. While customers are still complaining and we've got things a bit under control, look at the kitchen. They're struggling to get supplies because of the collapse in the city. We need to safely update the menu based on inventory — here's where transactions come in. Execute **`5-warehouse-transactions-remove-menu-items.sql`** (blocks 5a → 5 → 5b) on the **SQL warehouse**; explain transactions. Explain managed tables and trasactions
+5. While customers are still complaining and we've got things a bit under control, look at the kitchen. They're struggling to get supplies because of the collapse in the city. We need to safely update the menu based on inventory — here's where transactions come in. Use SQL warehouse `{catalog}-devconnect-ops`,  execute **`5-warehouse-transactions-remove-menu-items.sql`** (blocks 5a → 5 → 5b) on the **SQL warehouse**; explain transactions. Explain managed tables and trasactions
 
-6. **Optional** [WIP] We need more accurate information about the environment. We have it in a different system in Iceberg. Let's make that data available in this app — connect to the new data from the Iceberg table. TBU, explain managed commit and UC.
 
-**Features to cover**: Managed tables, Catalog-managed commits Transactions, Open API (OSS fine-grained share), Reyden / Lakehouse//RT, Lakebase (transactional write), Interoperability (Iceberg3/Delta4), LTAP
+**Features to cover**: Managed tables, Reyden / Lakehouse//RT, Lakebase (transactional write), LTAP
 
 ### Demo 2: Let's not do it again, never be this exposed again.
 
@@ -55,10 +54,10 @@ Coding agents are powerful; Omnigent is the harness that keeps them in bounds. T
 
 In the first demo we survived because a DE happened to be awake. Now we're making everything they vetted something the whole team can run — safely, without waiting for anyone.
 
-**Features to cover**: Genie Code, Omnigent, AI Gateway (cost tracking), other cool features like MCP, Zero Ops, Genie, if you want
+**Features to cover**: Genie Code, Omnigent, AI Gateway (cost tracking)
 
 
-### [WIP] Demo 3: Share data and meet everyone where they are
+### Demo 3: Share data and meet everyone where they are
 
 Crisis averted, but the managers aren't celebrating. "We can't be this exposed. Why did surviving depend on one person having the right screen open?" They're right. Let's talk about how we give everyone access to the data they need — in the surface they already live in.
 
@@ -78,15 +77,13 @@ Point to the custom visualizations — and that you can analyze dashboards with 
 For the city we’re managing right now, how does today compare to a normal day — cancellations, disrupted orders, and average lateness? How much revenue is still at risk?
 ```
 
-Show Genie agents, Slack/Teams.
+Show Genie agents, Slack/Teams (if set up).
 
 3. Our ops team looooooves apps — like this one. Open Apps in the Databricks workspace and show scale-to-zero, etc.
 
-4. **Optional** when available, App builder
-
 First demo gave one operator the data. Second demo gave them an agent. Third demo gives the whole org the capability — each in the surface they already live in, governed and scale-to-zero, so being ready for the next catastrophe costs nothing until it hits.
 
-**Features to cover**: Apps (scale-to-zero), App Spaces (governance), AI/BI custom viz (Veite HTML/JS), Genie Agents (fka Spaces), App Builder (Genie App Builder), Slack/Teams (Genie in Slack)
+**Features to cover**: Apps, AI/BI custom viz (Veite HTML/JS), Genie Agents (fka Spaces)
 
 
 ## Setup & deploy
@@ -103,8 +100,6 @@ First demo gave one operator the data. Second demo gave them an agent. Third dem
    - Omnigent Sandbox routes model calls through AI Gateway automatically
 
 3. **Sandbox**
-   - Didn't work for me — got `Error · execution · runner_failed_to_start. The runner for this session is not available — it may have failed to start. See the host logs.`
-   - Workaround: connect to sandbox locally via CLI
 
 4. **Omnigent agent config** (in repo → synced on deploy):
    - install omnigent locally
