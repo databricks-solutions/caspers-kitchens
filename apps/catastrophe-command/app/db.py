@@ -236,11 +236,18 @@ def _ensure_schema() -> None:
         """CREATE TABLE IF NOT EXISTS complaints (
             id           BIGSERIAL PRIMARY KEY,
             order_id     TEXT NOT NULL,
+            session_id   TEXT,
+            city         TEXT,
             quote        TEXT,
             resolution   TEXT,
             raised_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             resolved_at  TIMESTAMPTZ
         )""",
+        # Scope complaints to a simulation run. Order ids (CK-001…) are reused,
+        # so joining historical complaints on order_id alone creates duplicate
+        # refunds in whichever session currently owns that id.
+        "ALTER TABLE complaints ADD COLUMN IF NOT EXISTS session_id TEXT",
+        "ALTER TABLE complaints ADD COLUMN IF NOT EXISTS city TEXT",
         """CREATE TABLE IF NOT EXISTS actions (
             id           BIGSERIAL PRIMARY KEY,
             action_id    TEXT,
@@ -279,6 +286,8 @@ def _ensure_schema() -> None:
         "CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status)",
         "CREATE INDEX IF NOT EXISTS idx_orders_session ON orders(session_id)",
         "CREATE INDEX IF NOT EXISTS idx_complaints_order ON complaints(order_id, raised_at)",
+        "CREATE INDEX IF NOT EXISTS idx_complaints_session_open "
+        "ON complaints(session_id, city, order_id) WHERE resolved_at IS NULL",
         # ── Vetted runbook actions as Postgres functions (Act 2) ──────────────
         # The catastrophe agent (app/agent.py) does NOT embed SQL; it calls these
         # by name (`SELECT * FROM reroute_stuck_cold_orders()` / `... refund_...`).
@@ -362,6 +371,7 @@ def _ensure_schema() -> None:
                     ROUND(PERCENTILE_CONT(0.9)
                           WITHIN GROUP (ORDER BY r.refund_amount)::numeric, 2) AS p90_refund
                 FROM lakebase.bronze_hist_refunds r
+                WHERE r.city_id = (SELECT city_id FROM active)
                 GROUP BY r.city_id, r.kind
             ),
             complainers AS (
@@ -375,9 +385,12 @@ def _ensure_schema() -> None:
                         WHEN 'Frozen'    THEN 'frozen'
                     END AS kind_code
                 FROM complaints c
-                JOIN orders o ON o.order_id = c.order_id
+                JOIN orders o
+                  ON o.order_id = c.order_id
+                 AND o.session_id = c.session_id
                 WHERE c.resolved_at IS NULL
-                  AND o.session_id = (SELECT session_id FROM latest)
+                  AND c.session_id = (SELECT session_id FROM latest)
+                  AND c.city = (SELECT city_id FROM active)
             ),
             offer AS (
                 SELECT
@@ -568,31 +581,54 @@ def add_refund(order_id: str, reason: str = "", amount: float | None = None,
     )
 
 
-def add_complaint(order_id: str, quote: str = "", resolution: str | None = None) -> None:
+def add_complaint(
+    order_id: str,
+    quote: str = "",
+    resolution: str | None = None,
+    session_id: str = "",
+    city: str = "",
+) -> None:
     # NOTE: avoid using a bind param inside `CASE WHEN %s IS NULL` — Postgres
     # can't infer the parameter's type there and rejects the statement with
     # "could not determine data type of parameter", which _exec swallows (so the
     # row silently never lands). Split into two unambiguous statements instead.
+    sid = (session_id or "").strip()
+    city_id = (city or "").strip().lower()
     if resolution is None:
         _exec(
-            "INSERT INTO complaints (order_id, quote) VALUES (%s, %s)",
-            (order_id, quote),
+            "INSERT INTO complaints (order_id, session_id, city, quote) "
+            "VALUES (%s, %s, %s, %s)",
+            (order_id, sid, city_id, quote),
         )
     else:
         _exec(
-            "INSERT INTO complaints (order_id, quote, resolution, resolved_at) "
-            "VALUES (%s, %s, %s, NOW())",
-            (order_id, quote, resolution),
+            "INSERT INTO complaints "
+            "(order_id, session_id, city, quote, resolution, resolved_at) "
+            "VALUES (%s, %s, %s, %s, %s, NOW())",
+            (order_id, sid, city_id, quote, resolution),
         )
 
 
-def resolve_complaint(order_id: str, resolution: str) -> None:
+def resolve_complaint(
+    order_id: str,
+    resolution: str,
+    session_id: str = "",
+    city: str = "",
+) -> None:
     _exec(
         """
         UPDATE complaints SET resolution = %s, resolved_at = NOW()
-        WHERE order_id = %s AND resolved_at IS NULL
+        WHERE order_id = %s
+          AND session_id = %s
+          AND city = %s
+          AND resolved_at IS NULL
         """,
-        (resolution, order_id),
+        (
+            resolution,
+            order_id,
+            (session_id or "").strip(),
+            (city or "").strip().lower(),
+        ),
     )
 
 

@@ -105,6 +105,36 @@ AMSTERDAM_KITCHENS: List[dict] = [
     {"kitchen_id": "ams-diemenwest", "name": "Casper's Diemen-West",     "neighborhood": "Diemen-West",      "lat": 52.34300, "lon": 4.95000, "address": "Ouddiemerlaan 10, 1111 HC Diemen"},
 ]
 
+# Clustered on the north/west bank within ~2.7 km of the Ponte 25 de Abril
+# landing (the catastrophe choke point) so the operator never has to pan away
+# from the bridge. Every point is snapped-clear of the Tagus (OSRM nearest < 120 m).
+LISBON_KITCHENS: List[dict] = [
+    {"kitchen_id": "lis-alcantara",        "name": "Casper's Alcântara",           "neighborhood": "Alcântara",           "lat": 38.7048, "lon": -9.1760, "address": ""},
+    {"kitchen_id": "lis-santo-amaro",      "name": "Casper's Santo Amaro",         "neighborhood": "Santo Amaro",         "lat": 38.7035, "lon": -9.1795, "address": ""},
+    {"kitchen_id": "lis-alto-santo-amaro", "name": "Casper's Alto de Santo Amaro", "neighborhood": "Alto de Santo Amaro", "lat": 38.7090, "lon": -9.1820, "address": ""},
+    {"kitchen_id": "lis-doca",             "name": "Casper's Doca de Alcântara",   "neighborhood": "Doca de Alcântara",   "lat": 38.7042, "lon": -9.1735, "address": ""},
+    {"kitchen_id": "lis-alcantara-terra",  "name": "Casper's Alcântara-Terra",     "neighborhood": "Alcântara-Terra",     "lat": 38.7080, "lon": -9.1745, "address": ""},
+    {"kitchen_id": "lis-ajuda",            "name": "Casper's Ajuda",               "neighborhood": "Ajuda",               "lat": 38.7100, "lon": -9.1955, "address": ""},
+    {"kitchen_id": "lis-calcada-ajuda",    "name": "Casper's Calçada da Ajuda",    "neighborhood": "Calçada da Ajuda",    "lat": 38.7120, "lon": -9.1900, "address": ""},
+    {"kitchen_id": "lis-belem",            "name": "Casper's Belém",               "neighborhood": "Belém",               "lat": 38.6985, "lon": -9.2010, "address": ""},
+    {"kitchen_id": "lis-junqueira",        "name": "Casper's Junqueira",           "neighborhood": "Junqueira",           "lat": 38.7008, "lon": -9.1930, "address": ""},
+    {"kitchen_id": "lis-restelo",          "name": "Casper's Restelo",             "neighborhood": "Restelo",             "lat": 38.7045, "lon": -9.2075, "address": ""},
+    {"kitchen_id": "lis-estrela",          "name": "Casper's Estrela",             "neighborhood": "Estrela",             "lat": 38.7135, "lon": -9.1615, "address": ""},
+    {"kitchen_id": "lis-lapa",             "name": "Casper's Lapa",                "neighborhood": "Lapa",                "lat": 38.7085, "lon": -9.1660, "address": ""},
+    {"kitchen_id": "lis-santos",           "name": "Casper's Santos",              "neighborhood": "Santos",              "lat": 38.7075, "lon": -9.1585, "address": ""},
+    {"kitchen_id": "lis-madragoa",         "name": "Casper's Madragoa",            "neighborhood": "Madragoa",            "lat": 38.7095, "lon": -9.1560, "address": ""},
+    {"kitchen_id": "lis-campo-ourique",    "name": "Casper's Campo de Ourique",    "neighborhood": "Campo de Ourique",    "lat": 38.7175, "lon": -9.1670, "address": ""},
+    {"kitchen_id": "lis-prazeres",         "name": "Casper's Prazeres",            "neighborhood": "Prazeres",            "lat": 38.7150, "lon": -9.1720, "address": ""},
+    {"kitchen_id": "lis-amoreiras",        "name": "Casper's Amoreiras",           "neighborhood": "Amoreiras",           "lat": 38.7230, "lon": -9.1625, "address": ""},
+    {"kitchen_id": "lis-rato",             "name": "Casper's Rato",                "neighborhood": "Rato",                "lat": 38.7195, "lon": -9.1545, "address": ""},
+    {"kitchen_id": "lis-campolide",        "name": "Casper's Campolide",           "neighborhood": "Campolide",           "lat": 38.7260, "lon": -9.1640, "address": ""},
+    {"kitchen_id": "lis-sao-bento",        "name": "Casper's São Bento",           "neighborhood": "São Bento",           "lat": 38.7125, "lon": -9.1545, "address": ""},
+    {"kitchen_id": "lis-alto-alcantara",   "name": "Casper's Alto de Alcântara",   "neighborhood": "Alto de Alcântara",   "lat": 38.7160, "lon": -9.1755, "address": ""},
+    {"kitchen_id": "lis-tapada",           "name": "Casper's Tapada da Ajuda",     "neighborhood": "Tapada da Ajuda",     "lat": 38.7085, "lon": -9.1860, "address": ""},
+    {"kitchen_id": "lis-pilar7",           "name": "Casper's Pilar 7",             "neighborhood": "Pilar 7",             "lat": 38.7018, "lon": -9.1772, "address": ""},
+    {"kitchen_id": "lis-casal-ventoso",    "name": "Casper's Casal Ventoso",       "neighborhood": "Casal Ventoso",       "lat": 38.7098, "lon": -9.1785, "address": ""},
+]
+
 
 def amsterdam_kitchen_rows() -> List[dict]:
     """Rows for the catastrophe_kitchens table, linked to Amsterdam (location_id 7)."""
@@ -121,6 +151,20 @@ def amsterdam_kitchen_rows() -> List[dict]:
             "address": k["address"],
         })
     return rows
+
+
+def lisbon_kitchen_rows() -> List[dict]:
+    """Curated land-based Lisbon kitchens; random points around the bridge midpoint fall in the Tagus."""
+    return [
+        {
+            **k,
+            "city": CITIES["lisbon"].name,
+            "location_id": 0,
+            "lat": float(k["lat"]),
+            "lon": float(k["lon"]),
+        }
+        for k in LISBON_KITCHENS
+    ]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -296,8 +340,13 @@ def city_config(city_id: str) -> dict:
 
 
 def generate_city_kitchens(city_id: str, *, count: int = 24, seed: int = 2026) -> List[dict]:
-    """Deterministic spread of kitchens on both banks around a city's centre.
-    Coordinates are approximate; the client snaps them to real roads on load."""
+    """Deterministic kitchens for a city.
+
+    Lisbon uses curated land-based neighborhoods; other non-Amsterdam cities
+    use an approximate spread that the client snaps to roads on load.
+    """
+    if city_id == "lisbon":
+        return lisbon_kitchen_rows()[:count]
     city = CITIES[city_id]
     cfg = city_config(city_id)
     center = cfg["center"]

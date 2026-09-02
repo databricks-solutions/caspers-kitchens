@@ -27,6 +27,7 @@ hist_loc AS (
         ROUND(AVG(refund_amount)::numeric, 2)                                       AS avg_refund,
         ROUND(PERCENTILE_CONT(0.9) WITHIN GROUP (ORDER BY refund_amount)::numeric, 2) AS p90_refund
     FROM lakebase.bronze_hist_refunds
+    WHERE city_id = (SELECT city_id FROM active)
     GROUP BY city_id, kind
 ),
 complainers AS (
@@ -40,9 +41,12 @@ complainers AS (
             WHEN 'Frozen'    THEN 'frozen'
         END AS kind_code
     FROM complaints c
-    JOIN orders o ON o.order_id = c.order_id
+    JOIN orders o
+      ON o.order_id = c.order_id
+     AND o.session_id = c.session_id
     WHERE c.resolved_at IS NULL
-      AND o.session_id = (SELECT session_id FROM latest)
+      AND c.session_id = (SELECT session_id FROM latest)
+      AND c.city = (SELECT city_id FROM active)
 ),
 offer AS (
     SELECT

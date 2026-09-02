@@ -1046,7 +1046,7 @@
   </div>
 
   <script>
-  const BUILD_ID = "2026-07-22ae-fresh-url";
+  const BUILD_ID = "2026-09-02-refund-paint";
   const CATASTROPHE_ALERT_MS = 5000;
   let bannerTimer = null, catastropheAlertTimer = null;
   let catastropheAlertShowing = false, jamTrafficMsgPending = false;
@@ -1501,8 +1501,8 @@
 
   // Load kitchens for the active city from catastrophe_kitchens (via API) and
   // snap them to real roads (generated coords can land in water).
-  // v2 invalidates caches polluted by the old cross-city async race.
-  const KITCHEN_CACHE_KEY = "cc_kitchens_v2";
+  // v3 invalidates Lisbon caches generated around a midpoint in the Tagus.
+  const KITCHEN_CACHE_KEY = "cc_kitchens_v4";
   function kitchenCacheKey(cityId) {
     return `${KITCHEN_CACHE_KEY}:${cityId || "default"}`;
   }
@@ -1534,7 +1534,12 @@
     KITCHENS = kitchens;
     const shortCity = (CITY_NAME || "").split(",")[0];
     document.getElementById("subtitle").textContent = subtitleText(shortCity, KITCHENS.length);
-    const pts = KITCHENS.map(k => k.pos).concat([BRIDGE, ALT]);
+    const pts = KITCHENS.map(k => k.pos).concat([BRIDGE]);
+    // Only frame the alternate crossing when it sits near the catastrophe
+    // bridge. Lisbon's two Tagus crossings are ~14 km apart, so including Ponte
+    // Vasco da Gama would zoom the map out over empty river on every load and
+    // force the operator to pan back to Ponte 25 de Abril.
+    if (ALT && L.latLng(BRIDGE).distanceTo(L.latLng(ALT)) < 5000) pts.push(ALT);
     if (pts.length) map.fitBounds(L.latLngBounds(pts).pad(0.2));
     return true;
   }
@@ -2041,17 +2046,66 @@
   // Congestion keeps escalating (spawning new zones) and does NOT ease until the
   // team has racked up EASE_NOTIFS total notifications — see tickJams().
   const JAM_MAX = 14, JAM_SPAWN_EVERY = 2600, JAM_CLEAR_EVERY = 2600, EASE_NOTIFS = 300;
+  function jamRouteSamples(v, maxPoints = 36) {
+    const pts = Array.isArray(v && v.pts) ? v.pts : [];
+    if (pts.length <= maxPoints) return pts;
+    const step = Math.ceil(pts.length / maxPoints);
+    const sampled = pts.filter((_, i) => i % step === 0);
+    if (sampled[sampled.length - 1] !== pts[pts.length - 1]) sampled.push(pts[pts.length - 1]);
+    return sampled;
+  }
   function jamCandidates() {
-    const c = CENTER;
-    const off = (dlat, dlon) => [c[0] + dlat, c[1] + dlon];
-    // Both bridge approaches (congestion starts at the collapse) plus a wide
-    // spread of spots so the whole city gradually gridlocks.
-    const list = [APPROACH_A, APPROACH_B,
-      off(0.006, 0.004), off(-0.006, -0.005), off(0.004, -0.009),
-      off(-0.005, 0.008), off(0.008, -0.002), off(-0.002, 0.010),
-      off(0.010, 0.007), off(-0.009, 0.003), off(0.003, 0.012),
-      off(-0.011, -0.008), off(0.012, -0.006), off(-0.004, -0.012)];
-    return list.sort(() => Math.random() - 0.5);
+    // Build congestion from roads the active fleet actually uses. The old
+    // implementation scattered circles around CENTER, so zones appeared on
+    // arbitrary downtown blocks with no delivery traffic.
+    let active = vehicles.filter(v =>
+      !v.rerouted && v.crosses &&
+      v.status !== "delivered" && v.status !== "cancelled" &&
+      Array.isArray(v.pts) && v.pts.length > 1);
+    // A catastrophe can be triggered before the first cross-river route has
+    // finished loading. Fall back to all loaded active routes, never city-center
+    // coordinates.
+    if (!active.length) {
+      active = vehicles.filter(v =>
+        !v.rerouted && v.status !== "delivered" && v.status !== "cancelled" &&
+        Array.isArray(v.pts) && v.pts.length > 1);
+    }
+    const routes = active.map(v => jamRouteSamples(v));
+    if (!routes.length) return [];
+
+    const trafficAt = p => routes.reduce((n, route) =>
+      n + (route.some(q => mdist2(p, q) < 340 * 340) ? 1 : 0), 0);
+    const nearestRoadPoint = target => {
+      let best = null, bestD = Infinity;
+      for (const route of routes) for (const p of route) {
+        const d = mdist2(target, p);
+        if (d < bestD) { best = p; bestD = d; }
+      }
+      return best;
+    };
+
+    // Seed both sides of the failed crossing with points from real routes, then
+    // rank every remaining route point by how many delivery routes share it.
+    const seeds = [nearestRoadPoint(APPROACH_A), nearestRoadPoint(APPROACH_B)].filter(Boolean);
+    const scored = routes.flat().map(p => ({ p, traffic: trafficAt(p) }))
+      .filter(x => x.traffic > 0 && mdist(x.p, BRIDGE) <= 6000)
+      .sort((a, b) => b.traffic - a.traffic || mdist(a.p, BRIDGE) - mdist(b.p, BRIDGE));
+
+    const selected = [];
+    const addDistinct = (p, separation) => {
+      if (!p || selected.some(q => mdist2(p, q) < separation * separation)) return;
+      selected.push(p);
+    };
+    seeds.forEach(p => addDistinct(p, 320));
+    scored.forEach(x => {
+      if (selected.length < JAM_MAX) addDistinct(x.p, 480);
+    });
+    // Dense cities may not yield fourteen points at 480 m spacing. A second
+    // pass fills from real route geometry at a tighter spacing.
+    scored.forEach(x => {
+      if (selected.length < JAM_MAX) addDistinct(x.p, 280);
+    });
+    return selected;
   }
   function startJams() {
     clearJams();
@@ -2060,11 +2114,14 @@
   }
   function spawnJam(center, radius) {
     radius = radius || (280 + Math.random() * 130);
+    const affected = vehicles.reduce((n, v) =>
+      n + (!v.rerouted && Array.isArray(v.pts) &&
+        jamRouteSamples(v).some(p => mdist2(center, p) < radius * radius) ? 1 : 0), 0);
     const circle = L.circle(center, { radius, interactive: false,
       color: "#ff9f0a", weight: 1.5, fillColor: "#ff9f0a", fillOpacity: .18 }).addTo(jamLayer);
     const label = L.marker(center, { interactive: false, icon: L.divIcon({
-      className: "", iconSize: [120, 20], iconAnchor: [60, 10],
-      html: `<div class="jam-pill">🚧 Heavy traffic</div>` }) }).addTo(jamLayer);
+      className: "", iconSize: [170, 20], iconAnchor: [85, 10],
+      html: `<div class="jam-pill">🚧 Heavy traffic · ${affected} route${affected === 1 ? "" : "s"}</div>` }) }).addTo(jamLayer);
     jams.push({ center, radius, circle, label });
   }
   function removeOneJam() {
@@ -2115,11 +2172,18 @@
     if (!eased) {
       const el = simNow() - jamStart;
       const shouldExist = Math.min(JAM_MAX, Math.floor(el / JAM_SPAWN_EVERY) + 1);
+      // Routes may still be loading when the bridge closes. Rebuild from the
+      // now-active fleet instead of falling back to arbitrary map positions.
+      if (jams.length < shouldExist && jamNext >= jamCands.length) {
+        jamCands = jamCandidates().filter(p =>
+          !jams.some(j => mdist2(p, j.center) < 240 * 240));
+        jamNext = 0;
+      }
       while (jams.length < shouldExist && jamNext < jamCands.length) spawnJam(jamCands[jamNext++]);
       if (jamTrafficMsgPending && !jamFormMsgShown && jams.length && !catastropheAlertShowing) {
         jamFormMsgShown = true;
         jamTrafficMsgPending = false;
-        showBanner("🚧", "Traffic building up", "Congestion is spreading across the city after the incident.");
+        showBanner("🚧", "Traffic building up", "Congestion is spreading along active delivery routes after the incident.");
       }
       return;
     }
@@ -2433,7 +2497,7 @@
     pushNotif({ ts: Date.now(), orderId, type: "confirm", title, body: lines.join(" · ") });
   }
 
-  function notifyLakebaseRefund(rf, vById) {
+  function notifyLakebaseRefund(rf, vById, showCard = true) {
     const orderId = String(rf.order_id || "");
     if (!orderId) return false;
     const amt = (rf.amount != null && rf.amount !== "")
@@ -2444,11 +2508,13 @@
       v.refunded = true;
       v.refundNotified = true;
       v.complaintResolved = true;
-      addConfirmCard(v, `Refund sent · Order ${orderId}`, [
-        `Refund${amt} issued to the customer`,
-        rf.reason || "Goodwill refund",
-      ]);
-    } else {
+      if (showCard) {
+        addConfirmCard(v, `Refund sent · Order ${orderId}`, [
+          `Refund${amt} issued to the customer`,
+          rf.reason || "Goodwill refund",
+        ]);
+      }
+    } else if (showCard) {
       const kitchen = rf.kitchen || "Kitchen";
       const kind = rf.kind || "Order";
       addConfirmCard(null, `Refund sent · Order ${orderId}`, [
@@ -2846,7 +2912,9 @@
     const onUnload = () => ctrl.abort();
     _unloadCtrl.signal.addEventListener("abort", onUnload);
     const timer = setTimeout(() => ctrl.abort(), timeoutMs);
-    return fetch(url, { signal: ctrl.signal })
+    // These endpoints are live operational state. Never let the browser reuse
+    // a prior GET response while the app tab moves between hidden and visible.
+    return fetch(url, { signal: ctrl.signal, cache: "no-store" })
       .finally(() => {
         clearTimeout(timer);
         _unloadCtrl.signal.removeEventListener("abort", onUnload);
@@ -2960,14 +3028,20 @@
     trackedFetch("/api/sim/complaint", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ order_id: v.id, quote: quote || "" }),
+      body: JSON.stringify({
+        order_id: v.id, quote: quote || "",
+        session_id: sessionId || "", city: currentCityId || "",
+      }),
     }, 5000).catch(() => {});
   }
   function dbResolveComplaint(v, resolution) {
     trackedFetch("/api/sim/complaint", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ order_id: v.id, resolution: resolution }),
+      body: JSON.stringify({
+        order_id: v.id, resolution: resolution,
+        session_id: sessionId || "", city: currentCityId || "",
+      }),
     }, 5000).catch(() => {});
   }
 
@@ -3017,6 +3091,7 @@
   }
   let seenRefundIds = null; // seeded on first poll so only NEW refunds notify
   let refundPollPrimed = false;
+  let refundPollQueued = false;
   let policyBridgeClosed = false;
   let seenPolicyClosed = null;
 
@@ -3024,8 +3099,21 @@
   // route-policy / order-statuses (those used to run sequentially behind one
   // `_pollBusy` flag and stretch update latency to 10–15s under write load).
   async function pollRefunds() {
-    if (_pageUnloading || _refundPollBusy || document.hidden) return;
+    // NB: intentionally keep polling while document.hidden. The refund panel's
+    // whole point is showing a refund SQL run in a *separate* Lakebase tab, so
+    // pausing on tab-switch is exactly when we must keep reading. This poll is a
+    // single lightweight read; the heavier status/map poll still pauses hidden.
+    if (_pageUnloading) return;
+    // A visibilitychange poll can race a request whose callback was suspended
+    // while this tab was hidden. Remember it and run again as soon as the
+    // current request releases the busy flag; do not wait for a throttled
+    // background setInterval tick.
+    if (_refundPollBusy) {
+      refundPollQueued = true;
+      return;
+    }
     if (!sessionId) return;
+    refundPollQueued = false;
     _refundPollBusy = true;
     try {
       const qs = "session_id=" + encodeURIComponent(sessionId || "")
@@ -3036,16 +3124,23 @@
       const data = await r.json();
       if (!data || !data.enabled) return;
       if (data.summary) syncRefundStatsFromDb(data.summary);
+      // Let the updated counter paint before processing notification cards.
+      // A first SQL run can refund dozens of orders in one transaction.
+      await new Promise(resolve => requestAnimationFrame(resolve));
       const sessionRefunds = Array.isArray(data.session_refunds)
         ? data.session_refunds
         : [];
       if (!refundPollPrimed) {
-        seenRefundIds = new Set(sessionRefunds.map(x => x.id));
+        // Do not mark the first returned batch as already seen. If query 2
+        // commits before the initial poll finishes, that is precisely the batch
+        // the operator expects to see. The issued_at/sessionStartedAt guard below
+        // still suppresses historical notifications after a restored session.
+        seenRefundIds = new Set();
         refundPollPrimed = true;
-        return;
       }
       const vById = new Map(vehicles.map(v => [v.id, v]));
       let nRef = 0;
+      const fresh = [];
       for (const rf of sessionRefunds.slice().reverse()) {
         if (seenRefundIds.has(rf.id)) continue;
         const issuedAt = rf.issued_at ? Date.parse(rf.issued_at) : NaN;
@@ -3054,13 +3149,21 @@
           continue;
         }
         seenRefundIds.add(rf.id);
-        if (notifyLakebaseRefund(rf, vById)) nRef++;
+        fresh.push(rf);
+      }
+      // Apply the whole batch, but only create detailed cards for the five most
+      // recent refunds. Building 50 cards synchronously delayed the first paint
+      // on busy simulations; the counter and aggregate banner still show all.
+      const cardStart = Math.max(0, fresh.length - 5);
+      for (let i = 0; i < fresh.length; i++) {
+        if (notifyLakebaseRefund(fresh[i], vById, i >= cardStart)) nRef++;
       }
       if (nRef) showBanner("💸", "Refunds issued",
         `${nRef} refund${nRef > 1 ? "s" : ""} sent straight from the operations database.`);
     } catch (e) {
     } finally {
       _refundPollBusy = false;
+      if (refundPollQueued && !_pageUnloading) queueMicrotask(pollRefunds);
     }
   }
 

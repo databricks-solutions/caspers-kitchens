@@ -144,6 +144,37 @@ _AREAS = [
     "Heights", "Wharf", "The Commons", "Terrace", "Crossing", "Grand Plaza",
 ]
 
+# Clustered on the north/west bank within ~2.7 km of the Ponte 25 de Abril
+# landing so the operator never has to pan away from the catastrophe bridge.
+# Every point clears the Tagus (OSRM nearest < 120 m). Mirror of
+# data/canonical/catastrophe_scenarios.py:LISBON_KITCHENS.
+_LISBON_KITCHENS: list[tuple[str, str, float, float]] = [
+    ("alcantara", "Alcântara", 38.7048, -9.1760),
+    ("santo-amaro", "Santo Amaro", 38.7035, -9.1795),
+    ("alto-santo-amaro", "Alto de Santo Amaro", 38.7090, -9.1820),
+    ("doca", "Doca de Alcântara", 38.7042, -9.1735),
+    ("alcantara-terra", "Alcântara-Terra", 38.7080, -9.1745),
+    ("ajuda", "Ajuda", 38.7100, -9.1955),
+    ("calcada-ajuda", "Calçada da Ajuda", 38.7120, -9.1900),
+    ("belem", "Belém", 38.6985, -9.2010),
+    ("junqueira", "Junqueira", 38.7008, -9.1930),
+    ("restelo", "Restelo", 38.7045, -9.2075),
+    ("estrela", "Estrela", 38.7135, -9.1615),
+    ("lapa", "Lapa", 38.7085, -9.1660),
+    ("santos", "Santos", 38.7075, -9.1585),
+    ("madragoa", "Madragoa", 38.7095, -9.1560),
+    ("campo-ourique", "Campo de Ourique", 38.7175, -9.1670),
+    ("prazeres", "Prazeres", 38.7150, -9.1720),
+    ("amoreiras", "Amoreiras", 38.7230, -9.1625),
+    ("rato", "Rato", 38.7195, -9.1545),
+    ("campolide", "Campolide", 38.7260, -9.1640),
+    ("sao-bento", "São Bento", 38.7125, -9.1545),
+    ("alto-alcantara", "Alto de Alcântara", 38.7160, -9.1755),
+    ("tapada", "Tapada da Ajuda", 38.7085, -9.1860),
+    ("pilar7", "Pilar 7", 38.7018, -9.1772),
+    ("casal-ventoso", "Casal Ventoso", 38.7098, -9.1785),
+]
+
 
 def _meters_per_deg(lat: float) -> tuple[float, float]:
     return 111320.0, 111320.0 * math.cos(math.radians(lat))
@@ -192,9 +223,25 @@ def _city_config_for(city_id: str) -> dict[str, Any]:
 
 
 def _generate_city_kitchens(city_id: str, *, count: int = 24) -> list[dict[str, Any]]:
-    """Deterministic kitchen spread around a city centre — fallback when the
-    catastrophe_kitchens table has no rows for that city. The client snaps the
-    coordinates to real roads on load."""
+    """Fallback kitchens when the catastrophe_kitchens table has no usable rows.
+
+    Lisbon uses curated land-based neighborhoods; other cities use a
+    deterministic spread that the client snaps to roads on load.
+    """
+    if city_id == "lisbon":
+        return [
+            {
+                "kitchen_id": f"lis-{slug}",
+                "name": f"Casper's {neighborhood}",
+                "neighborhood": neighborhood,
+                "city": _CITIES["lisbon"]["name"],
+                "location_id": 0,
+                "lat": lat,
+                "lon": lon,
+                "address": "",
+            }
+            for slug, neighborhood, lat, lon in _LISBON_KITCHENS[:count]
+        ]
     city = _CITIES.get(city_id)
     if city is None:
         return []
@@ -353,6 +400,8 @@ class ComplaintEvent(BaseModel):
     order_id: str
     quote: str = ""
     resolution: str | None = None
+    session_id: str = ""
+    city: str = ""
 
 
 class ConfigBody(BaseModel):
@@ -809,6 +858,11 @@ def kitchens_api(city: str = Query(default="")) -> list[dict[str, Any]]:
     spread if the table has no rows for the requested city (e.g. the stage was
     last materialized for a different city)."""
     cid = city.strip().lower()
+    # Lisbon is fully curated in code (clustered near Ponte 25 de Abril, all on
+    # land). The catastrophe_kitchens table may still hold an earlier spread-out
+    # set, so always serve the curated list and skip the table for Lisbon.
+    if cid == "lisbon":
+        return _generate_city_kitchens("lisbon")
     city_name = _CITIES[cid]["name"] if cid and cid in _CITIES else CITY_NAME
     rows = _query(
         f"""
@@ -1048,9 +1102,13 @@ def sim_refund(body: RefundEvent) -> dict[str, Any]:
 @app.post("/api/sim/complaint")
 def sim_complaint(body: ComplaintEvent) -> dict[str, Any]:
     if body.resolution:
-        db.resolve_complaint(body.order_id, body.resolution)
+        db.resolve_complaint(
+            body.order_id, body.resolution, body.session_id, body.city,
+        )
     else:
-        db.add_complaint(body.order_id, body.quote)
+        db.add_complaint(
+            body.order_id, body.quote, session_id=body.session_id, city=body.city,
+        )
     return {"ok": True, "persisted": db.enabled()}
 
 
