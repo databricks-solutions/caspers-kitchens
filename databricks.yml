@@ -571,7 +571,7 @@ targets:
             - name: AGENT_LLM_FALLBACK
               default: ""
             # Historical analytics dataset (stages/catastrophe_history.ipynb).
-            # Total synthetic orders across all 13 cities and the number of days
+            # Total synthetic orders across all 14 cities and the number of days
             # of history to generate.  Delta tables land in {CATALOG}.orders as
             # bronze_hist_*.  Tune down for a quick deploy.
             - name: HISTORY_TARGET_ORDERS

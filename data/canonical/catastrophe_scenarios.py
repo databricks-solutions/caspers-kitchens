@@ -180,6 +180,10 @@ CITIES: Dict[str, City] = {
         "paris", "Paris, France", "🇫🇷", "Seine",
         "Pont de la Concorde", (48.86338, 2.31960),
         "Pont Alexandre III", (48.86347, 2.31352), 130),
+    "lisbon": City(
+        "lisbon", "Lisbon, Portugal", "🇵🇹", "Tagus",
+        "Ponte 25 de Abril", (38.68917, -9.17694),
+        "Ponte Vasco da Gama", (38.76200, -9.04300), 260),
     "washington_dc": City(
         "washington_dc", "Washington, DC", "🇺🇸", "Potomac",
         "Francis Scott Key Bridge", (38.90456, -77.06885),
@@ -222,6 +226,7 @@ CITY_CATASTROPHES: Dict[str, dict] = {
     "vienna":        {"icon": "🌉", "title": "Reichsbrücke pier collapse",                    "desc": "A pier has given way and a span has dropped into the Danube. The Reichsbrücke is gone.", "label": "collapsed"},
     "warsaw":        {"icon": "💣", "title": "WWII bomb found by the Poniatowski Bridge",     "desc": "Construction crews uncovered unexploded WWII ordnance. A bomb-disposal cordon has closed the Vistula crossing.", "label": "cordoned off"},
     "paris":         {"icon": "📢", "title": "Protest blocks the Pont de la Concorde",        "desc": "A mass manifestation has flooded Place de la Concorde and blocked the Seine crossing.", "label": "blocked"},
+    "lisbon":        {"icon": "🌬️", "title": "Atlantic windstorm closes Ponte 25 de Abril",   "desc": "Extreme crosswinds have forced a full safety closure of Ponte 25 de Abril. Tagus traffic is diverted to Ponte Vasco da Gama.", "label": "closed by wind"},
     "washington_dc": {"icon": "🚓", "title": "Security lockdown on the Key Bridge",           "desc": "A presidential motorcade and Secret Service closure have sealed the Francis Scott Key Bridge over the Potomac.", "label": "locked down"},
     "boston":        {"icon": "🚇", "title": "Red Line derailment on the Longfellow",         "desc": "An MBTA train has derailed on the Longfellow Bridge, which carries the Red Line over the Charles. The bridge is closed.", "label": "derailed"},
     "bangalore":     {"icon": "🚗", "title": "Silk Board gridlock meltdown",                  "desc": "Monsoon waterlogging has turned the Silk Board Junction into total gridlock across the Outer Ring Road.", "label": "gridlocked"},
