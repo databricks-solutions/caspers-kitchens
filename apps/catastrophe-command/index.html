@@ -1226,8 +1226,18 @@
   }
 
   // ── Map ──
+  // CARTO raster tiles require ?key= or they watermark "API KEY REQUIRED".
+  const CARTO_BASEMAP_KEY = "cb1_2rw4_1_3b4981706091817868a97666";
+  const CARTO_TILE_OPTS = {
+    maxZoom: 20,
+    subdomains: "abcd",
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>',
+  };
+  function cartoTiles(style) {
+    return `https://{s}.basemaps.cartocdn.com/${style}/{z}/{x}/{y}{r}.png?key=${CARTO_BASEMAP_KEY}`;
+  }
   const map = L.map("map", { zoomControl: false, attributionControl: false }).setView(CENTER, 15);
-  let tileLayer = L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { maxZoom: 20, subdomains: "abcd" }).addTo(map);
+  let tileLayer = L.tileLayer(cartoTiles("light_all"), CARTO_TILE_OPTS).addTo(map);
   map.createPane("arcadeLabels");
   map.getPane("arcadeLabels").style.zIndex = "350";
   map.getPane("arcadeLabels").style.pointerEvents = "none";
@@ -1244,11 +1254,11 @@
   // ── Themes ── Classic (light Apple) and Arcade (dark neon game board).
   const THEME_TILES = {
     classic: {
-      base: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+      base: cartoTiles("light_all"),
     },
     arcade: {
-      base: "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png",
-      labels: "https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png",
+      base: cartoTiles("dark_nolabels"),
+      labels: cartoTiles("dark_only_labels"),
     },
   };
   const VEH_COLORS = { bike: "#34c759", car: "#0a84ff", scooter: "#ff9f0a" };
@@ -1257,11 +1267,11 @@
   function setBasemap(themeTiles) {
     if (tileLayer) map.removeLayer(tileLayer);
     if (labelLayer) { map.removeLayer(labelLayer); labelLayer = null; }
-    tileLayer = L.tileLayer(themeTiles.base, { maxZoom: 20, subdomains: "abcd" }).addTo(map);
+    tileLayer = L.tileLayer(themeTiles.base, CARTO_TILE_OPTS).addTo(map);
     if (tileLayer.bringToBack) tileLayer.bringToBack();
     if (themeTiles.labels) {
       labelLayer = L.tileLayer(themeTiles.labels, {
-        maxZoom: 20, subdomains: "abcd", pane: "arcadeLabels",
+        ...CARTO_TILE_OPTS, pane: "arcadeLabels",
       }).addTo(map);
     }
   }
